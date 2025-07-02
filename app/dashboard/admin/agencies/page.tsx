@@ -315,7 +315,7 @@ export default function AdminAgenciesPage() {
   }
 
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute allowedRoles={["admin"]} requiredRole="admin">
       <DashboardLayout userType="admin" title="Agency Management" description="Manage all agencies on the platform">
         <div className="space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

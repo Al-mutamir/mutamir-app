@@ -71,8 +71,8 @@ type ItineraryPeriod = {
 type PackageData = {
   arrivalDate: any
   flexibleDates: any
-  inclusions: boolean
-  exclusions: boolean
+  inclusions: []
+  exclusions: []
   id: string
   title: string
   type?: string
@@ -352,66 +352,66 @@ export default function PackageDetailsPage() {
     },
   }
 
-  const handleBookNow = async () => {
-    if (!user) {
-      router.push(`/auth/login?returnUrl=/packages/${id}`)
-      return
-    }
+  // const handleBookNow = async () => {
+  //   if (!user) {
+  //     router.push(`/auth/login?returnUrl=/packages/${id}`)
+  //     return
+  //   }
 
-    try {
-      setIsBookingLoading(true)
-      if (!packageData) throw new Error("Package data not loaded")
+  //   try {
+  //     setIsBookingLoading(true)
+  //     if (!packageData) throw new Error("Package data not loaded")
 
-      const bookingData = {
-        packageId: id,
-        packageTitle: packageData.title,
-        packageType: packageData.type || "Umrah",
-        agencyId: packageData.agencyId,
-        agencyName: agency?.agencyName || packageData.agencyName || "",
-        userId: user?.uid || "",
-        userEmail,
-        userName,
-        userPhone: user?.phoneNumber || "",
-        passportNumber,
-        totalPrice: packageData.price,
-        status: "pending",
-        paymentStatus: "pending",
-        createdAt: new Date(),
-        departureDate: packageData.departureDate || packageData.startDate,
-        returnDate: packageData.arrivalDate || packageData.endDate || null, // <-- Store as arrivalDate
-        duration: packageData.duration,
-        location: packageData.location || packageData.destination || "Makkah & Madinah",
-      }
+  //     const bookingData = {
+  //       packageId: id,
+  //       packageTitle: packageData.title,
+  //       packageType: packageData.type || "Umrah",
+  //       agencyId: packageData.agencyId,
+  //       agencyName: agency?.agencyName || packageData.agencyName || "",
+  //       userId: user?.uid || "",
+  //       userEmail,
+  //       userName,
+  //       userPhone: user?.phoneNumber || "",
+  //       passportNumber,
+  //       totalPrice: packageData.price,
+  //       status: "pending",
+  //       paymentStatus: "pending",
+  //       createdAt: new Date(),
+  //       departureDate: packageData.departureDate || packageData.startDate,
+  //       returnDate: packageData.arrivalDate || packageData.endDate || null, // <-- Store as arrivalDate
+  //       duration: packageData.duration,
+  //       location: packageData.location || packageData.destination || "Makkah & Madinah",
+  //     }
 
-      const result = await createBooking(bookingData)
+  //     const result = await createBooking(bookingData)
 
-      if (result && result.id) {
-        // Send booking confirmation email
-        await fetch("/api/confirm-booking", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: user.email,
-            subject: "Your Booking is Confirmed!",
-            text: `Dear ${user.displayName || user.email},\n\nYour booking for ${packageData.title} is confirmed.\n\nThank you for choosing Al-mutamir!`,
-            html: `<p>Dear ${user.displayName || user.email},</p><p>Your booking for <b>${packageData.title}</b> is confirmed.</p><p>Thank you for choosing <b>Al-mutamir</b>!</p>`,
-          }),
-        })
+  //     if (result && result.id) {
+  //       // Send booking confirmation email
+  //       await fetch("/api/confirm-booking", {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({
+  //           to: user.email,
+  //           subject: "Your Booking is Confirmed!",
+  //           text: `Dear ${user.displayName || user.email},\n\nYour booking for ${packageData.title} is confirmed.\n\nThank you for choosing Al-mutamir!`,
+  //           html: `<p>Dear ${user.displayName || user.email},</p><p>Your booking for <b>${packageData.title}</b> is confirmed.</p><p>Thank you for choosing <b>Al-mutamir</b>!</p>`,
+  //         }),
+  //       })
 
-        router.push(`/booking/${result.id}`)
-      } else {
-        throw new Error("Failed to create booking")
-      }
-    } catch (error) {
-      toast({
-        title: "Booking Error",
-        description: "There was a problem creating your booking. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsBookingLoading(false)
-    }
-  }
+  //       router.push(`/booking/${result.id}`)
+  //     } else {
+  //       throw new Error("Failed to create booking")
+  //     }
+  //   } catch (error) {
+  //     toast({
+  //       title: "Booking Error",
+  //       description: "There was a problem creating your booking. Please try again.",
+  //       variant: "destructive",
+  //     })
+  //   } finally {
+  //     setIsBookingLoading(false)
+  //   }
+  // }
 
   useEffect(() => {
     if (detailsConfirmed) {

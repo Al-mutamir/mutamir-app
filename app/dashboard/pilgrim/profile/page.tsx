@@ -16,16 +16,59 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch"
 import ProtectedRoute from "@/components/protected-route"
 
-export default function PilgrimProfilePage() {
-  const { user } = useAuth()
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-  const [successMessage, setSuccessMessage] = useState("")
+// Type definitions matching your auth context
+interface EmergencyContact {
+  name: string
+  relationship: string
+  phone: string
+}
 
-  // Form states
-  const [formData, setFormData] = useState({
+interface Preferences {
+  emailNotifications: boolean
+  smsNotifications: boolean
+  marketingEmails: boolean
+  language: string
+}
+
+interface UserProfile {
+  id?: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  phone?: string
+  address?: string
+  city?: string
+  state?: string
+  country?: string
+  dateOfBirth?: string
+  gender?: string
+  passportNumber?: string
+  passportExpiry?: string
+  emergencyContact?: EmergencyContact
+  preferences?: Preferences
+}
+
+// Match your AuthUser type from auth context
+interface AuthUser {
+  uid: string
+  email: string | null
+  displayName?: string
+}
+
+interface AuthContextType {
+  user: AuthUser | null
+  // Add other properties that your auth context might have
+}
+
+export default function PilgrimProfilePage() {
+  const { user } = useAuth() as AuthContextType
+  const [loading, setLoading] = useState<boolean>(true)
+  const [saving, setSaving] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string>("")
+
+  // Form states with proper typing - all fields optional to match UserProfile
+  const [formData, setFormData] = useState<UserProfile>({
     firstName: "",
     lastName: "",
     email: "",
@@ -57,12 +100,12 @@ export default function PilgrimProfilePage() {
 
       try {
         setLoading(true)
-        const profileData = await getUserProfile(user.uid)
+        // Type assertion to handle the getUserProfile return type
+        const profileData = await getUserProfile(user.uid) as UserProfile | null
 
         if (profileData) {
-          setProfile(profileData)
+          // Handle the profile data properly
           setFormData({
-            ...formData,
             firstName: profileData.firstName || "",
             lastName: profileData.lastName || "",
             email: profileData.email || user.email || "",
@@ -76,22 +119,25 @@ export default function PilgrimProfilePage() {
             passportNumber: profileData.passportNumber || "",
             passportExpiry: profileData.passportExpiry || "",
             preferences: {
-              ...formData.preferences,
-              ...(profileData.preferences || {}),
+              emailNotifications: profileData.preferences?.emailNotifications ?? true,
+              smsNotifications: profileData.preferences?.smsNotifications ?? true,
+              marketingEmails: profileData.preferences?.marketingEmails ?? false,
+              language: profileData.preferences?.language || "en",
             },
             emergencyContact: {
-              ...formData.emergencyContact,
-              ...(profileData.emergencyContact || {}),
+              name: profileData.emergencyContact?.name || "",
+              relationship: profileData.emergencyContact?.relationship || "",
+              phone: profileData.emergencyContact?.phone || "",
             },
           })
         } else {
           // Initialize with user data if available
-          setFormData({
-            ...formData,
+          setFormData(prev => ({
+            ...prev,
             email: user.email || "",
             firstName: user.displayName?.split(" ")[0] || "",
             lastName: user.displayName?.split(" ").slice(1).join(" ") || "",
-          })
+          }))
         }
       } catch (err) {
         console.error("Error fetching profile:", err)
@@ -104,82 +150,113 @@ export default function PilgrimProfilePage() {
     fetchProfile()
   }, [user])
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
 
     if (name.includes(".")) {
       const [section, field] = name.split(".")
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         [section]: {
-          ...formData[section],
+          ...(prev[section as keyof UserProfile] as Record<string, any>),
           [field]: value,
         },
-      })
+      }))
     } else {
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         [name]: value,
-      })
+      }))
     }
   }
 
-  const handleSwitchChange = (name, checked) => {
+  const handleSwitchChange = (name: string, checked: boolean) => {
     const [section, field] = name.split(".")
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [section]: {
-        ...formData[section],
+        ...(prev[section as keyof UserProfile] as Record<string, any>),
         [field]: checked,
       },
-    })
+    }))
   }
 
-  const handleSelectChange = (name, value) => {
+  const handleSelectChange = (name: string, value: string) => {
     if (name.includes(".")) {
       const [section, field] = name.split(".")
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         [section]: {
-          ...formData[section],
+          ...(prev[section as keyof UserProfile] as Record<string, any>),
           [field]: value,
         },
-      })
+      }))
     } else {
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         [name]: value,
-      })
+      }))
     }
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
+    if (!user?.uid) {
+      setError("User not authenticated")
+      return
+    }
 
     try {
       setSaving(true)
       setError(null)
       setSuccessMessage("")
 
-      await updateUserProfile(user.uid, formData)
+      // Create a clean data object with only defined values
+      const cleanFormData = {
+        firstName: formData.firstName || "",
+        lastName: formData.lastName || "",
+        email: formData.email || "",
+        phone: formData.phone || "",
+        address: formData.address || "",
+        city: formData.city || "",
+        state: formData.state || "",
+        country: formData.country || "Nigeria",
+        dateOfBirth: formData.dateOfBirth || "",
+        gender: formData.gender || "",
+        passportNumber: formData.passportNumber || "",
+        passportExpiry: formData.passportExpiry || "",
+        emergencyContact: {
+          name: formData.emergencyContact?.name || "",
+          relationship: formData.emergencyContact?.relationship || "",
+          phone: formData.emergencyContact?.phone || "",
+        },
+        preferences: {
+          emailNotifications: formData.preferences?.emailNotifications ?? true,
+          smsNotifications: formData.preferences?.smsNotifications ?? true,
+          marketingEmails: formData.preferences?.marketingEmails ?? false,
+          language: formData.preferences?.language || "en",
+        },
+      }
 
-      setProfile(formData)
+      await updateUserProfile(user.uid, cleanFormData)
+
       setSuccessMessage("Profile updated successfully!")
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(""), 3000)
     } catch (err) {
       console.error("Error updating profile:", err)
       setError("Failed to update your profile. Please try again.")
     } finally {
       setSaving(false)
-
-      // Clear success message after 3 seconds
-      if (successMessage) {
-        setTimeout(() => setSuccessMessage(""), 3000)
-      }
     }
   }
 
   const content = (
     <div className="container mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Profile</h1>
+      
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertTitle>Error</AlertTitle>
@@ -188,7 +265,7 @@ export default function PilgrimProfilePage() {
       )}
 
       {successMessage && (
-        <Alert variant="success" className="mb-6 bg-green-50 border-green-500 text-green-700">
+        <Alert className="mb-6 bg-green-50 border-green-500 text-green-700">
           <AlertTitle>Success</AlertTitle>
           <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
@@ -216,7 +293,7 @@ export default function PilgrimProfilePage() {
                     <Input
                       id="firstName"
                       name="firstName"
-                      value={formData.firstName}
+                      value={formData.firstName || ""}
                       onChange={handleInputChange}
                       required
                     />
@@ -227,7 +304,7 @@ export default function PilgrimProfilePage() {
                     <Input
                       id="lastName"
                       name="lastName"
-                      value={formData.lastName}
+                      value={formData.lastName || ""}
                       onChange={handleInputChange}
                       required
                     />
@@ -239,7 +316,7 @@ export default function PilgrimProfilePage() {
                       id="email"
                       name="email"
                       type="email"
-                      value={formData.email}
+                      value={formData.email || ""}
                       onChange={handleInputChange}
                       required
                     />
@@ -247,29 +324,29 @@ export default function PilgrimProfilePage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required />
+                    <Input id="phone" name="phone" value={formData.phone || ""} onChange={handleInputChange} required />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
-                  <Textarea id="address" name="address" value={formData.address} onChange={handleInputChange} />
+                  <Textarea id="address" name="address" value={formData.address || ""} onChange={handleInputChange} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
-                    <Input id="city" name="city" value={formData.city} onChange={handleInputChange} />
+                    <Input id="city" name="city" value={formData.city || ""} onChange={handleInputChange} />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="state">State</Label>
-                    <Input id="state" name="state" value={formData.state} onChange={handleInputChange} />
+                    <Input id="state" name="state" value={formData.state || ""} onChange={handleInputChange} />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="country">Country</Label>
-                    <Select value={formData.country} onValueChange={(value) => handleSelectChange("country", value)}>
+                    <Select value={formData.country || "Nigeria"} onValueChange={(value) => handleSelectChange("country", value)}>
                       <SelectTrigger id="country">
                         <SelectValue placeholder="Select country" />
                       </SelectTrigger>
@@ -292,14 +369,14 @@ export default function PilgrimProfilePage() {
                       id="dateOfBirth"
                       name="dateOfBirth"
                       type="date"
-                      value={formData.dateOfBirth}
+                      value={formData.dateOfBirth || ""}
                       onChange={handleInputChange}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
-                    <Select value={formData.gender} onValueChange={(value) => handleSelectChange("gender", value)}>
+                    <Select value={formData.gender || ""} onValueChange={(value) => handleSelectChange("gender", value)}>
                       <SelectTrigger id="gender">
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
@@ -337,7 +414,7 @@ export default function PilgrimProfilePage() {
                     <Input
                       id="passportNumber"
                       name="passportNumber"
-                      value={formData.passportNumber}
+                      value={formData.passportNumber || ""}
                       onChange={handleInputChange}
                     />
                   </div>
@@ -348,7 +425,7 @@ export default function PilgrimProfilePage() {
                       id="passportExpiry"
                       name="passportExpiry"
                       type="date"
-                      value={formData.passportExpiry}
+                      value={formData.passportExpiry || ""}
                       onChange={handleInputChange}
                     />
                   </div>
@@ -377,7 +454,7 @@ export default function PilgrimProfilePage() {
                   <Input
                     id="emergencyContact.name"
                     name="emergencyContact.name"
-                    value={formData.emergencyContact.name}
+                    value={formData.emergencyContact?.name || ""}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -386,7 +463,7 @@ export default function PilgrimProfilePage() {
                   <div className="space-y-2">
                     <Label htmlFor="emergencyContact.relationship">Relationship</Label>
                     <Select
-                      value={formData.emergencyContact.relationship}
+                      value={formData.emergencyContact?.relationship || ""}
                       onValueChange={(value) => handleSelectChange("emergencyContact.relationship", value)}
                     >
                       <SelectTrigger id="emergencyContact.relationship">
@@ -408,7 +485,7 @@ export default function PilgrimProfilePage() {
                     <Input
                       id="emergencyContact.phone"
                       name="emergencyContact.phone"
-                      value={formData.emergencyContact.phone}
+                      value={formData.emergencyContact?.phone || ""}
                       onChange={handleInputChange}
                     />
                   </div>
@@ -444,7 +521,7 @@ export default function PilgrimProfilePage() {
                     </div>
                     <Switch
                       id="emailNotifications"
-                      checked={formData.preferences.emailNotifications}
+                      checked={formData.preferences?.emailNotifications ?? true}
                       onCheckedChange={(checked) => handleSwitchChange("preferences.emailNotifications", checked)}
                     />
                   </div>
@@ -458,7 +535,7 @@ export default function PilgrimProfilePage() {
                     </div>
                     <Switch
                       id="smsNotifications"
-                      checked={formData.preferences.smsNotifications}
+                      checked={formData.preferences?.smsNotifications ?? true}
                       onCheckedChange={(checked) => handleSwitchChange("preferences.smsNotifications", checked)}
                     />
                   </div>
@@ -470,7 +547,7 @@ export default function PilgrimProfilePage() {
                     </div>
                     <Switch
                       id="marketingEmails"
-                      checked={formData.preferences.marketingEmails}
+                      checked={formData.preferences?.marketingEmails ?? false}
                       onCheckedChange={(checked) => handleSwitchChange("preferences.marketingEmails", checked)}
                     />
                   </div>
@@ -482,7 +559,7 @@ export default function PilgrimProfilePage() {
                   <div className="space-y-2">
                     <Label htmlFor="language">Preferred Language</Label>
                     <Select
-                      value={formData.preferences.language}
+                      value={formData.preferences?.language || "en"}
                       onValueChange={(value) => handleSelectChange("preferences.language", value)}
                     >
                       <SelectTrigger id="language">
@@ -529,7 +606,7 @@ export default function PilgrimProfilePage() {
   }
 
   return (
-    <ProtectedRoute requiredRole="pilgrim">
+    <ProtectedRoute allowedRoles={["pilgrim", "admin"]} requiredRole="pilgrim">
       <DashboardLayout userType="pilgrim">{content}</DashboardLayout>
     </ProtectedRoute>
   )

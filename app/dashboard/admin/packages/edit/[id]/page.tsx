@@ -361,7 +361,7 @@ export default function EditPackagePage() {
   
   if (loadingState.isLoading) {
     return (
-      <ProtectedRoute requiredRole="admin">
+      <ProtectedRoute allowedRoles={["admin"]} requiredRole="admin">
         <DashboardLayout userType="admin">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500" />
@@ -374,7 +374,7 @@ export default function EditPackagePage() {
   const hasAgencyChanged = originalAgencyId !== (packageData.isAdminPackage ? "admin" : packageData.agencyId)
   
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute allowedRoles={["admin"]} requiredRole="admin">
       <DashboardLayout userType="admin">
         <div className="space-y-6">
           {/* Header */}

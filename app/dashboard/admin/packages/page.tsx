@@ -322,7 +322,7 @@ export default function AdminPackagesPage() {
 
   if (loading && packages.length === 0) {
     return (
-      <ProtectedRoute requiredRole="admin">
+      <ProtectedRoute allowedRoles={["admin"]} requiredRole="admin">
         <DashboardLayout userType="admin">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
@@ -333,7 +333,7 @@ export default function AdminPackagesPage() {
   }
 
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute  allowedRoles={["admin"]} requiredRole="admin">
       <DashboardLayout userType="admin">
         <div className="space-y-6">
           <div className="flex justify-between items-center">

@@ -14,13 +14,39 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import ProtectedRoute from "@/components/protected-route"
 
+// Define interfaces for type safety
+interface Booking {
+  id: string
+  bookingId: string
+  packageName: string
+  agencyName: string
+  bookingDate: string
+  departureDate: string
+  returnDate?: string
+  totalAmount: number
+  status: 'confirmed' | 'cancelled' | 'pending'
+  cancellationDate?: string
+  cancellationReason?: string
+  refundAmount?: number
+}
+
+interface Payment {
+  id: string
+  amount: number
+  description: string
+  status: 'successful' | 'pending' | 'failed'
+  date: string
+  method?: string
+  reference?: string
+}
+
 export default function PilgrimHistoryPage() {
   const { user } = useAuth()
   const router = useRouter()
-  const [bookings, setBookings] = useState([])
-  const [payments, setPayments] = useState([])
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -34,7 +60,9 @@ export default function PilgrimHistoryPage() {
         ])
 
         // Sort bookings by date (newest first)
-        const sortedBookings = bookingsData.sort((a, b) => new Date(b.bookingDate) - new Date(a.bookingDate))
+        const sortedBookings = bookingsData.sort((a: Booking, b: Booking) => 
+          new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()
+        )
 
         setBookings(sortedBookings)
         setPayments(paymentsData)
@@ -57,6 +85,24 @@ export default function PilgrimHistoryPage() {
   // Get cancelled bookings
   const cancelledBookings = bookings.filter((booking) => booking.status === "cancelled")
 
+  const handleCertificateDownload = (bookingId: string) => {
+    // TODO: Implement actual certificate download functionality
+    console.log(`Downloading certificate for booking: ${bookingId}`)
+    alert("Certificate download functionality will be implemented here")
+  }
+
+  const handleReceiptDownload = (paymentId: string) => {
+    // TODO: Implement actual receipt download functionality
+    console.log(`Downloading receipt for payment: ${paymentId}`)
+    alert("Receipt download functionality will be implemented here")
+  }
+
+  const handleDocumentDownload = (documentType: string, bookingId?: string) => {
+    // TODO: Implement actual document download functionality
+    console.log(`Downloading ${documentType} document${bookingId ? ` for booking: ${bookingId}` : ''}`)
+    alert(`${documentType} download functionality will be implemented here`)
+  }
+
   const content = (
     <div className="container mx-auto">
       <Tabs defaultValue="bookings" className="mb-6">
@@ -70,8 +116,8 @@ export default function PilgrimHistoryPage() {
         <TabsContent value="bookings">
           {completedBookings.length > 0 ? (
             <div className="space-y-4">
-              {completedBookings.map((booking, index) => (
-                <Card key={index}>
+              {completedBookings.map((booking) => (
+                <Card key={booking.id}>
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row justify-between mb-4">
                       <div>
@@ -115,10 +161,7 @@ export default function PilgrimHistoryPage() {
                       </Button>
                       <Button
                         variant="secondary"
-                        onClick={() => {
-                          // Handle certificate download
-                          alert("Certificate download functionality will be implemented here")
-                        }}
+                        onClick={() => handleCertificateDownload(booking.id)}
                       >
                         Download Certificate
                       </Button>
@@ -139,8 +182,8 @@ export default function PilgrimHistoryPage() {
         <TabsContent value="cancelled">
           {cancelledBookings.length > 0 ? (
             <div className="space-y-4">
-              {cancelledBookings.map((booking, index) => (
-                <Card key={index}>
+              {cancelledBookings.map((booking) => (
+                <Card key={booking.id}>
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row justify-between mb-4">
                       <div>
@@ -194,8 +237,8 @@ export default function PilgrimHistoryPage() {
         <TabsContent value="payments">
           {payments.length > 0 ? (
             <div className="space-y-4">
-              {payments.map((payment, index) => (
-                <Card key={index}>
+              {payments.map((payment) => (
+                <Card key={payment.id}>
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row justify-between mb-4">
                       <div>
@@ -208,10 +251,18 @@ export default function PilgrimHistoryPage() {
                         <p className="text-muted-foreground">{payment.description}</p>
                       </div>
                       <Badge
-                        variant={payment.status === "successful" ? "success" : "secondary"}
-                        className={`mt-2 md:mt-0 w-fit ${payment.status === "successful" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                        variant={payment.status === "successful" ? "default" : "secondary"}
+                        className={`mt-2 md:mt-0 w-fit ${
+                          payment.status === "successful" 
+                            ? "bg-green-500 hover:bg-green-600 text-white" 
+                            : payment.status === "failed" 
+                            ? "bg-red-500 hover:bg-red-600 text-white"
+                            : ""
+                        }`}
                       >
-                        {payment.status === "successful" ? "Successful" : payment.status}
+                        {payment.status === "successful" ? "Successful" : 
+                         payment.status === "failed" ? "Failed" : 
+                         "Pending"}
                       </Badge>
                     </div>
 
@@ -233,10 +284,7 @@ export default function PilgrimHistoryPage() {
                     <div className="flex justify-end mt-4">
                       <Button
                         variant="outline"
-                        onClick={() => {
-                          // Handle receipt download
-                          alert("Receipt download functionality will be implemented here")
-                        }}
+                        onClick={() => handleReceiptDownload(payment.id)}
                       >
                         Download Receipt
                       </Button>
@@ -262,8 +310,8 @@ export default function PilgrimHistoryPage() {
             <CardContent>
               {bookings.length > 0 ? (
                 <div className="space-y-4">
-                  {completedBookings.map((booking, index) => (
-                    <div key={index} className="flex items-center p-4 border rounded-lg">
+                  {completedBookings.map((booking) => (
+                    <div key={booking.id} className="flex items-center p-4 border rounded-lg">
                       <div className="bg-blue-100 p-2 rounded-full mr-4">
                         <FileTextIcon className="h-5 w-5 text-blue-600" />
                       </div>
@@ -273,7 +321,11 @@ export default function PilgrimHistoryPage() {
                           Completed on {new Date(booking.returnDate || booking.departureDate).toLocaleDateString()}
                         </p>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDocumentDownload("Certificate", booking.id)}
+                      >
                         Download
                       </Button>
                     </div>
@@ -291,7 +343,11 @@ export default function PilgrimHistoryPage() {
                           Last updated on {new Date().toLocaleDateString()}
                         </p>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDocumentDownload("Visa Documentation")}
+                      >
                         Download
                       </Button>
                     </div>
@@ -344,7 +400,7 @@ export default function PilgrimHistoryPage() {
   }
 
   return (
-    <ProtectedRoute requiredRole="pilgrim">
+    <ProtectedRoute allowedRoles={["pilgrim", "admin"]} requiredRole="pilgrim">
       <DashboardLayout userType="pilgrim">{content}</DashboardLayout>
     </ProtectedRoute>
   )

@@ -30,6 +30,7 @@ export interface AuthUser {
   gender?: string
   phoneNumber?: string | null
   adminRole?: string
+  passportNumber?: string | null
 }
 
 // Define context type

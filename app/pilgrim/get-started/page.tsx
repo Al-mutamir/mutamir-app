@@ -21,6 +21,7 @@ export default function GetStartedPage() {
     accommodation: false,
     transport: false,
     food: false,
+    visitation: false,
   })
   const [personalDetails, setPersonalDetails] = useState({
     firstName: "",

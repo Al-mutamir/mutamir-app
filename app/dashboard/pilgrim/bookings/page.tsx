@@ -16,18 +16,37 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ProtectedRoute from "@/components/protected-route"
 
+// Define interfaces for type safety
+interface Booking {
+  id: string
+  bookingId: string
+  packageName: string
+  agencyName: string
+  departureDate: string
+  amountPaid: number
+  status: 'confirmed' | 'cancelled' | 'pending'
+}
+
+interface CalendarDay {
+  date: Date
+  isCurrentMonth: boolean
+  day: number
+}
+
+type StatusFilter = 'all' | 'upcoming' | 'past' | 'cancelled'
+
 export default function BookingsPage() {
   const { user } = useAuth()
   const router = useRouter()
-  const [bookings, setBookings] = useState([])
-  const [filteredBookings, setFilteredBookings] = useState([])
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [calendarDays, setCalendarDays] = useState([])
-  const [calendarBookings, setCalendarBookings] = useState({})
+  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([])
+  const [calendarBookings, setCalendarBookings] = useState<Record<string, Booking[]>>({})
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -97,7 +116,7 @@ export default function BookingsPage() {
       const daysFromPrevMonth = firstDayOfWeek
       const prevMonthLastDay = new Date(year, month, 0).getDate()
 
-      const days = []
+      const days: CalendarDay[] = []
 
       // Add days from previous month
       for (let i = daysFromPrevMonth - 1; i >= 0; i--) {
@@ -137,7 +156,7 @@ export default function BookingsPage() {
   // Map bookings to calendar days
   useEffect(() => {
     const mapBookingsToCalendar = () => {
-      const bookingMap = {}
+      const bookingMap: Record<string, Booking[]> = {}
 
       bookings.forEach((booking) => {
         if (booking.departureDate) {
@@ -158,7 +177,7 @@ export default function BookingsPage() {
     mapBookingsToCalendar()
   }, [bookings])
 
-  const getStatusBadge = (booking) => {
+  const getStatusBadge = (booking: Booking) => {
     const now = new Date()
     const departureDate = new Date(booking.departureDate)
 
@@ -168,7 +187,7 @@ export default function BookingsPage() {
       return <Badge variant="secondary">Completed</Badge>
     } else {
       return (
-        <Badge variant="success" className="bg-green-500 hover:bg-green-600">
+        <Badge variant="default" className="bg-green-500 hover:bg-green-600">
           Upcoming
         </Badge>
       )
@@ -183,17 +202,23 @@ export default function BookingsPage() {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
   }
 
-  const formatMonthYear = (date) => {
+  const formatMonthYear = (date: Date) => {
     return date.toLocaleDateString("en-US", { month: "long", year: "numeric" })
   }
 
-  const isToday = (date) => {
+  const isToday = (date: Date) => {
     const today = new Date()
     return (
       date.getDate() === today.getDate() &&
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear()
     )
+  }
+
+  const handleDownloadItinerary = (bookingId: string) => {
+    // TODO: Implement actual itinerary download functionality
+    console.log(`Downloading itinerary for booking: ${bookingId}`)
+    alert("Itinerary download functionality will be implemented here")
   }
 
   const content = (
@@ -209,7 +234,7 @@ export default function BookingsPage() {
           />
         </div>
 
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(value: StatusFilter) => setStatusFilter(value)}>
           <SelectTrigger className="w-full md:w-48">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -233,8 +258,8 @@ export default function BookingsPage() {
         <TabsContent value="list">
           {filteredBookings.length > 0 ? (
             <div className="space-y-4">
-              {filteredBookings.map((booking, index) => (
-                <Card key={index} className="overflow-hidden">
+              {filteredBookings.map((booking) => (
+                <Card key={booking.id} className="overflow-hidden">
                   <div className="flex flex-col md:flex-row">
                     <div className="bg-primary/10 p-6 flex items-center justify-center md:w-1/4">
                       <PackageIcon className="h-16 w-16 text-primary" />
@@ -282,10 +307,7 @@ export default function BookingsPage() {
                         {new Date(booking.departureDate) > new Date() && booking.status !== "cancelled" && (
                           <Button
                             variant="secondary"
-                            onClick={() => {
-                              // Handle download itinerary
-                              alert("Itinerary download functionality will be implemented here")
-                            }}
+                            onClick={() => handleDownloadItinerary(booking.id)}
                           >
                             Download Itinerary
                           </Button>
@@ -367,7 +389,7 @@ export default function BookingsPage() {
                         {hasBookings &&
                           dayBookings.slice(0, 2).map((booking, idx) => (
                             <div
-                              key={idx}
+                              key={booking.id}
                               className="text-xs p-1 rounded bg-primary/10 truncate cursor-pointer hover:bg-primary/20"
                               onClick={() => router.push(`/booking/${booking.id}`)}
                             >
@@ -434,7 +456,7 @@ export default function BookingsPage() {
   }
 
   return (
-    <ProtectedRoute requiredRole="pilgrim">
+    <ProtectedRoute allowedRoles={["pilgrim", "admin"]} requiredRole="pilgrim">
       <DashboardLayout userType="pilgrim">{content}</DashboardLayout>
     </ProtectedRoute>
   )
