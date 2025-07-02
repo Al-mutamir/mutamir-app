@@ -405,8 +405,3 @@ export default function AdminPilgrimsPage() {
 
   return <DashboardLayout userType="admin">{content}</DashboardLayout>
 }
-
-export const metadata = {
-  title: "Admin Pilgrims",
-  description: "Manage pilgrims and their details",
-}
