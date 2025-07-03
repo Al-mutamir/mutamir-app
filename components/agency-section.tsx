@@ -46,7 +46,7 @@ export default function AgencySection() {
               </li>
             </ul>
 
-            <Link href="/agency/register">
+            <Link href="/auth/register">
               <Button className="bg-[#c8e823] text-black hover:bg-[#b5d31f]">
                 Register Your Agency <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

@@ -23,7 +23,7 @@ export default function PilgrimSection() {
               Experience a Spiritual Journey Tailored to Your Needs
             </h2>
             <p className="text-gray-600 mb-6 leading-relaxed">
-              At Mutamir, we understand the sacred significance of your pilgrimage. Our platform gives you the freedom
+              At Al-Mutamir, we understand the sacred significance of your pilgrimage. Our platform gives you the freedom
               to customize every aspect of your journey, ensuring a deeply personal, meaningful, and spiritually
               fulfilling experience that will stay with you for a lifetime.
             </p>
@@ -52,9 +52,9 @@ export default function PilgrimSection() {
               </li>
             </ul>
 
-            <Link href="/pilgrim/get-started">
+            <Link href="/services">
               <Button className="bg-[#c8e823] text-black hover:bg-[#b5d31f]">
-                Begin Your Sacred Journey <ArrowRight className="ml-2 h-4 w-4" />
+                Create a Booking <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
