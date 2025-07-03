@@ -571,7 +571,8 @@ export default function ServicesPage() {
                     Remove
                   </Button>
                 </div>
-              ))}
+              ))} 
+              <br />
               <Button
                 type="button"
                 variant="outline"
@@ -592,98 +593,118 @@ export default function ServicesPage() {
               </p>
 
               <div className="space-y-6">
-                <div className="border p-4 rounded-lg">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Checkbox
-                      id="visa"
-                      checked={selectedServices.visa.selected}
-                      onCheckedChange={(checked) => handleServiceChange("visa", checked === true)}
-                    />
-                    <div>
-                      <Label htmlFor="visa" className="font-medium">
-                        Visa Assistance
-                      </Label>
-                      {(departureCity === "london" || departureCity === "newyork") && (
-                        <p className="text-xs text-green-600 mt-1">
-                          Note: Pilgrims from the UK and US are eligible for visa on arrival
-                        </p>
-                      )}
-                    </div>
-                  </div>
+<div className="border p-4 rounded-lg">
+  <div className="flex items-center space-x-2 mb-3">
+    <Checkbox
+      id="visa"
+      checked={selectedServices.visa.selected}
+      onCheckedChange={(checked) => handleServiceChange("visa", checked === true)}
+    />
+    <div>
+      <Label htmlFor="visa" className="font-medium">
+        Visa Assistance
+      </Label>
+      {(departureCity === "london" || departureCity === "newyork") && (
+        <p className="text-xs text-green-600 mt-1">
+          Note: Pilgrims from the UK and US are eligible for visa on arrival
+        </p>
+      )}
+    </div>
+  </div>
 
-                  {selectedServices.visa.selected && (
-                    <div className="ml-6 space-y-2">
-                      <Label className="text-sm">Select Visa Type</Label>
-                      <RadioGroup
-                        value={selectedServices.visa.tier}
-                        onValueChange={(value) => handleTierChange("visa", value)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="short-term" id="visa-short-term" />
-                          <Label htmlFor="visa-short-term">Short-term (6 months)</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem
-                            value="long-term"
-                            id="visa-long-term"
-                            disabled={
-                              departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano"
-                            }
-                          />
-                          <Label
-                            htmlFor="visa-long-term"
-                            className={
-                              departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano"
-                                ? "text-gray-400"
-                                : ""
-                            }
-                          >
-                            Long-term (1 year)
-                          </Label>
-                          {(departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano") && (
-                            <span className="text-xs text-amber-600 ml-2">(Not available for Nigerian citizens)</span>
-                          )}
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  )}
-                </div>
+  {selectedServices.visa.selected && (
+    <div className="ml-6 space-y-2">
+      <Label className="text-sm">Select Visa Type</Label>
+      <RadioGroup
+        value={selectedServices.visa.tier}
+        onValueChange={(value) => handleTierChange("visa", value)}
+      >
+        {/* Pilgrimage-specific visa options based on package type */}
+        {packageType === "hajj" && (
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="hajj-standard" id="visa-hajj-standard" />
+            <Label htmlFor="visa-hajj-standard">Hajj Standard Visa</Label>
+          </div>
+        )}
+        {packageType === "umrah" && (
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="umrah-standard" id="visa-umrah-standard" />
+            <Label htmlFor="visa-umrah-standard">Umrah Standard Visa</Label>
+          </div>
+        )}
+        
+        {/* General visa options */}
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="short-term" id="visa-short-term" />
+          <Label htmlFor="visa-short-term">Short-term (6 months)</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem
+            value="long-term"
+            id="visa-long-term"
+            disabled={
+              departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano"
+            }
+          />
+          <Label
+            htmlFor="visa-long-term"
+            className={
+              departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano"
+                ? "text-gray-400"
+                : ""
+            }
+          >
+            Long-term (1 year)
+          </Label>
+          {(departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano") && (
+            <span className="text-xs text-amber-600 ml-2">(Not available for Nigerian citizens)</span>
+          )}
+        </div>
+      </RadioGroup>
+    </div>
+  )}
+</div>
 
-                <div className="border p-4 rounded-lg">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Checkbox
-                      id="flight"
-                      checked={selectedServices.flight.selected}
-                      onCheckedChange={(checked) => handleServiceChange("flight", checked === true)}
-                    />
-                    <Label htmlFor="flight" className="font-medium">
-                      Flight Booking
-                    </Label>
-                  </div>
 
-                  {selectedServices.flight.selected && (
-                    <div className="ml-6 space-y-2">
-                      <Label className="text-sm">Select Tier</Label>
-                      <RadioGroup
-                        value={selectedServices.flight.tier}
-                        onValueChange={(value) => handleTierChange("flight", value)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="economy" id="flight-economy" />
-                          <Label htmlFor="flight-economy">Economy Class</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="business" id="flight-business" />
-                          <Label htmlFor="flight-business">Business Class</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="first" id="flight-first" />
-                          <Label htmlFor="flight-first">First Class</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  )}
-                </div>
+<div className="border p-4 rounded-lg">
+  <div className="flex items-center space-x-2 mb-3">
+    <Checkbox
+      id="flight"
+      checked={selectedServices.flight.selected}
+      onCheckedChange={(checked) => handleServiceChange("flight", checked === true)}
+    />
+    <Label htmlFor="flight" className="font-medium">
+      Flight Booking
+    </Label>
+  </div>
+
+  {selectedServices.flight.selected && (
+    <div className="ml-6 space-y-2">
+      <Label className="text-sm">Select Tier</Label>
+      <RadioGroup
+        value={selectedServices.flight.tier}
+        onValueChange={(value) => handleTierChange("flight", value)}
+      >
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="economy" id="flight-economy" />
+          <Label htmlFor="flight-economy">Economy Class</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="business" id="flight-business" />
+          <Label htmlFor="flight-business">Business Class</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="first" id="flight-first" />
+          <Label htmlFor="flight-first">First Class</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="private" id="flight-private" />
+          <Label htmlFor="flight-private">Private Charter</Label>
+        </div>
+      </RadioGroup>
+    </div>
+  )}
+</div>
 
                 <div className="border p-4 rounded-lg">
                   <div className="flex items-center space-x-2 mb-3">
