@@ -1,3 +1,4 @@
+"use client"
 import { useEffect, useState } from "react"
 import ProtectedRoute from "@/components/protected-route"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
