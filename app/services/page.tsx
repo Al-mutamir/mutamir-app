@@ -567,7 +567,8 @@ export default function ServicesPage() {
             <div class="highlight-box">
                 <div class="highlight-title">What happens next?</div>
                 <div class="highlight-text">
-                    Our team will review your booking and contact you within 24-48 hours to confirm all details and arrange payment. We'll also send you a comprehensive guide to help you prepare for your journey.
+                    Our team will review your booking and contact you within 24-48 hours to confirm all details and arrange payment. 
+                    SWe'll also send you a comprehensive guide to help you prepare for your journey.
                 </div>
             </div>
             
@@ -629,12 +630,6 @@ export default function ServicesPage() {
                     Warm regards,<br>
                     The Al-mutamir Team
                 </div>
-            </div>
-            
-            <div class="social-links">
-                <a href="#" class="social-link">f</a>
-                <a href="#" class="social-link">@</a>
-                <a href="#" class="social-link">in</a>
             </div>
             
             <div class="copyright">

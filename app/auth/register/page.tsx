@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { use, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -108,7 +108,7 @@ export default function RegisterPage() {
   // Similarly update the Google sign-up function
   const handleGoogleSignUp = async () => {
     try {
-      await signInWithGoogle()
+      await signInWithGoogle(userRole)
 
       toast({
         title: "Registration Successful!",
@@ -121,7 +121,7 @@ export default function RegisterPage() {
         const userData = await getUserData(user.uid) as UserData
 
         if (userData) {
-          if (userData.role === "pilgrim" || userData.role === "agency") {
+          if (userData.role === "pilgrim" || userData.role === "agency" || userData.role === "admin") {
             // If onboarding not completed, redirect to onboarding
             if (!userData.onboardingCompleted) {
               navigation.push(`/onboarding/${userData.role}`)
