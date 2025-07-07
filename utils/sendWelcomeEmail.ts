@@ -300,10 +300,10 @@ export async function sendWelcomeEmail(to: string, name: string) {
         
         <!-- Footer -->
         <div class="footer">
-            <p>If you did not create this account, please contact us at <a href="mailto:support@almutamir.com" class="support-link">support@al-mutamir.com</a></p>
+            <p>If you did not create this account, please contact us at <a href="mailto:support@almutamir.com" class="support-link">support@almutamir.com</a></p>
             
             <p style="margin-top: 15px;">
-                For any questions about your pilgrimage or our services, please contact us at: <a href="mailto:support@al-mutamir.com" class="support-link">support@al-mutamir.com</a>
+                For any questions about your pilgrimage or our services, please contact us at: <a href="mailto:support@almutamir.com" class="support-link">support@almutamir.com</a>
             </p>
             
             <p style="margin-top: 15px;">
