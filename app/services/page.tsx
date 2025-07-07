@@ -281,6 +281,7 @@ export default function ServicesPage() {
       // Save booking to Firestore (using the first pilgrim as the main contact)
       const mainPilgrim = pilgrims[0]
       await createBooking({
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
         packageId: selectedPackage || "custom",
         pilgrimId: mainPilgrim.email, // or use a user ID if available
         agencyId: "custom", // or set to the selected agency/package agency if available

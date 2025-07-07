@@ -16,6 +16,7 @@ import {
 import { auth } from "@/lib/firebase/config"
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase/config"
+import { serverTimestamp } from "firebase/firestore"; // Import serverTimestamp
 
 export type UserRole = "pilgrim" | "agency" | "admin" | null
 
@@ -39,7 +40,8 @@ type AuthContextType = {
   loading: boolean
   signUp: (email: string, password: string, role: UserRole, displayName?: string, gender?: string) => Promise<any>
   signIn: (email: string, password: string) => Promise<any>
-  signInWithGoogle: () => Promise<any>
+  // MODIFIED: signInWithGoogle now accepts a selectedRole
+  signInWithGoogle: (selectedRole: UserRole) => Promise<any>
   logout: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   updateUserRole: (role: UserRole) => Promise<void>
@@ -75,7 +77,7 @@ const setUserData = async (uid: string, data: any) => {
   }
 
   try {
-    await setDoc(doc(db, "users", uid), data)
+    await setDoc(doc(db, "users", uid), data, { merge: true }) // Use merge: true to avoid overwriting
   } catch (error) {
     console.error("Error setting user data:", error)
     throw error
@@ -124,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email: currentUser.email,
                 displayName: currentUser.displayName || userData.displayName,
                 photoURL: currentUser.photoURL,
-                role: isAdminEmail ? "admin" : userData.role,
+                role: isAdminEmail ? "admin" : userData.role, // Admin role takes precedence
                 onboardingCompleted: userData.onboardingCompleted || false,
                 gender: userData.gender || "male",
                 adminRole: userData.adminRole,
@@ -134,24 +136,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setUserRole(isAdminEmail ? "admin" : userData.role)
 
               // Store user role in a cookie for middleware access
-              document.cookie = `user-role=${isAdminEmail ? "admin" : userData.role}; path=/; max-age=86400`
+              document.cookie = `user-role=${isAdminEmail ? "admin" : userData.role || ""}; path=/; max-age=86400`
               document.cookie = `onboarding-completed=${userData.onboardingCompleted ? "true" : "false"}; path=/; max-age=86400`
             } else {
               // User doesn't exist in Firestore yet (might be a new social login)
               // Set default role as null until explicitly set, or admin if from almutamir.com domain
+              const initialRole = isAdminEmail ? "admin" : null; // Keep role null for new non-admin social logins
               setUser({
                 uid: currentUser.uid,
                 email: currentUser.email,
                 displayName: currentUser.displayName,
                 photoURL: currentUser.photoURL,
-                role: isAdminEmail ? "admin" : null,
+                role: initialRole,
                 onboardingCompleted: false,
                 gender: "male",
               })
-              setUserRole(isAdminEmail ? "admin" : null)
+              setUserRole(initialRole)
 
               // Store user role in a cookie for middleware access
-              document.cookie = `user-role=${isAdminEmail ? "admin" : ""}; path=/; max-age=86400`
+              document.cookie = `user-role=${initialRole || ""}; path=/; max-age=86400`
               document.cookie = "onboarding-completed=false; path=/; max-age=86400"
             }
           } catch (error) {
@@ -213,23 +216,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Check if email is from almutamir.com domain (admin)
       const isAdminEmail = email.endsWith("@almutamir.com")
-      const userRole = isAdminEmail ? "admin" : role
+      const userFinalRole = isAdminEmail ? "admin" : role // Use a different variable name to avoid confusion
 
       // Store user data in Firestore
       await setUserData(newUser.uid, {
         uid: newUser.uid,
         email: newUser.email,
         displayName: displayName || null,
-        role: userRole,
+        role: userFinalRole, // Use the determined final role
         photoURL: newUser.photoURL,
         onboardingCompleted: false,
         gender: gender,
+        createdAt: serverTimestamp(), // Add timestamp
       })
 
-      setUserRole(userRole)
+      setUserRole(userFinalRole)
 
       // Store user role in a cookie for middleware access
-      document.cookie = `user-role=${userRole}; path=/; max-age=86400`
+      document.cookie = `user-role=${userFinalRole || ""}; path=/; max-age=86400`
       document.cookie = "onboarding-completed=false; path=/; max-age=86400"
 
       return userCredential
@@ -263,7 +267,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserRole(role)
 
         // Store user role in a cookie for middleware access
-        document.cookie = `user-role=${role}; path=/; max-age=86400`
+        document.cookie = `user-role=${role || ""}; path=/; max-age=86400`
         document.cookie = `onboarding-completed=${userData.onboardingCompleted ? "true" : "false"}; path=/; max-age=86400`
 
         // Add role to the user object for easier access
@@ -281,6 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           photoURL: userCredential.user.photoURL,
           onboardingCompleted: false,
           gender: "male",
+          createdAt: serverTimestamp(), // Add timestamp
         })
 
         setUserRole("admin")
@@ -304,7 +309,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Sign in with Google
-  const signInWithGoogleAuth = async () => {
+  // MODIFIED: signInWithGoogleAuth now accepts selectedRole
+  const signInWithGoogleAuth = async (selectedRole: UserRole) => {
     if (!auth) {
       throw new Error("Auth not initialized")
     }
@@ -322,37 +328,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await getUserData(user.uid)
 
       if (!userData) {
-        // First time login with Google, create user in Firestore with default role
-        // If email is from almutamir.com, set role to admin
-        const role = isAdminEmail ? "admin" : "pilgrim"
+        // First time login with Google, create user in Firestore with the selected role
+        // If email is from almutamir.com, set role to admin (admin role takes precedence)
+        const roleToSet = isAdminEmail ? "admin" : selectedRole || "pilgrim"; // Default to pilgrim if selectedRole is null
 
         await setUserData(user.uid, {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
-          role: role,
+          role: roleToSet, // Use the selected/determined role
           photoURL: user.photoURL,
           onboardingCompleted: false,
           gender: "male", // Default gender
+          createdAt: serverTimestamp(), // Add timestamp
         })
 
-        setUserRole(role)
+        setUserRole(roleToSet)
 
         // Store user role in a cookie for middleware access
-        document.cookie = `user-role=${role}; path=/; max-age=86400`
+        document.cookie = `user-role=${roleToSet || ""}; path=/; max-age=86400`
         document.cookie = "onboarding-completed=false; path=/; max-age=86400"
 
         // Add role to the user object for easier access
-        ;(user as any).role = role
+        ;(user as any).role = roleToSet
         ;(user as any).onboardingCompleted = false
         ;(user as any).gender = "male"
       } else {
+        // User exists in Firestore, just update the local state and cookies
         // If email is from almutamir.com, set role to admin regardless of what's in Firestore
         const role = isAdminEmail ? "admin" : userData.role
         setUserRole(role)
 
         // Store user role in a cookie for middleware access
-        document.cookie = `user-role=${role}; path=/; max-age=86400`
+        document.cookie = `user-role=${role || ""}; path=/; max-age=86400`
         document.cookie = `onboarding-completed=${userData.onboardingCompleted ? "true" : "false"}; path=/; max-age=86400`
 
         // Add role to the user object for easier access
@@ -418,7 +426,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser((prev) => (prev ? { ...prev, role } : null))
 
         // Update role cookie
-        document.cookie = `user-role=${role}; path=/; max-age=86400`
+        document.cookie = `user-role=${role || ""}; path=/; max-age=86400`
       } catch (error) {
         console.error("Error updating user role:", error)
         throw error
@@ -432,7 +440,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signUp,
     signIn,
-    signInWithGoogle: signInWithGoogleAuth,
+    signInWithGoogle: signInWithGoogleAuth, // Reference the modified function
     logout,
     resetPassword,
     updateUserRole: updateUserRoleFunc,
@@ -458,11 +466,14 @@ export function ClientRoleHandler({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Get role from URL query parameter
-    if (typeof window !== "undefined" && user && !isProcessing) {
+    // Only process if user exists, not already processing, and current userRole is null
+    // This null check is important for new social sign-ups where role hasn't been explicitly set yet
+    if (typeof window !== "undefined" && user && !isProcessing && userRole === null) {
       const params = new URLSearchParams(window.location.search)
       const roleParam = params.get("role") as UserRole
 
-      if (roleParam && userRole !== roleParam) {
+      // If a role is in the URL and it's different from the current user's (null for new social)
+      if (roleParam && roleParam !== userRole) { // Also ensure roleParam is not null
         setIsProcessing(true)
         updateUserRole(roleParam).finally(() => setIsProcessing(false))
       }

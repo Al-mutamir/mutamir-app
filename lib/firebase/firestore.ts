@@ -205,6 +205,16 @@ export async function getUserProfile(userId: unknown) {
   }
 }
 
+//  Function to 
+export async function createUserDocument(uid: string, userData: any) {
+  try {
+    await setDoc(doc(db, "users", uid), userData)
+  } catch (error) {
+    console.error("Error creating user document:", error)
+    throw error
+  }
+}
+
 // Function to get user data (alias for getUserProfile for compatibility)
 export async function getUserData(userId: string) {
   if (!userId) {
