@@ -3,14 +3,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export default function FaqSection() {
   const faqs = [
     {
-      question: "How does Mutamir ensure the legitimacy of agencies?",
+      question: "How does Al-Mutamir ensure the legitimacy of agencies?",
       answer:
         "We thoroughly vet all agencies on our platform, requiring proper accreditation and documentation. We continuously monitor reviews and feedback to maintain high standards of service.",
     },
     {
       question: "Can I customize my Hajj or Umrah package?",
       answer:
-        "Mutamir allows you to select your preferred services including visas, flights, accommodation, transport, and meals. You have full control over your pilgrimage experience.",
+        "Al-Mutamir allows you to select your preferred services including visas, flights, accommodation, transport, and meals. You have full control over your pilgrimage experience.",
     },
     {
       question: "Do I need a visa if I'm traveling from the US or UK?",
@@ -39,7 +39,7 @@ export default function FaqSection() {
       <div className="container">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">Find answers to common questions about Mutamir's services</p>
+          <p className="text-gray-600 max-w-2xl mx-auto">Find answers to common questions about our services</p>
         </div>
 
         <div className="max-w-3xl mx-auto">
