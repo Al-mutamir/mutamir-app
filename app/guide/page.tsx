@@ -244,7 +244,7 @@ export default function QAPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8F8F6] via-white to-[#F8F8F6]">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-[#007F5F] to-[#3E7C59] text-white py-16">
+      {/* <div className="bg-gradient-to-r from-[#007F5F] to-[#3E7C59] text-white py-16">
         <div className="container max-w-6xl mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -263,7 +263,7 @@ export default function QAPage() {
             </Link>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Content */}
       <div className="container max-w-4xl mx-auto px-4 py-12">
