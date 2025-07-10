@@ -55,7 +55,7 @@ export default function WhyChooseUs() {
               to customize every aspect of your journey, ensuring a deeply personal and meaningful experience.
             </p>
 
-            <Link href="/pilgrim/get-started">
+            <Link href="/services">
               <Button className="mb-12 bg-[#c8e823] text-black hover:bg-[#b5d31f]">Explore more</Button>
             </Link>
 
