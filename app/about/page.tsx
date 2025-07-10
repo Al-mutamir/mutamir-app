@@ -91,7 +91,7 @@ export default function AboutPage() {
                   <div>
                     <h2 className="text-2xl font-bold mb-4">Our Story</h2>
                     <p className="text-gray-600 mb-4">
-                      Mutamir was conceived in 2023 with a simple mission: to transform the way pilgrims plan and
+                      Al-Mutamir was conceived in 2023 with a simple mission: to transform the way pilgrims plan and
                       experience their Hajj and Umrah journeys, after we recognized that the traditional approach to
                       pilgrimage planning often lacked transparency, flexibility, and personalization.
                     </p>
@@ -104,7 +104,7 @@ export default function AboutPage() {
                     <div className="absolute -z-10 inset-0 bg-[#c8e823]/10 rounded-3xl transform rotate-2"></div>
                     <img
                       src="/images/mutamir.png?height=400&width=500"
-                      alt="Mutamir founding team"
+                      alt="Al-Mutamir founding team"
                       className="rounded-2xl shadow-lg w-full"
                     />
                   </div>
@@ -192,7 +192,7 @@ export default function AboutPage() {
               <section className="bg-white p-8 rounded-lg shadow-sm">
                 <h2 className="text-2xl font-bold mb-6 text-center">Where We Operate</h2>
                 <p className="text-gray-600 text-center max-w-2xl mx-auto mb-8">
-                  Mutamir offers services globally with a focus on providing localized support in regions with high
+                 Al-Mutamir offers services globally with a focus on providing localized support in regions with high
                   demand for Hajj and Umrah travel.
                 </p>
 
@@ -218,10 +218,10 @@ export default function AboutPage() {
 
               {/* Join Us */}
               <section className="bg-[#f0f9d4] p-8 rounded-lg text-center">
-                <h2 className="text-2xl font-bold mb-4">Join the Mutamir Journey</h2>
+                <h2 className="text-2xl font-bold mb-4">Join the Al-Mutamir Journey</h2>
                 <p className="text-gray-700 max-w-2xl mx-auto mb-6">
                   Whether you're a pilgrim seeking a meaningful Hajj or Umrah experience, or an agency looking to expand
-                  your reach, Mutamir is here to support your journey.
+                  your reach, Al-Mutamir is here to support your journey.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link href="/services">
