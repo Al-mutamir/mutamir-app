@@ -85,6 +85,20 @@ export default function QAPage() {
       ),
     },
     {
+      question: "What are the key rites of Umrah and in what order are they performed?",
+      answer: (
+        <div className="space-y-2">
+          <p className="mb-3">The main rites of Umrah include:</p>
+          <ol className="list-decimal list-inside space-y-2 ml-4">
+            <li>Entering <strong>Ihram</strong></li>
+            <li><strong>Tawaf</strong> around the Kaaba</li>
+            <li><strong>Sa'i</strong> between Safa and Marwah</li>
+            <li>Shaving or cutting hair</li>
+              </ol>
+            </div>
+      ),
+    },
+    {
       question: "What is prohibited during Ihram?",
       answer: (
         <div className="space-y-2">
