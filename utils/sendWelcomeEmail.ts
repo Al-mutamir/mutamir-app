@@ -253,12 +253,9 @@ export async function sendWelcomeEmail(to: string, name: string) {
         <!-- Header -->
         <div class="header">
             <div class="logo">
-                <div class="logo-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                        <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z"/>
-                    </svg>
-                </div>
-                <span class="logo-text">Al-Mutamir</span>
+                <div class="logo-icon">🌙</div>
+                <div class="logo-text">Al-Mutamir</div>
+              
             </div>
             
             <div class="welcome-banner">
@@ -282,11 +279,11 @@ export async function sendWelcomeEmail(to: string, name: string) {
             <div class="app-name">Welcome to Al-Mutamir app!</div>
             
             <p class="message">
-                We are delighted to have you join our community of pilgrims preparing for their sacred journey to the Holy Land.
+                The Journey of a lifetime as it is called. The journey of Hajj and Umrah is a sacred pilgrimage that holds immense significance in the hearts of Muslims around the world. It is a journey of faith, devotion, and spiritual renewal, where pilgrims seek to draw closer to Allah and fulfill one of the Five Pillars of Islam.
             </p>
             
             <p class="message">
-                At Al-Mutamir, we understand that Hajj and Umrah are once-in-a-lifetime spiritual experiences. Our platform is designed to be your trusted companion, offering comprehensive services, guidance, and support to help you perform your pilgrimage with peace of mind and devotion.
+                At Al-Mutamir, we understand this and had this in mind while designing our platform. We are your trusted companion, offering comprehensive services, guidance, and support to help you perform your pilgrimage with peace of mind and devotion.
             </p>
             
             <p class="message">

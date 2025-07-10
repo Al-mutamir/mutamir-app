@@ -547,13 +547,6 @@ export default function ServicesPage() {
     <div class="email-container">
         <!-- Header -->
         <div class="header">
-  
-            <img 
-                    src="https://drive.google.com/file/d/18c38Ph76zFtKIctyoYw91ag1E6njCfhW/view?usp=sharing" 
-                    alt="Al-mutamir Logo" 
-                    class="logo-image"
-                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                />
             <div class="greeting">Hi ${mainPilgrim.firstName},</div>
             <div class="subheading">Your Spiritual Journey Begins!</div>
         </div>

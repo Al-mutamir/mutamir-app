@@ -1,3 +1,4 @@
+
 /**
  * Utility function to print a specific element with receipt-style design
  * @param elementId The ID of the element to print
@@ -19,7 +20,7 @@ export function printElement(elementId: string) {
     return
   }
 
-  // Add receipt-style print styles
+  // Add modern card-style print styles matching the confirmation page
   printWindow.document.write(`
     <html>
       <head>
@@ -32,195 +33,250 @@ export function printElement(elementId: string) {
           }
           
           body {
-            font-family: 'Courier New', monospace;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F8F8F6;
             padding: 20px;
-            line-height: 1.4;
+            line-height: 1.6;
+            color: #014034;
           }
           
-          .receipt {
-            background: white;
+          .booking-card {
+            background: #014034;
             max-width: 400px;
             margin: 0 auto;
-            padding: 30px 25px;
-            border-radius: 15px 15px 0 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           }
           
-          .receipt::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: 0;
-            right: 0;
-            height: 20px;
-            background: linear-gradient(45deg, transparent 0%, transparent 40%, white 40%, white 60%, transparent 60%);
-            background-size: 20px 20px;
+          .card-content {
+            padding: 24px;
+            color: #FFFFFF;
           }
           
-          .header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 2px dashed #e0e0e0;
-          }
-          
-          .company-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c5530;
-            letter-spacing: 2px;
-            margin-bottom: 5px;
-          }
-          
-          .tagline {
-            font-size: 12px;
-            color: #666;
-            font-style: italic;
-            margin-bottom: 15px;
-          }
-          
-          .order-info {
-            font-size: 11px;
-            color: #333;
-          }
-          
-          .order-info div {
-            margin-bottom: 3px;
-          }
-          
-          .items-header {
+          .card-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin: 20px 0 15px 0;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #ccc;
-            font-size: 12px;
-            font-weight: bold;
-            color: #333;
-          }
-          
-          .item {
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px dotted #eee;
-          }
-          
-          .item:last-child {
-            border-bottom: none;
-          }
-          
-          .item-name {
-            font-size: 13px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-          }
-          
-          .item-details {
-            font-size: 11px;
-            color: #666;
-            margin-bottom: 8px;
-          }
-          
-          .item-price-row {
-            display: flex;
             justify-content: space-between;
+            margin-bottom: 24px;
+          }
+          
+          .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #FFFFFF;
+          }
+          
+          .service-info {
+            display: flex;
             align-items: center;
-            font-size: 12px;
-          }
-          
-          .price {
-            font-weight: bold;
-            color: #2c5530;
-          }
-          
-          .totals {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 2px dashed #e0e0e0;
-          }
-          
-          .total-row {
-            display: flex;
             justify-content: space-between;
+            padding: 16px;
+            background: #007F5F;
+            border-radius: 12px;
+            margin-bottom: 24px;
+          }
+          
+          .service-left {
+            display: flex;
             align-items: center;
-            margin-bottom: 8px;
-            font-size: 12px;
+            gap: 12px;
           }
           
-          .final-total {
-            font-size: 16px;
-            font-weight: bold;
-            color: #d63384;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #ccc;
-          }
-          
-          .payment-section {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 2px dashed #e0e0e0;
-          }
-          
-          .section-title {
-            font-size: 13px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-          }
-          
-          .payment-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-          }
-          
-          .payment-method {
-            font-size: 11px;
-          }
-          
-          .address {
-            font-size: 11px;
-            text-align: right;
-            color: #666;
-          }
-          
-          .footer {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 2px dashed #e0e0e0;
-            text-align: center;
-          }
-          
-          .thank-you {
-            font-size: 13px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-          }
-          
-          .qr-placeholder {
-            width: 80px;
-            height: 80px;
-            background: #f0f0f0;
-            border: 2px dashed #ccc;
-            margin: 15px auto;
+          .logo-circle {
+            width: 40px;
+            height: 40px;
+            background: #E3B23C;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
-            color: #999;
+            font-weight: bold;
+            font-size: 14px;
+            color: #014034;
+          }
+          
+          .service-details h3 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFFFFF;
+            margin-bottom: 4px;
+          }
+          
+          .service-details p {
+            font-size: 14px;
+            color: #F8F8F6;
+            opacity: 0.75;
+          }
+          
+          .status-badge {
+            background: rgba(227, 178, 60, 0.2);
+            color: #E3B23C;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+          
+          .package-section {
             text-align: center;
+            margin-bottom: 24px;
+          }
+          
+          .package-main {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+          }
+          
+          .package-icon {
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+            color: #E3B23C;
+          }
+          
+          .package-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FFFFFF;
+            margin-bottom: 4px;
+          }
+          
+          .package-subtitle {
+            font-size: 14px;
+            color: #F8F8F6;
+            opacity: 0.75;
+          }
+          
+          .journey-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 16px 0;
+          }
+          
+          .line {
+            width: 64px;
+            height: 2px;
+            background: #E3B23C;
+          }
+          
+          .plane-icon {
+            width: 16px;
+            height: 16px;
+            margin: 0 16px;
+            color: #E3B23C;
+          }
+          
+          .journey-text {
+            font-size: 12px;
+            color: #F8F8F6;
+            margin-top: 8px;
+          }
+          
+          .details-grid {
+            margin-bottom: 24px;
+          }
+          
+          .detail-label {
+            font-size: 14px;
+            color: #F8F8F6;
+            opacity: 0.75;
+            margin-bottom: 4px;
+          }
+          
+          .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 16px;
+          }
+          
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+          }
+          
+          .detail-col {
+            flex: 1;
+          }
+          
+          .detail-col:not(:last-child) {
+            margin-right: 16px;
+          }
+          
+          .detail-value.accent {
+            color: #E3B23C;
+          }
+          
+          .detail-value.small {
+            font-size: 12px;
+          }
+          
+          .barcode-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+          }
+          
+          .barcode {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            gap: 2px;
+          }
+          
+          .barcode-line {
+            width: 2px;
+            background: black;
+          }
+          
+          .barcode-line.tall {
+            height: 40px;
+          }
+          
+          .barcode-line.short {
+            height: 20px;
+          }
+          
+          .footer-section {
+            text-align: center;
+            padding-top: 24px;
+            border-top: 1px solid rgba(248, 248, 246, 0.2);
+          }
+          
+          .footer-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+          }
+          
+          .footer-logo-icon {
+            width: 28px;
+            height: 28px;
+            background: #E3B23C;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: #014034;
           }
           
           .footer-text {
-            font-size: 10px;
-            color: #666;
-            margin-top: 15px;
+            font-size: 12px;
+            color: #F8F8F6;
+            opacity: 0.75;
           }
           
           .print-controls {
@@ -229,18 +285,31 @@ export function printElement(elementId: string) {
           }
           
           .print-btn {
-            background: #2c5530;
+            background: #007F5F;
             color: white;
             border: none;
-            padding: 10px 20px;
-            margin: 0 10px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            margin: 0 8px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
           }
           
           .print-btn:hover {
-            background: #1e3a21;
+            background: #014034;
+          }
+          
+          .print-btn.secondary {
+            background: transparent;
+            border: 1px solid #007F5F;
+            color: #007F5F;
+          }
+          
+          .print-btn.secondary:hover {
+            background: #007F5F;
+            color: white;
           }
           
           @media print {
@@ -253,7 +322,7 @@ export function printElement(elementId: string) {
               display: none;
             }
             
-            .receipt {
+            .booking-card {
               box-shadow: none;
               max-width: none;
               margin: 0;
@@ -262,34 +331,57 @@ export function printElement(elementId: string) {
         </style>
       </head>
       <body>
-        <div class="receipt">
-          <div class="header">
-            <div class="company-name">AL-MUTAMIR</div>
-            <div class="tagline">Your Sacred Journey, Your Way</div>
-            <div class="order-info">
-              <div>Booking ID: <strong>${generateBookingRef()}</strong></div>
-              <div>Date: <strong>${new Date().toLocaleDateString()}</strong></div>
+        <div class="booking-card">
+          <div class="card-content">
+            <div class="card-header">
+              <h2 class="card-title">BOOKING CONFIRMATION</h2>
             </div>
-          </div>
-          
-          ${elementToPrint.outerHTML}
-          
-          <div class="footer">
-            <div class="thank-you">Thank you for choosing Al-mutamir!</div>
-            <div class="qr-placeholder">
-              QR Code<br>
-              (Booking Ref)
+            
+            <div class="service-info">
+              <div class="service-left">
+                <div class="logo-circle">AM</div>
+                <div class="service-details">
+                  <h3>AL-MUTAMIR</h3>
+                  <p>Hajj Services</p>
+                </div>
+              </div>
+              <div class="status-badge">
+                <span>⏱</span>
+                PENDING CONFIRMATION
+              </div>
             </div>
-            <div class="footer-text">
-              © ${new Date().getFullYear()} Al-mutamir. All rights reserved.<br>
-              support@almutamir.com
+            
+            <div class="package-section">
+              <div class="package-main">
+                <div class="package-icon">📦</div>
+                <div>
+                  <div class="package-title">HAJJ</div>
+                  <div class="package-subtitle">Pilgrimage Package</div>
+                </div>
+              </div>
+              
+              <div class="journey-line">
+                <div class="line"></div>
+                <div class="plane-icon">✈</div>
+                <div class="line"></div>
+              </div>
+              
+              <div class="journey-text">Sacred Journey to Mecca</div>
+            </div>
+            
+            ${elementToPrint.outerHTML}
+            
+            <div class="barcode-section">
+              <div class="barcode">
+                ${generateBarcode()}
+              </div>
             </div>
           </div>
         </div>
         
         <div class="print-controls">
-          <button class="print-btn" onclick="window.print()">Print</button>
-          <button class="print-btn" onclick="window.close()">Close</button>
+          <button class="print-btn" onclick="window.print()">DOWNLOAD</button>
+          <button class="print-btn secondary" onclick="window.close()">CLOSE</button>
         </div>
       </body>
     </html>
@@ -305,7 +397,7 @@ export function printElement(elementId: string) {
  */
 export async function downloadBookingDetails(bookingRef: string, details: any) {
   try {
-    // Try HTML-to-PDF conversion with receipt design
+    // Try HTML-to-PDF conversion with updated receipt design
     return await downloadBookingReceiptHTML(bookingRef, details)
   } catch (error) {
     console.error('Error generating PDF:', error)
@@ -315,67 +407,43 @@ export async function downloadBookingDetails(bookingRef: string, details: any) {
 }
 
 /**
- * Generate receipt-style HTML for booking details
+ * Generate modern card-style HTML for booking details matching the confirmation page
  */
 function generateBookingReceiptHTML(bookingRef: string, details: any): string {
   const bookingDate = new Date().toLocaleDateString()
-  
-  // Generate package items
-  let itemsHTML = ''
-  
-  // Main package item
-  if (details.packageDetails || details.selectedPackage) {
-    const packageName = details.packageDetails?.name || details.selectedPackage || 'Pilgrimage Package'
-    const packagePrice = details.totalPrice || details.packageDetails?.price || 0
-    
-    itemsHTML += `
-      <div class="item">
-        <div class="item-name">${packageName}</div>
-        <div class="item-details">
-          ${details.packageType === "hajj" ? "Hajj" : "Umrah"} Package<br>
-          ${details.isGroupBooking ? `Group Booking (${details.pilgrims?.length || 1} pilgrims)` : 'Individual Booking'}<br>
-          Departure: ${details.departureCity || "TBD"} - ${details.departureDate || "TBD"}
-        </div>
-        <div class="item-price-row">
-          <span>QTY: ${details.pilgrims?.length || 1}</span>
-          <span class="price">$${packagePrice.toFixed(2)}</span>
-        </div>
-      </div>
-    `
-  }
-  
-  // Add services as items
+  const packageType = details.packageType || 'hajj'
+  const isHajj = packageType.toLowerCase() === 'hajj'
+  const pilgrims = details.pilgrims || [{ firstName: 'Guest', lastName: 'User', email: 'guest@example.com' }]
+  const primaryPilgrim = pilgrims[0]
+  const isGroupBooking = details.isGroupBooking || false
+  const totalPilgrims = pilgrims.length
+
+  // Generate HTML for selected services
   const services = details.services || {}
-  Object.entries(services).forEach(([key, value]: [string, any]) => {
-    if (value.selected) {
-      itemsHTML += `
-        <div class="item">
-          <div class="item-name">${key.charAt(0).toUpperCase() + key.slice(1)} Service</div>
-          <div class="item-details">${value.tier} tier service</div>
-          <div class="item-price-row">
-            <span>QTY: 1</span>
-            <span class="price">Included</span>
-          </div>
-        </div>
-      `
-    }
-  })
-  
-  // Calculate totals
-  const subtotal = details.totalPrice || 0
-  const serviceCharge = Math.round(subtotal * 0.05) // 5% service charge
-  const tax = Math.round(subtotal * 0.08) // 8% tax
-  const total = subtotal + serviceCharge + tax
-  
-  // Generate pilgrim info for address section
-  const primaryPilgrim = details.pilgrims?.[0] || {}
-  const addressHTML = `
-    ${primaryPilgrim.firstName || ''} ${primaryPilgrim.lastName || ''}<br>
-    ${primaryPilgrim.city || ''}, ${primaryPilgrim.country || ''}<br>
-    ${primaryPilgrim.email || ''}<br>
-    ${primaryPilgrim.phone || ''}
-  `
-  
+  const selectedServicesHTML = Object.entries(services)
+    .filter(([, value]: [string, any]) => value.selected)
+    .map(([key, value]: [string, any]) => `<li>${key.charAt(0).toUpperCase() + key.slice(1)}: ${value.tier}</li>`)
+    .join('')
+
+  // Generate HTML for all pilgrims if it's a group booking
+  const pilgrimDetailsHTML = pilgrims
+    .map((pilgrim: any, index: number) => `
+    <div class="detail-row" style="border-top: 1px solid rgba(248, 248, 246, 0.1); padding-top: 16px; margin-bottom: 0;">
+      <div class="detail-col">
+        <div class="detail-label">Pilgrim ${index + 1} Name</div>
+        <div class="detail-value" style="margin-bottom: 8px;">${pilgrim.firstName} ${pilgrim.lastName}</div>
+        <div class="detail-label">Email</div>
+        <div class="detail-value small">${pilgrim.email}</div>
+      </div>
+      <div class="detail-col">
+         <div class="detail-label">Passport</div>
+         <div class="detail-value small" style="margin-bottom: 8px;">${pilgrim.passport || 'N/A'}</div>
+         <div class="detail-label">Phone</div>
+         <div class="detail-value small">${pilgrim.phone || 'N/A'}</div>
+      </div>
+    </div>
+  `).join('');
+
   return `
     <html>
       <head>
@@ -388,195 +456,263 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
           }
           
           body {
-            font-family: 'Courier New', monospace;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F8F8F6;
             padding: 20px;
-            line-height: 1.4;
+            line-height: 1.6;
+            color: #014034;
           }
           
-          .receipt {
-            background: white;
+          .booking-card {
+            background: #014034;
             max-width: 400px;
             margin: 0 auto;
-            padding: 30px 25px;
-            border-radius: 15px 15px 0 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           }
           
-          .receipt::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: 0;
-            right: 0;
-            height: 20px;
-            background: linear-gradient(45deg, transparent 0%, transparent 40%, white 40%, white 60%, transparent 60%);
-            background-size: 20px 20px;
+          .card-content {
+            padding: 24px;
+            color: #FFFFFF;
           }
           
-          .header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 2px dashed #e0e0e0;
-          }
-          
-          .company-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c5530;
-            letter-spacing: 2px;
-            margin-bottom: 5px;
-          }
-          
-          .tagline {
-            font-size: 12px;
-            color: #666;
-            font-style: italic;
-            margin-bottom: 15px;
-          }
-          
-          .order-info {
-            font-size: 11px;
-            color: #333;
-          }
-          
-          .order-info div {
-            margin-bottom: 3px;
-          }
-          
-          .items-header {
+          .card-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin: 20px 0 15px 0;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #ccc;
-            font-size: 12px;
-            font-weight: bold;
-            color: #333;
-          }
-          
-          .item {
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px dotted #eee;
-          }
-          
-          .item:last-child {
-            border-bottom: none;
-          }
-          
-          .item-name {
-            font-size: 13px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-          }
-          
-          .item-details {
-            font-size: 11px;
-            color: #666;
-            margin-bottom: 8px;
-          }
-          
-          .item-price-row {
-            display: flex;
             justify-content: space-between;
+            margin-bottom: 24px;
+          }
+          
+          .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #FFFFFF;
+          }
+          
+          .service-info {
+            display: flex;
             align-items: center;
-            font-size: 12px;
-          }
-          
-          .price {
-            font-weight: bold;
-            color: #2c5530;
-          }
-          
-          .totals {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 2px dashed #e0e0e0;
-          }
-          
-          .total-row {
-            display: flex;
             justify-content: space-between;
+            padding: 16px;
+            background: #007F5F;
+            border-radius: 12px;
+            margin-bottom: 24px;
+          }
+          
+          .service-left {
+            display: flex;
             align-items: center;
-            margin-bottom: 8px;
-            font-size: 12px;
+            gap: 12px;
           }
           
-          .final-total {
-            font-size: 16px;
-            font-weight: bold;
-            color: #d63384;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #ccc;
-          }
-          
-          .payment-section {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 2px dashed #e0e0e0;
-          }
-          
-          .section-title {
-            font-size: 13px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-          }
-          
-          .payment-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-          }
-          
-          .payment-method {
-            font-size: 11px;
-          }
-          
-          .address {
-            font-size: 11px;
-            text-align: right;
-            color: #666;
-          }
-          
-          .footer {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 2px dashed #e0e0e0;
-            text-align: center;
-          }
-          
-          .thank-you {
-            font-size: 13px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-          }
-          
-          .qr-placeholder {
-            width: 80px;
-            height: 80px;
-            background: #f0f0f0;
-            border: 2px dashed #ccc;
-            margin: 15px auto;
+          .logo-circle {
+            width: 40px;
+            height: 40px;
+            background: #E3B23C;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
-            color: #999;
+            font-weight: bold;
+            font-size: 14px;
+            color: #014034;
+          }
+          
+          .service-details h3 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFFFFF;
+            margin-bottom: 4px;
+          }
+          
+          .service-details p {
+            font-size: 14px;
+            color: #F8F8F6;
+            opacity: 0.75;
+          }
+          
+          .status-badge {
+            background: rgba(227, 178, 60, 0.2);
+            color: #E3B23C;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+          
+          .package-section {
             text-align: center;
+            margin-bottom: 24px;
+          }
+          
+          .package-main {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+          }
+          
+          .package-icon {
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+            color: #E3B23C;
+            font-size: 24px;
+          }
+          
+          .package-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FFFFFF;
+            margin-bottom: 4px;
+          }
+          
+          .package-subtitle {
+            font-size: 14px;
+            color: #F8F8F6;
+            opacity: 0.75;
+          }
+          
+          .journey-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 16px 0;
+          }
+          
+          .line {
+            width: 64px;
+            height: 2px;
+            background: #E3B23C;
+          }
+          
+          .plane-icon {
+            width: 16px;
+            height: 16px;
+            margin: 0 16px;
+            color: #E3B23C;
+            font-size: 16px;
+          }
+          
+          .journey-text {
+            font-size: 12px;
+            color: #F8F8F6;
+            margin-top: 8px;
+          }
+          
+          .details-section {
+            margin-bottom: 24px;
+          }
+          
+          .detail-label {
+            font-size: 14px;
+            color: #F8F8F6;
+            opacity: 0.75;
+            margin-bottom: 4px;
+          }
+          
+          .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 16px;
+          }
+          
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+          }
+          
+          .detail-col {
+            flex: 1;
+          }
+          
+          .detail-col:not(:last-child) {
+            margin-right: 16px;
+          }
+          
+          .detail-value.accent {
+            color: #E3B23C;
+          }
+          
+          .detail-value.small {
+            font-size: 12px;
+            font-weight: normal;
+          }
+
+          .service-list {
+            list-style-position: inside;
+            padding-left: 4px;
+            font-weight: normal;
+            font-size: 14px;
+            color: #F8F8F6;
+            opacity: 0.9;
+            margin-bottom: 16px;
+          }
+          
+          .barcode-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+          }
+          
+          .barcode {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            gap: 2px;
+          }
+          
+          .barcode-line {
+            width: 2px;
+            background: black;
+          }
+          
+          .barcode-line.tall {
+            height: 40px;
+          }
+          
+          .barcode-line.short {
+            height: 20px;
+          }
+          
+          .footer-section {
+            text-align: center;
+            padding-top: 24px;
+            border-top: 1px solid rgba(248, 248, 246, 0.2);
+          }
+          
+          .footer-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+          }
+          
+          .footer-logo-icon {
+            width: 28px;
+            height: 28px;
+            background: #E3B23C;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: #014034;
           }
           
           .footer-text {
-            font-size: 10px;
-            color: #666;
-            margin-top: 15px;
+            font-size: 12px;
+            color: #F8F8F6;
+            opacity: 0.75;
           }
           
           .print-controls {
@@ -585,18 +721,31 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
           }
           
           .print-btn {
-            background: #2c5530;
+            background: #007F5F;
             color: white;
             border: none;
-            padding: 10px 20px;
-            margin: 0 10px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            margin: 0 8px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
           }
           
           .print-btn:hover {
-            background: #1e3a21;
+            background: #014034;
+          }
+          
+          .print-btn.secondary {
+            background: transparent;
+            border: 1px solid #007F5F;
+            color: #007F5F;
+          }
+          
+          .print-btn.secondary:hover {
+            background: #007F5F;
+            color: white;
           }
           
           @media print {
@@ -609,7 +758,7 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
               display: none;
             }
             
-            .receipt {
+            .booking-card {
               box-shadow: none;
               max-width: none;
               margin: 0;
@@ -618,73 +767,124 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
         </style>
       </head>
       <body>
-        <div class="receipt">
-          <div class="header">
-            <div class="company-name">AL-MUTAMIR</div>
-            <div class="tagline">Your Sacred Journey, Your Way</div>
-            <div class="order-info">
-              <div>Booking ID: <strong>#${bookingRef.substring(0, 8).toUpperCase()}</strong></div>
-              <div>Date: <strong>${bookingDate}</strong></div>
+        <div class="booking-card">
+          <div class="card-content">
+            <div class="card-header">
+              <h2 class="card-title">BOOKING CONFIRMATION</h2>
             </div>
-          </div>
-          
-          <div class="items-header">
-            <span>Package Details</span>
-            <span>Price</span>
-          </div>
-          
-          ${itemsHTML}
-          
-          <div class="totals">
-            <div class="total-row">
-              <span>Subtotal:</span>
-              <span class="price">$${subtotal.toFixed(2)}</span>
-            </div>
-            <div class="total-row">
-              <span>Service:</span>
-              <span class="price">$${serviceCharge.toFixed(2)}</span>
-            </div>
-            <div class="total-row">
-              <span>Tax:</span>
-              <span class="price">$${tax.toFixed(2)}</span>
-            </div>
-            <div class="total-row final-total">
-              <span>TOTAL:</span>
-              <span>$${total.toFixed(2)}</span>
-            </div>
-          </div>
-          
-          <div class="payment-section">
-            <div class="section-title">Payment Method</div>
-            <div class="payment-info">
-              <div class="payment-method">
-                <strong>Paystack</strong><br>
-                Status: ${details.paymentStatus || 'Pending'}
+            
+            <div class="service-info">
+              <div class="service-left">
+                <div class="logo-circle">AM</div>
+                <div class="service-details">
+                  <h3>AL-MUTAMIR</h3>
+                  <p>${isHajj ? 'Hajj' : 'Umrah'} Services</p>
+                </div>
               </div>
-              <div class="address">
-                <div class="section-title" style="text-align: right; margin-bottom: 5px;">Pilgrim Info</div>
-                ${addressHTML}
+              <div class="status-badge">
+                <span>⏱</span>
+                CONFIRMED
               </div>
             </div>
-          </div>
-          
-          <div class="footer">
-            <div class="thank-you">Thank you for choosing Al-mutamir!</div>
-            <div style="font-size: 11px; margin: 10px 0;">Scan QR Code to track your booking</div>
-            <div class="qr-placeholder">
-              QR Code<br>
-              #${bookingRef.substring(0, 8).toUpperCase()}
+            
+            <div class="package-section">
+              <div class="package-main">
+                <div class="package-icon">📦</div>
+                <div>
+                  <div class="package-title">${isHajj ? 'HAJJ' : 'UMRAH'}</div>
+                  <div class="package-subtitle">${details.selectedPackage || (isHajj ? 'Pilgrimage Package' : 'Lesser Pilgrimage')}</div>
+                </div>
+              </div>
+              
+              <div class="journey-line">
+                <div class="line"></div>
+                <div class="plane-icon">✈</div>
+                <div class="line"></div>
+              </div>
+              
+              <div class="journey-text">Sacred Journey to Mecca</div>
             </div>
-            <div class="footer-text">
-              © ${new Date().getFullYear()} Al-mutamir. All rights reserved.<br>
-              support@almutamir.com
+            
+            <div class="details-section">
+                ${isGroupBooking ? `
+                    <div class="detail-label" style="margin-bottom: 12px;">Group Booking Pilgrims</div>
+                    ${pilgrimDetailsHTML}
+                ` : `
+                    <div class="detail-label">Pilgrim Name</div>
+                    <div class="detail-value">${primaryPilgrim?.firstName || 'Guest'} ${primaryPilgrim?.lastName || 'User'}</div>
+                    <div class="detail-label">Email</div>
+                    <div class="detail-value small">${primaryPilgrim?.email || 'guest@example.com'}</div>
+                `}
+
+              <div class="detail-row">
+                <div class="detail-col">
+                  <div class="detail-label">Booking Ref.</div>
+                  <div class="detail-value">${bookingRef}</div>
+                </div>
+                <div class="detail-col">
+                  <div class="detail-label">Package Type</div>
+                  <div class="detail-value">${packageType.charAt(0).toUpperCase() + packageType.slice(1)}</div>
+                </div>
+              </div>
+              
+              <div class="detail-row">
+                <div class="detail-col">
+                  <div class="detail-label">Status</div>
+                  <div class="detail-value accent">Confirmed</div>
+                </div>
+                <div class="detail-col">
+                  <div class="detail-label">${isGroupBooking ? 'Group Size' : 'Pilgrims'}</div>
+                  <div class="detail-value">${totalPilgrims} ${totalPilgrims === 1 ? 'Person' : 'People'}</div>
+                </div>
+              </div>
+
+               <div class="detail-row">
+                  <div class="detail-col">
+                    <div class="detail-label">Departure City</div>
+                    <div class="detail-value">${details.departureCity || 'N/A'}</div>
+                  </div>
+                  <div class="detail-col">
+                    <div class="detail-label">Departure Date</div>
+                    <div class="detail-value">${details.departureDate || 'N/A'}</div>
+                  </div>
+                </div>
+
+              ${selectedServicesHTML ? `
+                <div class="detail-label" style="margin-bottom: 8px;">Selected Services</div>
+                <ul class="service-list">
+                  ${selectedServicesHTML}
+                </ul>` : ''}
+              
+              <div class="detail-row">
+                <div class="detail-col">
+                  <div class="detail-label">Booking Date</div>
+                  <div class="detail-value">${bookingDate}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="barcode-section">
+              <div class="barcode">
+                ${generateBarcode()}
+              </div>
+            </div>
+            
+            <div class="footer-section">
+              <div class="footer-logo">
+                <div class="footer-logo-icon">AM</div>
+                <span style="font-weight: 600;">Al-Mutamir</span>
+              </div>
+              <div class="footer-text">
+                © ${new Date().getFullYear()} Al-mutamir. All rights reserved.<br>
+                support@almutamir.com
+              </div>
             </div>
           </div>
         </div>
         
         <div class="print-controls">
-          <button class="print-btn" onclick="window.print()">Save as PDF</button>
-          <button class="print-btn" onclick="window.close()">Close</button>
+          <button class="print-btn" onclick="window.print()">DOWNLOAD</button>
+          <button class="print-btn secondary" onclick="window.close()">CLOSE</button>
         </div>
       </body>
     </html>
@@ -721,11 +921,28 @@ function generateBookingRef(): string {
 }
 
 /**
+ * Generate barcode-style lines for display
+ */
+function generateBarcode(): string {
+  let barcodeHTML = ''
+  for (let i = 0; i < 30; i++) {
+    const isLong = Math.random() > 0.5
+    barcodeHTML += `<div class="barcode-line ${isLong ? 'tall' : 'short'}"></div>`
+  }
+  return barcodeHTML
+}
+
+/**
  * Fallback function to download booking details as a text file
  */
 function downloadBookingDetailsAsText(bookingRef: string, details: any) {
   // Format the booking details as text
   const bookingDate = new Date().toLocaleDateString()
+  const packageType = details.packageType || 'hajj'
+  const isHajj = packageType.toLowerCase() === 'hajj'
+  const pilgrims = details.pilgrims || [{ firstName: 'Guest', lastName: 'User', email: 'guest@example.com' }]
+  const primaryPilgrim = pilgrims[0]
+  const isGroupBooking = details.isGroupBooking || false
 
   let bookingDetails = `
 AL-MUTAMIR BOOKING CONFIRMATION
@@ -733,27 +950,21 @@ AL-MUTAMIR BOOKING CONFIRMATION
 Booking Reference: ${bookingRef}
 Date: ${bookingDate}
 
-`
-
-  // Add package information
-  bookingDetails += `PACKAGE INFORMATION
+PACKAGE INFORMATION
 -------------------
-Package Type: ${details.packageType === "hajj" ? "Hajj" : "Umrah"}
+Package Type: ${isHajj ? 'Hajj' : 'Umrah'}
 `
 
   if (details.selectedPackage) {
     bookingDetails += `Selected Package: ${details.selectedPackage}\n`
   }
 
-  bookingDetails += `Booking Type: ${details.isGroupBooking ? "Group Booking" : "Individual Booking"}
-Number of Pilgrims: ${details.pilgrims?.length || 1}
-Departure City: ${details.departureCity || "Not specified"}
-Departure Date: ${details.departureDate || "Not specified"}
+  bookingDetails += `Booking Type: ${isGroupBooking ? 'Group Booking' : 'Individual Booking'}
+Number of Pilgrims: ${pilgrims.length}
+Departure City: ${details.departureCity || 'Not specified'}
+Departure Date: ${details.departureDate || 'Not specified'}
 
-`
-
-  // Add services information
-  bookingDetails += `SELECTED SERVICES
+SELECTED SERVICES
 -----------------
 `
 
@@ -770,9 +981,8 @@ PILGRIM INFORMATION
 ------------------
 `
 
-  // Add pilgrim information
-  ;(details.pilgrims || []).forEach((pilgrim: any, index: number) => {
-    if (details.isGroupBooking) {
+  pilgrims.forEach((pilgrim: any, index: number) => {
+    if (isGroupBooking) {
       bookingDetails += `Pilgrim ${index + 1}:\n`
     }
     bookingDetails += `Name: ${pilgrim.firstName} ${pilgrim.lastName}
@@ -793,13 +1003,13 @@ Thank you for choosing Al-mutamir for your sacred journey.
 `
 
   // Create a Blob with the text content
-  const blob = new Blob([bookingDetails], { type: "text/plain" })
+  const blob = new Blob([bookingDetails], { type: 'text/plain' })
 
   // Create a URL for the Blob
   const url = URL.createObjectURL(blob)
 
   // Create a temporary anchor element
-  const a = document.createElement("a")
+  const a = document.createElement('a')
   a.href = url
   a.download = `Al-mutamir-Booking-${bookingRef}.txt`
 
