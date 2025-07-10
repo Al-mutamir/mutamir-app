@@ -250,7 +250,7 @@ export default function PackageDetailsPage() {
       try {
         await navigator.share({
           title: packageData?.title || "Hajj/Umrah Package",
-          text: `Maa shaa Allah! Check out this affordable ${packageData?.type || "Hajj/Umrah"} package on Al-Mutamir! for just ${packageData?.price ? `₦${packageData.price.toLocaleString()}` : "N/A"}.\n\nClick to view details: ${shareUrl}`,
+          text: `Maa shaa Allah! Check out this affordable ${packageData?.type || "Hajj/Umrah"} package on Al-Mutamir! for just ${packageData?.price ? `₦${packageData.price.toLocaleString()}` : "N/A"}.\n\nClick to view details: `,
           url: shareUrl,
         })
       } catch (error) {
