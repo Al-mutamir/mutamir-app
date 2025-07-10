@@ -69,6 +69,12 @@ export function SiteHeader() {
       label: "About",
       active: pathname === "/about",
     },
+
+    {
+      href: "/guide",
+      label: "Pilgrim Guide",
+      active: pathname === "/guide",
+    },
   ]
 
   const getInitials = (name) => {

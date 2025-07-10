@@ -35,6 +35,11 @@ export function Header() {
       label: "About",
       active: pathname === "/about",
     },
+    {
+      href: "/guide",
+      label: "Pilgrim Guide",
+      active: pathname === "/guide",
+    },
   ]
 
   return (
