@@ -269,41 +269,17 @@ export default function StandardPackagesPage() {
           description="There are currently no published Hajj or Umrah packages available. Please check back later or contact our support team for more information."
         />
       ) : (
-        <Tabs defaultValue="standard" className="w-full">
+        <Tabs defaultValue="agency" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="standard" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Standard Packages ({packages.standard.length})
-            </TabsTrigger>
             <TabsTrigger value="agency" className="flex items-center gap-2">
               <Building className="h-4 w-4" />
               Agency Packages ({packages.agency.length})
             </TabsTrigger>
+            <TabsTrigger value="standard" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Standard Packages ({packages.standard.length})
+            </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="standard">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Al-Mutamir Standard Packages</h2>
-              <p className="text-gray-600">
-                Our carefully curated standard packages offer excellent value and comprehensive services for your sacred
-                journey.
-              </p>
-            </div>
-
-            {packages.standard.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {packages.standard.map((pkg) => (
-                  <PackageCard key={pkg.id} pkg={pkg} showAgency={false} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={<Package className="h-12 w-12 text-gray-400 mx-auto" />}
-                title="No Standard Packages Available"
-                description="There are currently no standard packages published by Al-Mutamir. Please check back later for our upcoming Hajj and Umrah offerings."
-              />
-            )}
-          </TabsContent>
 
           <TabsContent value="agency">
             <div className="mb-6">
@@ -325,6 +301,30 @@ export default function StandardPackagesPage() {
                 icon={<Building className="h-12 w-12 text-gray-400 mx-auto" />}
                 title="No Agency Packages Available"
                 description="There are currently no packages published by our agency partners. Check back soon as our partners add their unique Hajj and Umrah offerings."
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="standard">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">Al-Mutamir Standard Packages</h2>
+              <p className="text-gray-600">
+                Our carefully curated standard packages offer excellent value and comprehensive services for your sacred
+                journey.
+              </p>
+            </div>
+
+            {packages.standard.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {packages.standard.map((pkg) => (
+                  <PackageCard key={pkg.id} pkg={pkg} showAgency={false} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<Package className="h-12 w-12 text-gray-400 mx-auto" />}
+                title="No Standard Packages Available"
+                description="There are currently no standard packages published by Al-Mutamir. Please check back later for our upcoming Hajj and Umrah offerings."
               />
             )}
           </TabsContent>
