@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft, MapPin, BookOpen, Heart, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -257,27 +258,22 @@ export default function QAPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8F8F6] via-white to-[#F8F8F6]">
-      {/* Header Section */}
-      {/* <div className="bg-gradient-to-r from-[#007F5F] to-[#3E7C59] text-white py-16">
-        <div className="container max-w-6xl mx-auto px-4">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                Hajj & Umrah Guide
-              </h1>
-              <p className="text-xl text-[#F8F8F6] opacity-90 max-w-2xl">
-                Essential knowledge for your spiritual journey to the holy cities of Mecca and Medina
-              </p>
-            </div>
-            <Link href="/">
-              <Button variant="outline" size="lg" className="bg-white text-[#007F5F] hover:bg-[#F8F8F6] border-white">
-                <ArrowLeft className="mr-2 h-5 w-5" />
-                Back to Home
-              </Button>
-            </Link>
-          </div>
+      {/* Hero Image Section */}
+      <div className="relative w-full h-64 md:h-96 mb-8">
+        <Image
+          src="images/kaaba-package.jpg"
+          alt="Kaaba Pilgrimage"
+          fill
+          priority
+          className="object-cover rounded-b-3xl shadow-lg"
+        />
+        <div className="absolute inset-0 bg-[#014034]/30 rounded-b-3xl" />
+        <div className="absolute bottom-6 left-0 w-full flex justify-center">
+          <h1 className="text-3xl md:text-5xl font-bold text-white drop-shadow-lg text-center">
+            Hajj & Umrah Guide
+          </h1>
         </div>
-      </div> */}
+      </div>
 
       {/* Main Content */}
       <div className="container max-w-4xl mx-auto px-4 py-12">
