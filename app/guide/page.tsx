@@ -285,7 +285,7 @@ export default function QAPage() {
             </div>
             <div>
               <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                Your Complete Pilgrimage Guide
+                Assalaamu alykum Dear Pilgrim. 
               </h2>
               <p className="text-gray-600 text-lg leading-relaxed">
                 Find comprehensive answers to essential questions about Hajj and Umrah. This guide covers everything from basic requirements to spiritual preparation, helping you make the most of your sacred journey.
