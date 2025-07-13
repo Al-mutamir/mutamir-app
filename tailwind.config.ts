@@ -54,6 +54,11 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        emeraldTeal: '#007F5F',
+        olivePalm: '#3E7C59',
+        goldenSand: '#E3B23C',
+        deepForest: '#014034',
+        sacredStone: '#F8F8F6',
       },
       borderRadius: {
         lg: "var(--radius)",

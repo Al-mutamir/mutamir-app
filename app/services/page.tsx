@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { ArrowLeft, ArrowRight, Plus, Trash2, Users, UserPlus, Info, Building, Hotel } from "lucide-react"
@@ -20,6 +20,7 @@ import { createBooking } from "@/firebase/firestore" // <-- Add this import
 
 // Import the utility functions
 import { printElement } from "@/utils/print-utils"
+import { CheckCircle2 } from "lucide-react"
 
 interface PilgrimDetails {
   firstName: string
@@ -35,6 +36,63 @@ interface GroupMember {
   name: string
   email: string
   phone: string
+}
+
+interface SuccessModalProps {
+  open: boolean
+  onClose: (path?: string) => void
+  bookingDetails: {
+    packageType: string
+    departureDate: string
+    pilgrims?: any[]
+  }
+}
+
+function SuccessModal({ open, onClose, bookingDetails }: SuccessModalProps) {
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#014034]/40">
+      <div className="bg-sacredStone rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 relative border border-[#E3B23C]">
+        <button
+          className="absolute top-4 right-4 text-[#007F5F] hover:text-[#014034] text-xl"
+          onClick={() => onClose()}
+          aria-label="Close"
+        >
+          ×
+        </button>
+        <div className="flex flex-col items-center">
+          <CheckCircle2 className="h-14 w-14 text-[#007F5F] mb-4" />
+          <h2 className="text-2xl font-bold text-[#014034] mb-2 text-center">
+            Thank you for using Al-mutamir.
+          </h2>
+          <p className="text-[#3E7C59] text-center mb-6">
+            Your booking was successful! You’ll get a confirmation soon. Once your details are verified, payment instructions will be sent to your email.
+          </p>
+          <div className="flex flex-col gap-3 w-full mb-6">
+            <div className="flex items-center justify-between bg-[#F8F8F6] rounded-lg px-4 py-2">
+              <span className="text-[#007F5F] font-medium">Package Type:</span>
+              <span className="text-[#014034]">{bookingDetails.packageType}</span>
+            </div>
+            <div className="flex items-center justify-between bg-[#F8F8F6] rounded-lg px-4 py-2">
+              <span className="text-[#007F5F] font-medium">Departure Date:</span>
+              <span className="text-[#014034]">{bookingDetails.departureDate}</span>
+            </div>
+            <div className="flex items-center justify-between bg-[#F8F8F6] rounded-lg px-4 py-2">
+              <span className="text-[#007F5F] font-medium">Pilgrims:</span>
+              <span className="text-[#014034]">{bookingDetails.pilgrims?.length || 1}</span>
+            </div>
+          </div>
+          <button
+            className="w-full bg-[#007F5F] hover:bg-[#3E7C59] text-white font-semibold py-3 rounded-xl transition"
+            onClick={() => onClose("/guide")}
+          >
+            Go to Pilgrim Guide
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function ServicesPage() {
@@ -109,6 +167,9 @@ export default function ServicesPage() {
 
   // --- Replace the preferredItinerary state with an array ---
   const [preferredItinerary, setPreferredItinerary] = useState<string[]>([])
+
+  // --- Add this state for controlling the success modal ---
+  const [showSuccess, setShowSuccess] = useState(false)
 
   // Handle service selection
   const handleServiceChange = (service: string, selected: boolean) => {
@@ -260,8 +321,6 @@ export default function ServicesPage() {
     setPreferredItinerary(updated)
   }
 
-  
-
   // Handle form submission
   const handleSubmit = async () => {
     // Store booking details in localStorage for the success page
@@ -284,7 +343,9 @@ export default function ServicesPage() {
       const mainPilgrim = pilgrims[0]
       await createBooking({
         packageId: selectedPackage || "custom",
+        packageTitle: packageType, // Add packageTitle
         pilgrimId: mainPilgrim.email, // or use a user ID if available
+        userEmail: mainPilgrim.email, // Add userEmail
         agencyId: "custom", // or set to the selected agency/package agency if available
         status: "pending",
         travelDate: departureDate,
@@ -656,7 +717,8 @@ export default function ServicesPage() {
 
     // Simulate API call
     setTimeout(() => {
-      router.push("/services/success")
+      // Instead of router.push("/services/success")
+      setShowSuccess(true)
     }, 1500)
   }
 
@@ -1485,28 +1547,45 @@ export default function ServicesPage() {
     }
   }
 
+  // Set default visa tier based on package type
+  const defaultVisaTier = packageType === "hajj" ? "hajj-standard" : "umrah-standard"
+  // When packageType changes, update visa tier if not already set
+  useEffect(() => {
+    setSelectedServices((prev) => ({
+      ...prev,
+      visa: {
+        ...prev.visa,
+        tier: defaultVisaTier,
+      },
+    }))
+  }, [packageType])
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-sacredStone">
       <div className="py-12">
         <div className="container">
           <div className="mb-8">
             <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold">Plan Your Journey</h1>
+              <h1 className="text-3xl font-bold text-[#014034]">Plan Your Journey</h1>
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${step >= 1 ? "bg-[#c8e823]" : "bg-gray-300"}`}></div>
-                <div className={`w-3 h-3 rounded-full ${step >= 2 ? "bg-[#c8e823]" : "bg-gray-300"}`}></div>
-                <div className={`w-3 h-3 rounded-full ${step >= 3 ? "bg-[#c8e823]" : "bg-gray-300"}`}></div>
+                <div className={`w-3 h-3 rounded-full ${step >= 1 ? "bg-[#E3B23C]" : "bg-gray-300"}`}></div>
+                <div className={`w-3 h-3 rounded-full ${step >= 2 ? "bg-[#E3B23C]" : "bg-gray-300"}`}></div>
+                <div className={`w-3 h-3 rounded-full ${step >= 3 ? "bg-[#E3B23C]" : "bg-gray-300"}`}></div>
               </div>
             </div>
           </div>
 
-          <Card className="max-w-4xl mx-auto">
+          <Card className="max-w-4xl mx-auto bg-white border border-[#E3B23C]">
             <CardContent className="p-6 md:p-10">
               {renderStepContent()}
 
-              <div className="flex justify-between mt-8">
+              <div className="flex flex-col md:flex-row justify-between mt-8 gap-3">
                 {step > 1 ? (
-                  <Button variant="outline" onClick={prevStep}>
+                  <Button
+                    variant="outline"
+                    onClick={prevStep}
+                    className="w-full md:w-auto"
+                  >
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                 ) : (
@@ -1515,31 +1594,42 @@ export default function ServicesPage() {
 
                 {step < 3 ? (
                   <Button
-                    className="bg-[#c8e823] text-black hover:bg-[#b5d31f]"
+                    className="w-full md:w-auto bg-[#E3B23C] text-black hover:bg-[#b5d31f]"
                     onClick={nextStep}
                     disabled={!isCurrentStepValid()}
                   >
                     Next <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => printElement("package-review")}>
-                      Print Review
-                    </Button>
-                    <Button
-                      className="bg-[#c8e823] text-black hover:bg-[#b5d31f]"
-                      onClick={handleSubmit}
-                      disabled={false}
-                    >
-                      Submit <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    className="w-full md:w-auto bg-[#E3B23C] text-black hover:bg-[#b5d31f]"
+                    onClick={handleSubmit}
+                    disabled={false}
+                  >
+                    Submit <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* --- Add the SuccessModal component here --- */}
+      {showSuccess && (
+        <SuccessModal
+          open={showSuccess}
+          onClose={(path) => {
+            setShowSuccess(false)
+            router.push(path || "/guide")
+          }}
+          bookingDetails={{
+            packageType,
+            departureDate,
+            pilgrims,
+          }}
+        />
+      )}
     </div>
   )
 }
