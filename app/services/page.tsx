@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
-import { ArrowLeft, ArrowRight, Plus, Trash2, Users, UserPlus, Info, Building, Hotel } from "lucide-react"
+import { ArrowLeft, ArrowRight, Plus, Trash2, Users, UserPlus, Info, Building, Hotel, ThumbsUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -53,78 +53,29 @@ interface SuccessModalProps {
   }
 }
 
-function SuccessModal({ open, onClose, bookingDetails }: SuccessModalProps) {
+// Replace SuccessModal with this minimal version:
+function SuccessModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#014034]/40">
-      <div className="bg-sacredStone rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 relative border border-[#E3B23C]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="bg-white rounded-xl shadow-xl max-w-xs w-full p-6 relative flex flex-col items-center">
         <button
-          className="absolute top-4 right-4 text-[#007F5F] hover:text-[#014034] text-xl"
-          onClick={() => onClose()}
-          aria-label="Close"
+          className="absolute top-3 right-3 bg-[#E3B23C] text-[#014034] hover:bg-[#007F5F] hover:text-white text-xs font-semibold px-3 py-1 rounded transition"
+          onClick={() => window.open('/pilgrim-guide', '_blank')}
+          aria-label="Pilgrim Guide"
         >
-          ×
+          Pilgrim Guide
         </button>
-        <div className="flex flex-col items-center">
-          <CheckCircle2 className="h-14 w-14 text-[#007F5F] mb-4" />
-          <h2 className="text-2xl font-bold text-[#014034] mb-2 text-center">
-            Thank you for using Al-mutamir.
-          </h2>
-          <p className="text-[#3E7C59] text-center mb-6">
-            Your booking was successful! You’ll get a confirmation soon. Once your details are verified, payment instructions will be sent to your email.
-          </p>
-          <div className="flex flex-col gap-3 w-full mb-6">
-            <div className="flex items-center justify-between bg-[#F8F8F6] rounded-lg px-4 py-2">
-              <span className="text-[#007F5F] font-medium">Package Type:</span>
-              <span className="text-[#014034]">{bookingDetails.packageType}</span>
-            </div>
-            <div className="flex items-center justify-between bg-[#F8F8F6] rounded-lg px-4 py-2">
-              <span className="text-[#007F5F] font-medium">Departure Date:</span>
-              <span className="text-[#014034]">{bookingDetails.departureDate}</span>
-            </div>
-            <div className="flex items-center justify-between bg-[#F8F8F6] rounded-lg px-4 py-2">
-              <span className="text-[#007F5F] font-medium">Pilgrims:</span>
-              <span className="text-[#014034]">{bookingDetails.pilgrims?.length || 1}</span>
-            </div>
-          </div>
-          <button
-            className="w-full bg-[#007F5F] hover:bg-[#3E7C59] text-white font-semibold py-3 rounded-xl transition"
-            onClick={() => onClose("/guide")}
-          >
-            Go to Pilgrim Guide
-          </button>
-        </div>
+        <ThumbsUp className="h-12 w-12 text-[#007F5F] mb-4" />
+        <h2 className="text-lg font-semibold text-[#014034] text-center mb-2">
+          Booking request successful
+        </h2>
+        <p className="text-gray-600 text-center text-sm">
+          A representative will contact you shortly.<br />Thanks for choosing Almutamir.
+        </p>
       </div>
     </div>
   )
-}
-
-// Add this utility function at the top or in your utils:
-async function notifyDiscord(bookingDetails: any) {
-  try {
-    const webhookUrl = "https://discordapp.com/api/webhooks/1396867564990238862/z-zNLucOdqyS0nVtqynFrPZF46x0O4qufL2Ay0feUqZx8fzipMW1OIho4rLa4uPkU4PY"
-    const { packageType, departureDate, returnDate, departureCity, pilgrims, preferredItinerary } = bookingDetails
-    const pilgrimNames = pilgrims.map((p: any) => `${p.firstName} ${p.lastName} (${p.email})`).join("\n")
-    const itinerary = preferredItinerary?.length ? preferredItinerary.join(", ") : "Not specified"
-    const content = `📢 **New Booking Request**
-**Package Type:** ${packageType}
-**Departure Date:** ${departureDate}
-**Return Date:** ${returnDate}
-**Departure City:** ${departureCity}
-**Pilgrims:** 
-${pilgrimNames}
-**Preferred Itinerary:** ${itinerary}`
-
-    await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    })
-  } catch (err) {
-    // Optionally log error, but don't block user flow
-    console.error("Failed to notify Discord:", err)
-  }
 }
 
 export default function ServicesPage() {
@@ -202,6 +153,7 @@ export default function ServicesPage() {
 
   // --- Add this state for controlling the success modal ---
   const [showSuccess, setShowSuccess] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Handle service selection
   const handleServiceChange = (service: string, selected: boolean) => {
@@ -355,6 +307,7 @@ export default function ServicesPage() {
 
   // Handle form submission
   const handleSubmit = async () => {
+    setIsSubmitting(true)
     // Store booking details in localStorage for the success page
     const bookingDetails = {
       packageType,
@@ -734,11 +687,9 @@ export default function ServicesPage() {
     } catch (e) {
       console.error("Failed to store booking details or send email:", e)
     }
-
-    // Simulate API call
     setTimeout(() => {
-      // Instead of router.push("/services/success")
       setShowSuccess(true)
+      setIsSubmitting(false)
     }, 1500)
   }
 
@@ -1677,9 +1628,21 @@ export default function ServicesPage() {
                   <Button
                     className="w-full md:w-auto bg-[#E3B23C] text-black hover:bg-[#b5d31f]"
                     onClick={handleSubmit}
-                    disabled={false}
+                    disabled={isSubmitting}
                   >
-                    Submit <ArrowRight className="ml-2 h-4 w-4" />
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 mr-2 inline" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#014034" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="#014034" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        Submit <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                 )}
               </div>
@@ -1692,15 +1655,7 @@ export default function ServicesPage() {
       {showSuccess && (
         <SuccessModal
           open={showSuccess}
-          onClose={(path) => {
-            setShowSuccess(false)
-            router.push(path || "/guide")
-          }}
-          bookingDetails={{
-            packageType,
-            departureDate,
-            pilgrims,
-          }}
+          onClose={() => setShowSuccess(false)}
         />
       )}
     </div>

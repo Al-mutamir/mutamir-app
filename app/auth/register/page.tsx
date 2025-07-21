@@ -23,6 +23,25 @@ type UserData = {
   onboardingCompleted: boolean
 }
 
+// Add this utility function at the top or in your utils:
+async function notifyDiscordAgencyRegistration({ firstName, lastName, email }: { firstName: string; lastName: string; email: string }) {
+  try {
+    const webhookUrl = "https://discordapp.com/api/webhooks/1374112883260002304/LR9DEcBQPEl2OQ6AWVS9JNUQlZaXt2os3o54zCTD8iIgYDoUYhmrEjD1-2Do099xw7SB"
+    const content = `🏢 **New Agency Registration**
+**Name:** ${firstName} ${lastName}
+**Email:** ${email}
+Status: unverified`
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    })
+  } catch (err) {
+    // Optionally log error, but don't block user flow
+    console.error("Failed to notify Discord (agency registration):", err)
+  }
+}
+
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -91,10 +110,15 @@ export default function RegisterPage() {
       // Send welcome email
       await sendWelcomeEmail(formData.email, fullName)
 
-      // If agency, set unverified status in user db
+      // If agency, set unverified status in user db and notify Discord
       if (formData.role === "agency" && userCredential?.user?.uid) {
         await setUserData(userCredential.user.uid, {
           status: "unverified",
+        })
+        await notifyDiscordAgencyRegistration({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
         })
       }
 
@@ -112,10 +136,11 @@ export default function RegisterPage() {
     }
   }
 
-  // Similarly update the Google sign-up function
+  // Update the Google sign-up function to use the selected role
   const handleGoogleSignUp = async () => {
     try {
-      await signInWithGoogle(userRole)
+      // Pass the selected role to signInWithGoogle
+      await signInWithGoogle(formData.role)
 
       toast({
         title: "Registration Successful!",
@@ -123,26 +148,29 @@ export default function RegisterPage() {
         duration: 3000,
       })
 
-      // Ensure user is available before accessing user.uid
-      if (user && user.uid) {
-        const userData = await getUserData(user.uid) as UserData
+      // Wait for user to be available after Google sign-in
+      setTimeout(async () => {
+        if (user && user.uid) {
+          const userData = await getUserData(user.uid) as UserData
 
-        if (userData) {
-          if (userData.role === "pilgrim" || userData.role === "agency" || userData.role === "admin") {
-            // If onboarding not completed, redirect to onboarding
-            if (!userData.onboardingCompleted) {
-              navigation.push(`/onboarding/${userData.role}`)
+          if (userData) {
+            if (userData.role === "pilgrim" || userData.role === "agency" || userData.role === "admin") {
+              // If onboarding not completed, redirect to onboarding
+              if (!userData.onboardingCompleted) {
+                navigation.push(`/onboarding/${userData.role}`)
+              } else {
+                // Redirect based on role
+                navigation.push(userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency")
+              }
             } else {
-              // Redirect based on role
-              navigation.push(userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency")
+              navigation.push("/")
             }
           } else {
-            navigation.push("/")
+            // If userData does not exist, use the selected role for redirect
+            navigation.push(`/onboarding/${formData.role}`)
           }
-        } else {
-          navigation.push("/")
         }
-      }
+      }, 500)
     } catch (err: any) {
       setError(err.message || "Google sign-up failed")
       console.error(err)
