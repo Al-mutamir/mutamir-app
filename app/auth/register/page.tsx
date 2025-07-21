@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { UserRole } from "@/types/auth"
-import { getUserData } from "@/lib/firebase/firestore"
+import { getUserData, setUserData } from "@/lib/firebase/firestore"
 import { sendWelcomeEmail } from "@/utils/sendWelcomeEmail"
 
 type UserData = {
@@ -87,9 +87,16 @@ export default function RegisterPage() {
     const fullName = `${formData.firstName} ${formData.lastName}`
 
     try {
-      await signUp(formData.email, formData.password, formData.role, fullName)
+      const userCredential = await signUp(formData.email, formData.password, formData.role, fullName)
       // Send welcome email
-      await sendWelcomeEmail(formData.email, `${formData.firstName} ${formData.lastName}`)
+      await sendWelcomeEmail(formData.email, fullName)
+
+      // If agency, set unverified status in user db
+      if (formData.role === "agency" && userCredential?.user?.uid) {
+        await setUserData(userCredential.user.uid, {
+          status: "unverified",
+        })
+      }
 
       toast({
         title: "Registration Successful!",

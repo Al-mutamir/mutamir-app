@@ -13,8 +13,8 @@ import { formatCurrency } from "@/lib/utils"
 
 export default function StandardPackagesSection() {
   const [packages, setPackages] = useState({
-    standard: [],
-    agency: [],
+    hajj: [],
+    umrah: [],
   })
   const [loading, setLoading] = useState(true)
 
@@ -23,16 +23,20 @@ export default function StandardPackagesSection() {
       try {
         setLoading(true)
         const allPackages = await getAllPackages()
-        const standardPackages = allPackages.filter((pkg) => pkg.createdBy === "admin" || pkg.isStandard)
-        const agencyPackages = allPackages.filter((pkg) => pkg.createdBy !== "admin" && !pkg.isStandard)
+        const hajjPackages = allPackages.filter((pkg) => pkg.type?.toLowerCase() === "hajj")
+        // Group both "umrah" and "group-umrah" as Umrah
+        const umrahPackages = allPackages.filter((pkg) => {
+          const type = pkg.type?.toLowerCase()
+          return type === "umrah" || type === "group-umrah"
+        })
         setPackages({
-          standard: standardPackages,
-          agency: agencyPackages,
+          hajj: hajjPackages,
+          umrah: umrahPackages,
         })
       } catch (err) {
         setPackages({
-          standard: [],
-          agency: [],
+          hajj: [],
+          umrah: [],
         })
       } finally {
         setLoading(false)
@@ -120,48 +124,100 @@ export default function StandardPackagesSection() {
     <section id="standard-packages" className="py-20 bg-gray-50">
       <div className="container">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Standard Packages</h2>
+          <h2 className="text-3xl font-bold mb-4">Our Packages</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Explore a selection of our most popular Hajj and Umrah packages. For more options, click below to explore all
             packages.
           </p>
         </div>
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden animate-pulse">
-                <div className="h-48 bg-gray-200"></div>
-                <CardHeader>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : packages.standard.length === 0 ? (
-          <div className="text-center text-gray-500 py-12">
-            No standard packages available at the moment.
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-              {packages.standard.slice(0, 3).map((pkg) => (
-                <PackageCard key={pkg.id} pkg={pkg} />
-              ))}
-            </div>
-            <div className="flex justify-center">
-              <Link href="/standard-packages">
-                <Button size="lg" className="px-8">
-                  Explore Packages
-                </Button>
-              </Link>
-            </div>
-          </>
-        )}
+        <Tabs defaultValue="umrah" className="w-full mb-8">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="umrah" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Umrah Packages ({packages.umrah.length})
+            </TabsTrigger>
+            <TabsTrigger value="hajj" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Hajj Packages ({packages.hajj.length})
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="umrah">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="overflow-hidden animate-pulse">
+                    <div className="h-48 bg-gray-200"></div>
+                    <CardHeader>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : packages.umrah.length === 0 ? (
+              <div className="text-center text-gray-500 py-12">
+                No Umrah packages available at the moment.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+                  {packages.umrah.slice(0, 3).map((pkg) => (
+                    <PackageCard key={pkg.id} pkg={pkg} />
+                  ))}
+                </div>
+                <div className="flex justify-center">
+                  <Link href="/standard-packages?umrah">
+                    <Button size="lg" className="px-8">
+                      Explore Umrah Packages
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
+          </TabsContent>
+          <TabsContent value="hajj">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="overflow-hidden animate-pulse">
+                    <div className="h-48 bg-gray-200"></div>
+                    <CardHeader>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : packages.hajj.length === 0 ? (
+              <div className="text-center text-gray-500 py-12">
+                No Hajj packages available at the moment.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+                  {packages.hajj.slice(0, 3).map((pkg) => (
+                    <PackageCard key={pkg.id} pkg={pkg} />
+                  ))}
+                </div>
+                <div className="flex justify-center">
+                  <Link href="/standard-packages?hajj">
+                    <Button size="lg" className="px-8">
+                      Explore Hajj Packages
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </section>
   )

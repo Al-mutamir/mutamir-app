@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import ProtectedRoute from "@/components/protected-route"
@@ -48,6 +48,19 @@ export default function CreatePackagePage() {
 	const router = useRouter()
 	const { toast } = useToast()
 	const [loading, setLoading] = useState(false)
+	const [isUnverified, setIsUnverified] = useState(false)
+
+	useEffect(() => {
+		const checkVerification = async () => {
+			if (user?.uid) {
+				const userProfile = await getUserData(user.uid)
+				if (userProfile?.status === "unverified") {
+					setIsUnverified(true)
+				}
+			}
+		}
+		checkVerification()
+	}, [user])
 
 	const [packageData, setPackageData] = useState({
 		name: "",
@@ -194,6 +207,14 @@ export default function CreatePackagePage() {
     }
 
 	const handleSubmit = async (status = "draft") => {
+		if (isUnverified && status === "active") {
+			toast({
+				title: "Account Not Verified",
+				description: "Your agency account must be verified before you can publish a package.",
+				variant: "destructive",
+			})
+			return
+		}
 		if (!validateForm()) return
 
 		setLoading(true)
@@ -592,7 +613,7 @@ export default function CreatePackagePage() {
 									<Save className="h-4 w-4 mr-2" />
 									Save as Draft
 								</Button>
-								<Button onClick={() => handleSubmit("active")} disabled={loading}>
+								<Button onClick={() => handleSubmit("active")} disabled={loading || isUnverified}>
 									<Eye className="h-4 w-4 mr-2" />
 									Publish Package
 								</Button>

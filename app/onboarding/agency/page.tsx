@@ -159,7 +159,7 @@ export default function AgencyOnboarding() {
       })
 
       // Redirect to agency dashboard
-      window.location.href = "/dashboard/agency"
+      router.replace("/dashboard/agency")
     } catch (error) {
       console.error("Error updating user data:", error)
       toast({

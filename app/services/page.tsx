@@ -17,6 +17,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import PackageReview from "@/components/package-review"
 import { Footer } from "@/components/footer"
 import { createBooking } from "@/firebase/firestore" // <-- Add this import
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CalendarIcon } from "lucide-react"
+import { format, isBefore, isSameDay, startOfDay, addDays } from "date-fns"
+import { cn } from "@/lib/utils"
 
 // Import the utility functions
 import { printElement } from "@/utils/print-utils"
@@ -93,6 +98,33 @@ function SuccessModal({ open, onClose, bookingDetails }: SuccessModalProps) {
       </div>
     </div>
   )
+}
+
+// Add this utility function at the top or in your utils:
+async function notifyDiscord(bookingDetails: any) {
+  try {
+    const webhookUrl = "https://discordapp.com/api/webhooks/1396867564990238862/z-zNLucOdqyS0nVtqynFrPZF46x0O4qufL2Ay0feUqZx8fzipMW1OIho4rLa4uPkU4PY"
+    const { packageType, departureDate, returnDate, departureCity, pilgrims, preferredItinerary } = bookingDetails
+    const pilgrimNames = pilgrims.map((p: any) => `${p.firstName} ${p.lastName} (${p.email})`).join("\n")
+    const itinerary = preferredItinerary?.length ? preferredItinerary.join(", ") : "Not specified"
+    const content = `📢 **New Booking Request**
+**Package Type:** ${packageType}
+**Departure Date:** ${departureDate}
+**Return Date:** ${returnDate}
+**Departure City:** ${departureCity}
+**Pilgrims:** 
+${pilgrimNames}
+**Preferred Itinerary:** ${itinerary}`
+
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    })
+  } catch (err) {
+    // Optionally log error, but don't block user flow
+    console.error("Failed to notify Discord:", err)
+  }
 }
 
 export default function ServicesPage() {
@@ -343,21 +375,21 @@ export default function ServicesPage() {
       const mainPilgrim = pilgrims[0]
       await createBooking({
         packageId: selectedPackage || "custom",
-        packageTitle: packageType, // Add packageTitle
-        pilgrimId: mainPilgrim.email, // or use a user ID if available
-        userEmail: mainPilgrim.email, // Add userEmail
-        agencyId: "custom", // or set to the selected agency/package agency if available
+        packageTitle: packageType,
+        pilgrimId: mainPilgrim.email,
+        userEmail: mainPilgrim.email,
+        agencyId: "custom",
         status: "pending",
         travelDate: departureDate,
         returnDate: returnDate,
-        totalPrice: 0, // Set actual price if available
+        totalPrice: 0,
         paymentStatus: "unpaid",
         highlights: preferredItinerary,
         notes: "",
       })
 
       // Send confirmation email
-      const emailRes = await fetch("/api/send-confirmation", {
+      await fetch("/api/send-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -696,21 +728,9 @@ export default function ServicesPage() {
         }),
       })
 
-      if (!emailRes.ok) {
-        let errorText = ""
-        try {
-          errorText = await emailRes.text()
-          // Try to parse as JSON, fallback to plain text
-          try {
-            const errorData = JSON.parse(errorText)
-            console.error("Error sending confirmation email:", errorData.error)
-          } catch {
-            console.error("Error sending confirmation email (non-JSON):", errorText)
-          }
-        } catch (err) {
-          console.error("Error reading error response:", err)
-        }
-      }
+      // --- Notify Discord ---
+      await notifyDiscord(bookingDetails)
+
     } catch (e) {
       console.error("Failed to store booking details or send email:", e)
     }
@@ -747,6 +767,33 @@ export default function ServicesPage() {
     }
     return true
   }
+
+  // Block out today and next 2 days for departure
+  const today = startOfDay(new Date())
+  const minDepartureDate = addDays(today, 3)
+  const [departureDateObj, setDepartureDateObj] = useState<Date | undefined>(
+    departureDate ? new Date(departureDate) : undefined
+  )
+  const [returnDateObj, setReturnDateObj] = useState<Date | undefined>(
+    returnDate ? new Date(returnDate) : undefined
+  )
+
+  // Sync string and date states
+  useEffect(() => {
+    if (departureDateObj) setDepartureDate(departureDateObj.toISOString().split("T")[0])
+    else setDepartureDate("")
+  }, [departureDateObj])
+  useEffect(() => {
+    if (returnDateObj) setReturnDate(returnDateObj.toISOString().split("T")[0])
+    else setReturnDate("")
+  }, [returnDateObj])
+
+  // Only allow departure from the 3rd day onward
+  const disablePastDates = (day: Date) => isBefore(day, minDepartureDate)
+  // Only allow return after departure date (and after minDepartureDate)
+  const disableReturnDates = (day: Date) =>
+    isBefore(day, minDepartureDate) ||
+    (departureDateObj ? isSameDay(day, departureDateObj) || isBefore(day, departureDateObj) : false)
 
   const renderStepContent = () => {
     switch (step) {
@@ -913,32 +960,58 @@ export default function ServicesPage() {
               />
             </div>
 
+            {/* --- Use calendar popover for departure date --- */}
             <div className="space-y-2">
               <Label htmlFor="departure-date">
                 Departure Date <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="departure-date"
-                type="date"
-                value={departureDate}
-                onChange={(e) => setDepartureDate(e.target.value)}
-                min={new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split("T")[0]}
-                required
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !departureDateObj && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {departureDateObj ? format(departureDateObj, "PPP") : "Select your departure date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={departureDateObj}
+                    onSelect={setDepartureDateObj}
+                    initialFocus
+                    disabled={disablePastDates}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
+            {/* --- Use calendar popover for return date --- */}
             <div className="space-y-2">
               <Label htmlFor="return-date">
                 Return Date <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="return-date"
-                type="date"
-                value={returnDate}
-                onChange={(e) => setReturnDate(e.target.value)}
-                min={departureDate}
-                required
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !returnDateObj && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {returnDateObj ? format(returnDateObj, "PPP") : "Select your return date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={returnDateObj}
+                    onSelect={setReturnDateObj}
+                    initialFocus
+                    disabled={disableReturnDates}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* --- Replace the Preferred Itinerary input with: --- */}

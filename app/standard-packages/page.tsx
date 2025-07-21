@@ -59,9 +59,9 @@ interface EmptyStateProps {
 }
 
 export default function StandardPackagesPage() {
-  const [packages, setPackages] = useState<PackagesState>({
-    standard: [],
-    agency: [],
+  const [packages, setPackages] = useState<{ hajj: Package[]; umrah: Package[] }>({
+    hajj: [],
+    umrah: [],
   })
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -70,42 +70,28 @@ export default function StandardPackagesPage() {
     const fetchPackages = async () => {
       try {
         setLoading(true)
-        setError(null) // Reset error state
-        const [allPackages, allUsers] = await Promise.all([getAllPackages(), getAllUsers()])
-
-        // Build a map of agencyId to agencyName
-        const agencyMap: Record<string, string> = {}
-        allUsers
-          .filter((user: User) => user.role === "agency")
-          .forEach((agency: User) => {
-            agencyMap[agency.id] = agency.agencyName || agency.displayName || agency.name || agency.email || "Unknown Agency"
-          })
-
-        // Attach agencyName to each agency package
-        const standardPackages: Package[] = allPackages.filter((pkg: Package) => pkg.createdBy === "admin" || pkg.isStandard)
-        const agencyPackages: AgencyPackage[] = allPackages
-          .filter((pkg: Package) => pkg.createdBy !== "admin" && !pkg.isStandard)
-          .map((pkg: Package): AgencyPackage => ({
-            ...pkg,
-            agencyName: agencyMap[pkg.agencyId || ""] || "Unknown Agency",
-          }))
-
+        setError(null)
+        const allPackages = await getAllPackages()
+        const hajjPackages = allPackages.filter((pkg: Package) => pkg.type?.toLowerCase() === "hajj")
+        // Group both "umrah" and "group-umrah" as Umrah
+        const umrahPackages = allPackages.filter((pkg: Package) => {
+          const type = pkg.type?.toLowerCase()
+          return type === "umrah" || type === "group-umrah"
+        })
         setPackages({
-          standard: standardPackages,
-          agency: agencyPackages,
+          hajj: hajjPackages,
+          umrah: umrahPackages,
         })
       } catch (err) {
-        console.error("Error fetching packages:", err)
         setError("Failed to load packages. Please try again later.")
         setPackages({
-          standard: [],
-          agency: [],
+          hajj: [],
+          umrah: [],
         })
       } finally {
         setLoading(false)
       }
     }
-
     fetchPackages()
   }, [])
 
@@ -242,15 +228,14 @@ export default function StandardPackagesPage() {
     )
   }
 
-  const hasAnyPackages = packages.standard.length > 0 || packages.agency.length > 0
+  const hasAnyPackages = packages.hajj.length > 0 || packages.umrah.length > 0
 
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="text-center mb-12">
         <h1 className="text-3xl font-bold mb-4">Hajj & Umrah Packages</h1>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          Explore our comprehensive collection of Hajj and Umrah packages. Choose from our standard Al-Mutamir packages
-          or discover unique offerings from our verified agency partners.
+          Explore our comprehensive collection of Hajj and Umrah packages. Choose from Hajj or Umrah options below.
         </p>
       </div>
 
@@ -269,62 +254,58 @@ export default function StandardPackagesPage() {
           description="There are currently no published Hajj or Umrah packages available. Please check back later or contact our support team for more information."
         />
       ) : (
-        <Tabs defaultValue="agency" className="w-full">
+        <Tabs defaultValue="umrah" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="agency" className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              Agency Packages ({packages.agency.length})
-            </TabsTrigger>
-            <TabsTrigger value="standard" className="flex items-center gap-2">
+            <TabsTrigger value="umrah" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Standard Packages ({packages.standard.length})
+              Umrah Packages ({packages.umrah.length})
+            </TabsTrigger>
+            <TabsTrigger value="hajj" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Hajj Packages ({packages.hajj.length})
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="agency">
+          <TabsContent value="umrah">
             <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Agency Partner Packages</h2>
+              <h2 className="text-xl font-semibold mb-2">Umrah Packages</h2>
               <p className="text-gray-600">
-                Discover unique packages from our verified agency partners, each offering specialized services and
-                experiences.
+                Discover our curated Umrah packages, offering excellent value and comprehensive services for your sacred journey.
               </p>
             </div>
-
-            {packages.agency.length > 0 ? (
+            {packages.umrah.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {packages.agency.map((pkg) => (
-                  <PackageCard key={pkg.id} pkg={pkg} showAgency={true} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={<Building className="h-12 w-12 text-gray-400 mx-auto" />}
-                title="No Agency Packages Available"
-                description="There are currently no packages published by our agency partners. Check back soon as our partners add their unique Hajj and Umrah offerings."
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="standard">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Al-Mutamir Standard Packages</h2>
-              <p className="text-gray-600">
-                Our carefully curated standard packages offer excellent value and comprehensive services for your sacred
-                journey.
-              </p>
-            </div>
-
-            {packages.standard.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {packages.standard.map((pkg) => (
+                {packages.umrah.map((pkg) => (
                   <PackageCard key={pkg.id} pkg={pkg} showAgency={false} />
                 ))}
               </div>
             ) : (
               <EmptyState
                 icon={<Package className="h-12 w-12 text-gray-400 mx-auto" />}
-                title="No Standard Packages Available"
-                description="There are currently no standard packages published by Al-Mutamir. Please check back later for our upcoming Hajj and Umrah offerings."
+                title="No Umrah Packages Available"
+                description="There are currently no Umrah packages published. Please check back later for our upcoming offerings."
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="hajj">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">Hajj Packages</h2>
+              <p className="text-gray-600">
+                Discover our curated Hajj packages, offering excellent value and comprehensive services for your sacred journey.
+              </p>
+            </div>
+            {packages.hajj.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {packages.hajj.map((pkg) => (
+                  <PackageCard key={pkg.id} pkg={pkg} showAgency={false} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<Package className="h-12 w-12 text-gray-400 mx-auto" />}
+                title="No Hajj Packages Available"
+                description="There are currently no Hajj packages published. Please check back later for our upcoming offerings."
               />
             )}
           </TabsContent>

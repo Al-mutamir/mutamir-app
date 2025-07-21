@@ -111,7 +111,7 @@ export default function AdminOnboarding() {
       })
 
       // Redirect to admin dashboard
-      router.push("/dashboard/admin")
+      router.replace("/dashboard/admin")
     } catch (error) {
       console.error("Error updating user data:", error)
       toast({

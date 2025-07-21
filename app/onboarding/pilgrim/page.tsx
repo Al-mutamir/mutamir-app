@@ -176,7 +176,7 @@ export default function PilgrimOnboarding() {
       })
 
       // Redirect to pilgrim dashboard
-      window.location.href = "/dashboard/pilgrim"
+      router.replace("/dashboard/pilgrim")
     } catch (error) {
       console.error("Error updating user data:", error)
       toast({
