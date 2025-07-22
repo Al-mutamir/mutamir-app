@@ -10,6 +10,10 @@ import Link from "next/link"
 import Image from "next/image"
 import { getAllPackages } from "@/lib/firebase/firestore"
 import { formatCurrency } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { Filter, CalendarIcon, ChevronDown } from "lucide-react"
 
 export default function StandardPackagesSection() {
   const [packages, setPackages] = useState({
@@ -17,6 +21,13 @@ export default function StandardPackagesSection() {
     umrah: [],
   })
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState({
+    sort: "",
+    departureDate: null as Date | null,
+    flexible: false,
+    umrahType: "all", // "all" | "umrah" | "group-umrah"
+  })
+  const [showFilter, setShowFilter] = useState(false)
 
   useEffect(() => {
     const fetchPackages = async () => {
@@ -120,6 +131,38 @@ export default function StandardPackagesSection() {
     </Card>
   )
 
+  // Filtering logic
+  const filterPackages = (pkgs: any[], type: "hajj" | "umrah") => {
+    let filtered = [...pkgs]
+    // Umrah type filter
+    if (type === "umrah" && filter.umrahType !== "all") {
+      filtered = filtered.filter(pkg =>
+        pkg.type?.toLowerCase() === filter.umrahType
+      )
+    }
+    // Departure date filter
+    if (filter.departureDate && !filter.flexible) {
+      filtered = filtered.filter(pkg =>
+        pkg.departureDate &&
+        format(new Date(pkg.departureDate), "yyyy-MM-dd") === format(filter.departureDate, "yyyy-MM-dd")
+      )
+    }
+    // Sort
+    if (filter.sort === "price-asc") {
+      filtered.sort((a, b) => a.price - b.price)
+    }
+    if (filter.sort === "price-desc") {
+      filtered.sort((a, b) => b.price - a.price)
+    }
+    if (filter.sort === "date-asc") {
+      filtered.sort((a, b) => new Date(a.departureDate) > new Date(b.departureDate) ? 1 : -1)
+    }
+    if (filter.sort === "date-desc") {
+      filtered.sort((a, b) => new Date(a.departureDate) < new Date(b.departureDate) ? 1 : -1)
+    }
+    return filtered
+  }
+
   return (
     <section id="standard-packages" className="py-20 bg-gray-50">
       <div className="container">
@@ -130,6 +173,90 @@ export default function StandardPackagesSection() {
             packages.
           </p>
         </div>
+
+        {/* --- Filter Bar --- */}
+        <div className="flex flex-wrap items-center gap-4 mb-8">
+          <button
+            className="flex items-center gap-2 px-4 py-2 border rounded bg-white text-[#014034] hover:bg-[#F8F8F6]"
+            onClick={() => setShowFilter(v => !v)}
+          >
+            <Filter className="h-4 w-4" />
+            Filters
+            <ChevronDown className={`h-4 w-4 transition-transform ${showFilter ? "rotate-180" : ""}`} />
+          </button>
+          {showFilter && (
+            <div className="flex flex-wrap gap-4 items-center bg-[#F8F8F6] p-4 rounded-lg border border-[#E3B23C]/40 w-full">
+              <div>
+                <label className="block text-xs mb-1">Sort By</label>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={filter.sort}
+                  onChange={e => setFilter(f => ({ ...f, sort: e.target.value }))}
+                >
+                  <option value="">Default</option>
+                  <option value="price-asc">Price (Low to High)</option>
+                  <option value="price-desc">Price (High to Low)</option>
+                  <option value="date-asc">Departure (Earliest)</option>
+                  <option value="date-desc">Departure (Latest)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs mb-1">Departure Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center border rounded px-2 py-1 bg-white">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {filter.departureDate ? format(filter.departureDate, "PPP") : "Pick a date"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={filter.departureDate || undefined}
+                      onSelect={date => setFilter(f => ({ ...f, departureDate: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex items-center gap-2 mt-4 md:mt-0">
+                <input
+                  type="checkbox"
+                  id="flexible"
+                  checked={filter.flexible}
+                  onChange={e => setFilter(f => ({ ...f, flexible: e.target.checked }))}
+                  className="accent-[#E3B23C]"
+                />
+                <label htmlFor="flexible" className="text-xs">Flexible Date</label>
+              </div>
+              {/* Umrah type filter */}
+              <div>
+                <label className="block text-xs mb-1">Umrah Type</label>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={filter.umrahType}
+                  onChange={e => setFilter(f => ({ ...f, umrahType: e.target.value }))}
+                >
+                  <option value="all">All</option>
+                  <option value="umrah">Umrah</option>
+                  <option value="group-umrah">Group Umrah</option>
+                </select>
+              </div>
+              <button
+                className="ml-auto text-xs underline text-[#007F5F]"
+                onClick={() => setFilter({
+                  sort: "",
+                  departureDate: null,
+                  flexible: false,
+                  umrahType: "all",
+                })}
+              >
+                Reset Filters
+              </button>
+            </div>
+          )}
+        </div>
+
         <Tabs defaultValue="umrah" className="w-full mb-8">
           <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="umrah" className="flex items-center gap-2">
@@ -158,14 +285,14 @@ export default function StandardPackagesSection() {
                   </Card>
                 ))}
               </div>
-            ) : packages.umrah.length === 0 ? (
+            ) : filterPackages(packages.umrah, "umrah").length === 0 ? (
               <div className="text-center text-gray-500 py-12">
                 No Umrah packages available at the moment.
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-                  {packages.umrah.slice(0, 3).map((pkg) => (
+                  {filterPackages(packages.umrah, "umrah").slice(0, 12).map((pkg) => (
                     <PackageCard key={pkg.id} pkg={pkg} />
                   ))}
                 </div>
@@ -196,14 +323,14 @@ export default function StandardPackagesSection() {
                   </Card>
                 ))}
               </div>
-            ) : packages.hajj.length === 0 ? (
+            ) : filterPackages(packages.hajj, "hajj").length === 0 ? (
               <div className="text-center text-gray-500 py-12">
                 No Hajj packages available at the moment.
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-                  {packages.hajj.slice(0, 3).map((pkg) => (
+                  {filterPackages(packages.hajj, "hajj").slice(0, 12).map((pkg) => (
                     <PackageCard key={pkg.id} pkg={pkg} />
                   ))}
                 </div>
