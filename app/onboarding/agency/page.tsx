@@ -57,6 +57,7 @@ export default function AgencyOnboarding() {
       touristGuide: false,
     },
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const steps: Step[] = [
     {
@@ -139,6 +140,7 @@ export default function AgencyOnboarding() {
   const handleSubmit = async () => {
     if (!user) return
 
+    setIsSubmitting(true)
     try {
       await updateUserOnboardingData(user.uid, {
         agencyName: formData.agencyName,
@@ -168,6 +170,8 @@ export default function AgencyOnboarding() {
         variant: "destructive",
         duration: 3000,
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -371,8 +375,24 @@ export default function AgencyOnboarding() {
                 Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button className="bg-[#c8e823] text-black hover:bg-[#b5d31f]" onClick={handleSubmit}>
-                Complete Setup <ArrowRight className="ml-2 h-4 w-4" />
+              <Button
+                className="bg-[#c8e823] text-black hover:bg-[#b5d31f]"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 mr-2 inline" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#014034" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="#014034" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    Complete Setup <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             )}
           </div>
