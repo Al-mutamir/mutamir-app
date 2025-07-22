@@ -5,15 +5,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MapPin, Calendar, Users, ArrowRight, Package, Building } from "lucide-react"
+//import { MapPin, Calendar, Users, ArrowRight, Package, Building } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { getAllPackages } from "@/lib/firebase/firestore"
 import { formatCurrency } from "@/lib/utils"
+import { Calendar as CalendarIcon, Filter, ChevronDown, MapPin, Users, ArrowRight, Package, Building } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { format } from "date-fns"
-import { Filter, CalendarIcon, ChevronDown } from "lucide-react"
 
 export default function StandardPackagesSection() {
   const [packages, setPackages] = useState({
@@ -166,26 +166,20 @@ export default function StandardPackagesSection() {
   return (
     <section id="standard-packages" className="py-20 bg-gray-50">
       <div className="container">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Our Packages</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Explore a selection of our most popular Hajj and Umrah packages. For more options, click below to explore all
-            packages.
-          </p>
-        </div>
 
-        {/* --- Filter Bar --- */}
-        <div className="flex flex-wrap items-center gap-4 mb-8">
+        {/* --- Filter Bar (move to very top to test visibility) --- */}
+        <div className="mb-8">
           <button
             className="flex items-center gap-2 px-4 py-2 border rounded bg-white text-[#014034] hover:bg-[#F8F8F6]"
             onClick={() => setShowFilter(v => !v)}
+            type="button"
           >
             <Filter className="h-4 w-4" />
             Filters
             <ChevronDown className={`h-4 w-4 transition-transform ${showFilter ? "rotate-180" : ""}`} />
           </button>
           {showFilter && (
-            <div className="flex flex-wrap gap-4 items-center bg-[#F8F8F6] p-4 rounded-lg border border-[#E3B23C]/40 w-full">
+            <div className="flex flex-wrap gap-4 items-center bg-[#F8F8F6] p-4 rounded-lg border border-[#E3B23C]/40 mt-2">
               <div>
                 <label className="block text-xs mb-1">Sort By</label>
                 <select
@@ -204,7 +198,7 @@ export default function StandardPackagesSection() {
                 <label className="block text-xs mb-1">Departure Date</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center border rounded px-2 py-1 bg-white">
+                    <button className="flex items-center border rounded px-2 py-1 bg-white" type="button">
                       <CalendarIcon className="h-4 w-4 mr-2" />
                       {filter.departureDate ? format(filter.departureDate, "PPP") : "Pick a date"}
                     </button>
@@ -219,7 +213,7 @@ export default function StandardPackagesSection() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="flex items-center gap-2 mt-4 md:mt-0">
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="flexible"
@@ -250,11 +244,20 @@ export default function StandardPackagesSection() {
                   flexible: false,
                   umrahType: "all",
                 })}
+                type="button"
               >
                 Reset Filters
               </button>
             </div>
           )}
+        </div>
+
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4">Our Packages</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Explore a selection of our most popular Hajj and Umrah packages. For more options, click below to explore all
+            packages.
+          </p>
         </div>
 
         <Tabs defaultValue="umrah" className="w-full mb-8">
