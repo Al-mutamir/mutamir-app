@@ -11,6 +11,7 @@ import Image from "next/image"
 import { getAllPackages, getAllUsers } from "@/lib/firebase/firestore"
 import { formatCurrency } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ChevronDown, Filter } from "lucide-react"
 
 // Type definitions
 interface User {
@@ -65,6 +66,66 @@ export default function StandardPackagesPage() {
   })
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [showFilter, setShowFilter] = useState(false)
+  const [filter, setFilter] = useState({
+    price: "",
+    date: "",
+  })
+
+  // Price ranges in millions
+  const priceRanges = [
+    { label: "All", value: "" },
+    { label: "₦1m - ₦2m", value: "1-2" },
+    { label: "₦2m - ₦3m", value: "2-3" },
+    { label: "₦3m - ₦4m", value: "3-4" },
+    { label: "₦4m+", value: "4+" },
+  ]
+
+  // Filter logic
+  const filterPackages = (pkgs: Package[]) => {
+    let filtered = [...pkgs]
+    // Price filter
+    if (filter.price) {
+      filtered = filtered.filter(pkg => {
+        if (!pkg.price) return false
+        const price = pkg.price / 1_000_000
+        if (filter.price === "4+") return price >= 4
+        const [min, max] = filter.price.split("-").map(Number)
+        return price >= min && price < max
+      })
+    }
+    // Date filter
+    if (filter.date) {
+      filtered = filtered.filter(pkg => {
+        if (!pkg.departureDate) return false
+        if (typeof pkg.departureDate === "string" && pkg.departureDate.toLowerCase() === "flexible") {
+          return filter.date === "flexible"
+        }
+        if (filter.date === "flexible") {
+          return typeof pkg.departureDate === "string" && pkg.departureDate.toLowerCase() === "flexible"
+        }
+        // Try to parse date
+        let pkgDate: Date | null = null
+        if (typeof pkg.departureDate === "string") {
+          const d = new Date(pkg.departureDate)
+          pkgDate = isNaN(d.getTime()) ? null : d
+        } else if (typeof pkg.departureDate === "object" && "toDate" in pkg.departureDate) {
+          pkgDate = pkg.departureDate.toDate()
+        } else if (pkg.departureDate instanceof Date) {
+          pkgDate = pkg.departureDate
+        }
+        if (!pkgDate) return false
+        // Compare only date part
+        const filterDate = new Date(filter.date)
+        return (
+          pkgDate.getFullYear() === filterDate.getFullYear() &&
+          pkgDate.getMonth() === filterDate.getMonth() &&
+          pkgDate.getDate() === filterDate.getDate()
+        )
+      })
+    }
+    return filtered
+  }
 
   useEffect(() => {
     const fetchPackages = async () => {
@@ -100,7 +161,10 @@ export default function StandardPackagesPage() {
 
     try {
       if (typeof date === "string") {
-        return new Date(date).toLocaleDateString("en-US", {
+        if (date.toLowerCase() === "flexible") return "Flexible"
+        const d = new Date(date)
+        if (isNaN(d.getTime())) return "TBA"
+        return d.toLocaleDateString("en-US", {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -108,7 +172,9 @@ export default function StandardPackagesPage() {
       }
 
       if (date && typeof date === "object" && "toDate" in date) {
-        return date.toDate().toLocaleDateString("en-US", {
+        const d = date.toDate()
+        if (isNaN(d.getTime())) return "TBA"
+        return d.toLocaleDateString("en-US", {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -116,6 +182,7 @@ export default function StandardPackagesPage() {
       }
 
       if (date instanceof Date) {
+        if (isNaN(date.getTime())) return "TBA"
         return date.toLocaleDateString("en-US", {
           year: "numeric",
           month: "short",
@@ -125,7 +192,6 @@ export default function StandardPackagesPage() {
 
       return "TBA"
     } catch (error) {
-      console.error("Date formatting error:", error)
       return "TBA"
     }
   }
@@ -144,7 +210,8 @@ export default function StandardPackagesPage() {
         <div className="absolute top-4 left-4">
           <Badge className="bg-white text-primary">{pkg.type || "Package"}</Badge>
         </div>
-        {showAgency && "agencyName" in pkg && pkg.agencyName && (
+        {/* Always show agency name if available */}
+        {"agencyName" in pkg && pkg.agencyName && (
           <div className="absolute top-4 right-4">
             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
               <Building className="h-3 w-3 mr-1" />
@@ -157,10 +224,10 @@ export default function StandardPackagesPage() {
         <CardTitle className="line-clamp-2">{pkg.title || "Untitled Package"}</CardTitle>
         <CardDescription className="flex items-center gap-1">
           <MapPin className="h-3.5 w-3.5 text-gray-500" />
-          {pkg.destination || "Destination TBA"}
+          {pkg.destination || "Saudi Arabia"}
         </CardDescription>
-        {/* Show agency name under title for agency packages */}
-        {showAgency && "agencyName" in pkg && pkg.agencyName && (
+        {/* Always show agency name under title if available */}
+        {"agencyName" in pkg && pkg.agencyName && (
           <div className="mt-1 text-xs text-blue-800 flex items-center gap-1">
             <Building className="h-3 w-3" />
             <span>{pkg.agencyName}</span>
@@ -239,6 +306,69 @@ export default function StandardPackagesPage() {
         </p>
       </div>
 
+      {/* Filter Bar */}
+      <div className="mb-8">
+        <button
+          className="flex items-center gap-2 px-4 py-2 border rounded bg-white text-[#014034] hover:bg-[#F8F8F6]"
+          onClick={() => setShowFilter(v => !v)}
+          type="button"
+        >
+          <Filter className="h-4 w-4" />
+          Filters
+          <ChevronDown className={`h-4 w-4 transition-transform ${showFilter ? "rotate-180" : ""}`} />
+        </button>
+        {showFilter && (
+          <div className="flex flex-wrap gap-4 items-center bg-[#F8F8F6] p-4 rounded-lg border border-[#E3B23C]/40 mt-4">
+            {/* Price filter */}
+            <div>
+              <label className="block text-xs mb-1">Price Range</label>
+              <select
+                className="border rounded px-2 py-1"
+                value={filter.price}
+                onChange={e => setFilter(f => ({ ...f, price: e.target.value }))}
+              >
+                {priceRanges.map(r => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+            </div>
+            {/* Date filter */}
+            <div>
+              <label className="block text-xs mb-1">Departure Date</label>
+              <input
+                type="date"
+                className="border rounded px-2 py-1"
+                value={filter.date !== "flexible" ? filter.date : ""}
+                onChange={e => setFilter(f => ({ ...f, date: e.target.value }))}
+                disabled={filter.date === "flexible"}
+              />
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="checkbox"
+                  id="flexible"
+                  checked={filter.date === "flexible"}
+                  onChange={e =>
+                    setFilter(f => ({
+                      ...f,
+                      date: e.target.checked ? "flexible" : "",
+                    }))
+                  }
+                  className="accent-[#E3B23C]"
+                />
+                <label htmlFor="flexible" className="text-xs">Flexible Date</label>
+              </div>
+            </div>
+            <button
+              className="ml-auto text-xs underline text-[#007F5F]"
+              onClick={() => setFilter({ price: "", date: "" })}
+              type="button"
+            >
+              Reset Filters
+            </button>
+          </div>
+        )}
+      </div>
+
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
@@ -258,11 +388,11 @@ export default function StandardPackagesPage() {
           <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="umrah" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Umrah Packages ({packages.umrah.length})
+              Umrah Packages ({filterPackages(packages.umrah).length})
             </TabsTrigger>
             <TabsTrigger value="hajj" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Hajj Packages ({packages.hajj.length})
+              Hajj Packages ({filterPackages(packages.hajj).length})
             </TabsTrigger>
           </TabsList>
 
@@ -273,9 +403,9 @@ export default function StandardPackagesPage() {
                 Discover our curated Umrah packages, offering excellent value and comprehensive services for your sacred journey.
               </p>
             </div>
-            {packages.umrah.length > 0 ? (
+            {filterPackages(packages.umrah).length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {packages.umrah.map((pkg) => (
+                {filterPackages(packages.umrah).map((pkg) => (
                   <PackageCard key={pkg.id} pkg={pkg} showAgency={false} />
                 ))}
               </div>
@@ -295,9 +425,9 @@ export default function StandardPackagesPage() {
                 Discover our curated Hajj packages, offering excellent value and comprehensive services for your sacred journey.
               </p>
             </div>
-            {packages.hajj.length > 0 ? (
+            {filterPackages(packages.hajj).length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {packages.hajj.map((pkg) => (
+                {filterPackages(packages.hajj).map((pkg) => (
                   <PackageCard key={pkg.id} pkg={pkg} showAgency={false} />
                 ))}
               </div>
