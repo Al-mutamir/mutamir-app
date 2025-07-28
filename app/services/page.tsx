@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import PackageReview from "@/components/package-review"
 import { Footer } from "@/components/footer"
-import { createBooking } from "@/firebase/firestore" // <-- Add this import
+import { createBooking, savePilgrimDetails } from "@/firebase/firestore" // Make sure savePilgrimDetails exists
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon } from "lucide-react"
@@ -317,7 +317,7 @@ export default function ServicesPage() {
       departureCity,
       departureDate,
       returnDate,
-      preferredItinerary, // now an array
+      preferredItinerary,
       services: selectedServices,
       isCreatingGroup,
       groupMembers,
@@ -339,7 +339,19 @@ export default function ServicesPage() {
         paymentStatus: "unpaid",
         highlights: preferredItinerary,
         notes: "",
+        // Save all form fields
+        departureCity,
+        pilgrims,
+        isGroupBooking,
+        isCreatingGroup,
+        groupMembers,
+        selectedServices,
       })
+
+      // Save each pilgrim's details to Firestore (optional, if you want individual records)
+      for (const pilgrim of pilgrims) {
+        await savePilgrimDetails(pilgrim)
+      }
 
       // Send confirmation email
       await fetch("/api/send-confirmation", {

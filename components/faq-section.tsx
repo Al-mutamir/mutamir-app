@@ -3,34 +3,64 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export default function FaqSection() {
   const faqs = [
     {
-      question: "How does Al-Mutamir ensure the legitimacy of agencies?",
+      question: "What is Al-Mutamir?",
       answer:
-        "We thoroughly vet all agencies on our platform, requiring proper accreditation and documentation. We continuously monitor reviews and feedback to maintain high standards of service.",
+        "Al-Mutamir is a trusted online platform that helps you plan your Hajj or Umrah journey with peace of mind. From verified service providers to transparent pricing and customizable packages, we make your spiritual journey smooth, simple, and dignified.",
     },
     {
-      question: "Can I customize my Hajj or Umrah package?",
+      question: "How is Al-Mutamir different from traditional agents?",
       answer:
-        "Al-Mutamir allows you to select your preferred services including visas, flights, accommodation, transport, and meals. You have full control over your pilgrimage experience.",
+        "Unlike traditional agents, we offer:\n\n• Full transparency: See exactly what you're paying for.\n• Verified providers: We only work with licensed and trusted agencies.\n• Customizable experiences: You choose your package, flights, hotels, and services.\n• Online support: 24/7 guidance from our team—before, during, and after your trip.",
     },
     {
-      question: "Do I need a visa if I'm traveling from the US or UK?",
+      question: "Is Al-Mutamir licensed?",
       answer:
-        "Pilgrims from the US and UK are eligible for visa on arrival in Saudi Arabia. However, pilgrims from Nigeria and other countries will need to include visa services in their package.",
+        "Yes. We work only with accredited Hajj and Umrah operators licensed by the appropriate religious and travel authorities. Our platform also complies with local and international pilgrimage regulations.",
     },
     {
-      question: "How are the prices determined?",
+      question: "How do I book a Hajj or Umrah package?",
       answer:
-        "Prices are not pre-determined and vary based on the services you select, the time of year, and current market rates. Our transparent pricing ensures you see exactly what you're paying for with no hidden fees.",
+        "Booking is simple:\n1. Browse available packages.\n2. Customize your preferences (flights, hotels, services).\n3. Book and pay securely.\n4. Prepare with our digital checklists and updates.\n\nEverything is online—no paperwork or guesswork.",
     },
     {
-      question: "Can I change my package after booking?",
+      question: "Can I pay in instalments?",
       answer:
-        "Yes, you can make changes to your package up to a certain point before your departure date. Please note that some changes may incur additional fees depending on the service providers' policies.",
+        "Yes. We offer flexible payment plans to make your journey more accessible. You can pay in instalments based on the travel date and provider’s policies. Details will be available at checkout.",
     },
     {
-      question: "How do agencies create and share packages?",
+      question: "What happens after I book?",
       answer:
-        "Agencies can easily create customized packages through their dashboard, specifying all details and pricing. They can then generate a unique link to share with clients, allowing them to register directly under that package.",
+        "Once you book:\n• You’ll receive a confirmation email with your full itinerary.\n• We’ll send reminders and documents through your dashboard.\n• Our support team stays in touch to guide you every step of the way.",
+    },
+    {
+      question: "What if I need to cancel my booking?",
+      answer:
+        "You can cancel based on our Refund Policy:\n\n• More than 120 days before Hajj: 90% refund\n• 90–119 days before: 75% refund\n• 60–89 days: 50% refund\n• Less than 30 days: No refund (due to provider commitments)\n\nUmrah bookings have a slightly more flexible timeline. See our [Refund Policy](https://www.almutamir.com/refund) for full details.",
+    },
+    {
+      question: "Can I travel with my family or a group?",
+      answer:
+        "Absolutely. You can book for:\n• Yourself\n• Family members\n• Groups (e.g. friends, mosques, organizations)\n\nOur system makes it easy to manage all travelers under one booking.",
+    },
+    {
+      question: "Can I choose my hotel or airline?",
+      answer:
+        "Yes. Al-Mutamir gives you full control. Select from multiple airlines and hotels at different price points. You can compare options before booking.",
+    },
+    {
+      question: "What support is available during my trip?",
+      answer:
+        "We’re with you every step of the way:\n• Real-time updates\n• WhatsApp and in-app chat support\n• Emergency assistance\n• Help resolving any issue with providers\n\nYou’ll never feel alone on your journey.",
+    },
+    {
+      question: "How do I know this is safe and legit?",
+      answer:
+        "We take your trust seriously:\n• All providers are verified and reviewed.\n• All payments are secure and encrypted.\n• We have a clear refund policy.\n• You can read reviews and experiences from other pilgrims.",
+    },
+    {
+      question: "Can I become a service provider on Al-Mutamir?",
+      answer:
+        "Yes. If you run a licensed Hajj/Umrah agency, transport, hospitality, or support service, [apply here](https://www.almutamir.com/auth/register) to join our trusted network.",
     },
   ]
 
@@ -47,7 +77,16 @@ export default function FaqSection() {
             {faqs.map((faq, index) => (
               <AccordionItem key={index} value={`item-${index}`}>
                 <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
-                <AccordionContent className="text-gray-600">{faq.answer}</AccordionContent>
+                <AccordionContent className="text-gray-600 whitespace-pre-line">
+                  {/* Render markdown-style links as real links */}
+                  {faq.answer.split(/\[([^\]]+)\]\(([^)]+)\)/g).map((part, i, arr) =>
+                    i % 3 === 1 ? (
+                      <a key={i} href={arr[i + 1]} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">
+                        {part}
+                      </a>
+                    ) : i % 3 === 2 ? null : part
+                  )}
+                </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>

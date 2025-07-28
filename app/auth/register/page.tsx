@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { UserRole } from "@/types/auth"
-import { getUserData, setUserData } from "@/lib/firebase/firestore"
+import { getUserData, setUserData, updateUserProfile } from "@/lib/firebase/firestore"
 import { sendWelcomeEmail } from "@/utils/sendWelcomeEmail"
 
 type UserData = {
@@ -50,6 +50,7 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     role: "pilgrim" as UserRole,
+    status: "unverified",
   })
 
   const [showPassword, setShowPassword] = useState(false)
@@ -113,6 +114,12 @@ export default function RegisterPage() {
       // If agency, set unverified status in user db and notify Discord
       if (formData.role === "agency" && userCredential?.user?.uid) {
         await setUserData(userCredential.user.uid, {
+          status: "unverified",
+        })
+        await updateUserProfile(userCredential.user.uid, {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
           status: "unverified",
         })
         await notifyDiscordAgencyRegistration({
