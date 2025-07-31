@@ -339,13 +339,20 @@ export default function ServicesPage() {
         paymentStatus: "unpaid",
         highlights: preferredItinerary,
         notes: "",
-        // Save all form fields
         departureCity,
         pilgrims,
         isGroupBooking,
         isCreatingGroup,
         groupMembers,
-        selectedServices,
+        // Save full details of selected services for best matching
+        selectedServices: {
+          visa: { ...selectedServices.visa },
+          flight: { ...selectedServices.flight },
+          accommodation: { ...selectedServices.accommodation },
+          transport: { ...selectedServices.transport },
+          food: { ...selectedServices.food },
+          visitation: { ...selectedServices.visitation },
+        },
       })
 
       // Save each pilgrim's details to Firestore (optional, if you want individual records)
