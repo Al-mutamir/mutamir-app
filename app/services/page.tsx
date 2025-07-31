@@ -61,7 +61,7 @@ function SuccessModal({ open, onClose }: { open: boolean; onClose: () => void })
       <div className="bg-white rounded-xl shadow-xl max-w-xs w-full p-6 relative flex flex-col items-center">
         <button
           className="absolute top-3 right-3 bg-[#E3B23C] text-[#014034] hover:bg-[#007F5F] hover:text-white text-xs font-semibold px-3 py-1 rounded transition"
-          onClick={() => window.open('/pilgrim-guide', '_blank')}
+          onClick={() => window.open('/guide', '_blank')}
           aria-label="Pilgrim Guide"
         >
           Pilgrim Guide
