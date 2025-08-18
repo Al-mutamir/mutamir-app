@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import PackageReview from "@/components/package-review"
 import { Footer } from "@/components/footer"
-import { createBooking, savePilgrimDetails } from "@/firebase/firestore" // Make sure savePilgrimDetails exists
+import { createBooking } from "@/firebase/firestore"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon } from "lucide-react"
@@ -26,6 +26,75 @@ import { cn } from "@/lib/utils"
 // Import the utility functions
 import { printElement } from "@/utils/print-utils"
 import { CheckCircle2 } from "lucide-react"
+
+// Beautified Discord notification function that sends all booking details
+async function notifyDiscord(booking: any) {
+  try {
+    // Pilgrims (only filled)
+    const pilgrimsArr = Array.isArray(booking.pilgrims)
+      ? booking.pilgrims.filter((p: any) => p.firstName || p.lastName || p.email || p.phone)
+      : []
+    const pilgrimList = pilgrimsArr.length
+      ? pilgrimsArr.map((p: any, idx: number) =>
+          `• ${p.firstName} ${p.lastName} (${p.email}, ${p.phone})`
+        ).join("\n")
+      : "No pilgrims provided"
+
+    // Itinerary (only filled)
+    const itineraryArr = Array.isArray(booking.highlights)
+      ? booking.highlights.filter((item: string) => item && item.trim() !== "")
+      : []
+    const itineraryList = itineraryArr.length
+      ? itineraryArr.map((item: string) => `  - ${item}`).join("\n")
+      : "  (No specific itinerary provided)"
+
+    // Services (only selected)
+    const servicesObj = typeof booking.selectedServices === "object" && booking.selectedServices !== null
+      ? Object.entries(booking.selectedServices).filter(([_, v]: any) => v.selected)
+      : []
+    const servicesSelected = servicesObj.length
+      ? servicesObj.map(([k, v]: any) => {
+          let tier = v.tier ? ` (${v.tier})` : ""
+          return `• ${k.charAt(0).toUpperCase() + k.slice(1)}${tier}`
+        }).join("\n")
+      : "None"
+
+    // Group members (only filled)
+    const groupMembersArr = Array.isArray(booking.groupMembers)
+      ? booking.groupMembers.filter((m: any) => m.name || m.email || m.phone)
+      : []
+    const groupMembersList = groupMembersArr.length
+      ? groupMembersArr.map((m: any, idx: number) =>
+          `• ${m.name} (${m.email}, ${m.phone})`
+        ).join("\n")
+      : ""
+
+    // Build message
+    const message =
+      `🟢 **New Booking Received**\n` +
+      `**Package:** ${booking.packageTitle}\n` +
+      `**Departure City:** ${booking.departureCity}\n` +
+      `**Departure Date:** ${booking.travelDate}\n` +
+      `**Return Date:** ${booking.returnDate}\n` +
+      `**Status:** ${booking.status}\n` +
+      `**Payment Status:** ${booking.paymentStatus}\n` +
+      `**Pilgrims:**\n${pilgrimList}\n\n` +
+      `**Preferred Itinerary:**\n${itineraryList}\n\n` +
+      `**Selected Services:**\n${servicesSelected}\n\n` +
+      (booking.isGroupBooking ? `**Group Booking:** Yes\n` : "") +
+      (booking.isCreatingGroup && groupMembersArr.length > 0
+        ? `**Group Members:**\n${groupMembersList}\n`
+        : "")
+
+    await fetch("https://discordapp.com/api/webhooks/1396867564990238862/z-zNLucOdqyS0nVtqynFrPZF46x0O4qufL2Ay0feUqZx8fzipMW1OIho4rLa4uPkU4PY", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: message }),
+    })
+  } catch (err) {
+    console.error("Discord notification failed", err)
+  }
+}
 
 interface PilgrimDetails {
   firstName: string
@@ -56,23 +125,38 @@ interface SuccessModalProps {
 // Replace SuccessModal with this minimal version:
 function SuccessModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null
+  // Handle click outside to close
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose()
+  }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      onClick={handleOverlayClick}
+    >
       <div className="bg-white rounded-xl shadow-xl max-w-xs w-full p-6 relative flex flex-col items-center">
+        {/* Cancel button top right */}
         <button
-          className="absolute top-3 right-3 bg-[#E3B23C] text-[#014034] hover:bg-[#007F5F] hover:text-white text-xs font-semibold px-3 py-1 rounded transition"
-          onClick={() => window.open('/guide', '_blank')}
-          aria-label="Pilgrim Guide"
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl"
+          onClick={() => onClose()}
+          aria-label="Close"
         >
-          Pilgrim Guide
+          ×
         </button>
         <ThumbsUp className="h-12 w-12 text-[#007F5F] mb-4" />
         <h2 className="text-lg font-semibold text-[#014034] text-center mb-2">
           Booking request successful
         </h2>
-        <p className="text-gray-600 text-center text-sm">
+        <p className="text-gray-600 text-center text-sm mb-8">
           A representative will contact you shortly.<br />Thanks for choosing Almutamir.
         </p>
+        {/* Pilgrim Guide button at bottom center */}
+        <button
+          className="bg-[#E3B23C] text-[#014034] hover:bg-[#007F5F] hover:text-white text-xs font-semibold px-4 py-2 rounded transition absolute left-1/2 -translate-x-1/2 bottom-6"
+          onClick={() => window.open('/guide', '_blank')}
+        >
+          Pilgrim Guide
+        </button>
       </div>
     </div>
   )
@@ -308,7 +392,6 @@ export default function ServicesPage() {
   // Handle form submission
   const handleSubmit = async () => {
     setIsSubmitting(true)
-    // Store booking details in localStorage for the success page
     const bookingDetails = {
       packageType,
       selectedPackage,
@@ -324,7 +407,6 @@ export default function ServicesPage() {
     }
 
     try {
-      // Save booking to Firestore (using the first pilgrim as the main contact)
       const mainPilgrim = pilgrims[0]
       await createBooking({
         packageId: selectedPackage || "custom",
@@ -344,7 +426,6 @@ export default function ServicesPage() {
         isGroupBooking,
         isCreatingGroup,
         groupMembers,
-        // Save full details of selected services for best matching
         selectedServices: {
           visa: { ...selectedServices.visa },
           flight: { ...selectedServices.flight },
@@ -355,361 +436,88 @@ export default function ServicesPage() {
         },
       })
 
-      // Save each pilgrim's details to Firestore (optional, if you want individual records)
-      for (const pilgrim of pilgrims) {
-        await savePilgrimDetails(pilgrim)
-      }
-
-      // Send confirmation email
-      await fetch("/api/send-confirmation", {
+      // --- Send confirmation email using your custom HTML template ---
+      const mailRes = await fetch("/api/send-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: mainPilgrim.email,
           subject: "Your Al-mutamir Booking Confirmation",
-          text: `Dear ${mainPilgrim.firstName},\n\nYour booking has been received. We will contact you soon.\n\nThank you for choosing Al-mutamir!`,
-          html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Al-mutamir Booking Confirmation</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
-        
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: white;
-            padding: 40px 40px 20px;
-            text-align: center;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-bottom: 30px;
-        }
-        
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: #c8e823;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #1a1a1a;
-        }
-        
-        .logo-text {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-        
-        .illustration {
-            width: 120px;
-            height: 120px;
-            background: #f8f9fa;
-            border-radius: 60px;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-        }
-        
-        .greeting {
-            font-size: 24px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 8px;
-        }
-        
-        .subheading {
-            font-size: 18px;
-            color: #c8e823;
-            font-weight: 500;
-            margin-bottom: 20px;
-        }
-        
-        .content {
-            padding: 30px 40px;
-            line-height: 1.6;
-        }
-        
-        .message {
-            font-size: 16px;
-            color: #4a4a4a;
-            margin-bottom: 20px;
-        }
-        
-        .highlight-box {
-            background: #f0f9d4;
-            border: 1px solid #c8e823;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        
-        .highlight-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 8px;
-        }
-        
-        .highlight-text {
-            font-size: 14px;
-            color: #4a4a4a;
-        }
-        
-        .action-button {
-            display: inline-block;
-            background: #c8e823;
-            color: #1a1a1a;
-            text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 20px 0;
-            transition: all 0.3s ease;
-        }
-        
-        .action-button:hover {
-            background: #b5d31f;
-            transform: translateY(-1px);
-        }
-        
-        .details-section {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        
-        .details-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 12px;
-        }
-        
-        .details-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        
-        .details-label {
-            color: #6b7280;
-        }
-        
-        .details-value {
-            color: #1a1a1a;
-            font-weight: 500;
-        }
-        
-        .footer {
-            background: #f8f9fa;
-            padding: 30px 40px;
-            text-align: center;
-            border-top: 1px solid #e5e7eb;
-        }
-        
-        .footer-text {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 8px;
-        }
-        
-        .contact-info {
-            font-size: 14px;
-            color: #4F46E5;
-            text-decoration: none;
-        }
-        
-        .signature {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #6b7280;
-        }
-        
-        .social-links {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-        
-        .social-link {
-            width: 32px;
-            height: 32px;
-            background: #4F46E5;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            color: white;
-            font-size: 14px;
-        }
-        
-        .copyright {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #9ca3af;
-        }
-        
-        /* Responsive design */
-        @media (max-width: 640px) {
-            body {
-                padding: 20px 10px;
-            }
-            
-            .header,
-            .content,
-            .footer {
-                padding: 20px;
-            }
-            
-            .greeting {
-                font-size: 20px;
-            }
-            
-            .subheading {
-                font-size: 16px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="email-container">
-        <!-- Header -->
-        <div class="header">
-            <div class="greeting">Hi ${mainPilgrim.firstName},</div>
-            <div class="subheading">Your Spiritual Journey Begins!</div>
-        </div>
-        
-        <!-- Content -->
-        <div class="content">
-            <div class="message">
-                We are delighted to confirm your booking for your spiritual journey. Your pilgrimage details have been received and are being processed by our team.
-            </div>
-            
-            <div class="highlight-box">
-                <div class="highlight-title">What happens next?</div>
-                <div class="highlight-text">
-                    Our team will review your booking and contact you within 24-48 hours to confirm all details and arrange payment. 
-                    SWe'll also send you a comprehensive guide to help you prepare for your journey.
-                </div>
-            </div>
-            
-            <div class="details-section">
-                <div class="details-title">Your Booking Summary</div>
-                <div class="details-item">
-                    <span class="details-label">Package Type:</span>
-                    <span class="details-value">${packageType}</span>
-                </div>
-                <div class="details-item">
-                    <span class="details-label">Departure Date:</span>
-                    <span class="details-value">${departureDate}</span>
-                </div>
-                <div class="details-item">
-                    <span class="details-label">Return Date:</span>
-                    <span class="details-value">${returnDate}</span>
-                </div>
-                <div class="details-item">
-                    <span class="details-label">Departure City:</span>
-                    <span class="details-value">${departureCity}</span>
-                </div>
-                <div class="details-item">
-                    <span class="details-label">Number of Pilgrims:</span>
-                    <span class="details-value">${pilgrims.length}</span>
-                </div>
-                <div class="details-item">
-                    <span class="details-label">Preferred Itinerary:</span>
-                    <span class="details-value">${preferredItinerary.length > 0 ? preferredItinerary.join(", ") : "Not specified"}</span> 
-                </div>
-                <div class="details-item">
-                    <span class="details-label">Services Selected:</span>
-                    <span class="details-value">
-                        ${Object.entries(selectedServices)
-                          .filter(([_, service]) => service.selected)
-                          .map(([key, service]) => `${key.charAt(0).toUpperCase() + key.slice(1)} (${service.tier})`)
-                          .join(", ") || "None"}
-                    </span> 
-                  </div>
-            </div>
-            
-            <div class="message">
-                At Al-mutamir, we understand the spiritual significance of your journey. Our experienced team is dedicated to ensuring your pilgrimage is meaningful, comfortable, and memorable.
-            </div>
-            
-            <div class="message">
-                If you have any questions or need to make changes to your booking, please don't hesitate to contact us. We're here to help make your pilgrimage experience exceptional.
-            </div>
-        </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-text">
-                If you need assistance, please contact us at:
-            </div>
-            <a href="mailto:support@al-mutamir.com" class="contact-info">support@almutamir.com</a>
-            
-            <div class="signature">
-                <div style="margin-top: 20px; font-weight: 500; color: #1a1a1a;">
-                    Warm regards,<br>
-                    The Al-mutamir Team
-                </div>
-            </div>
-            
-            <div class="copyright">
-                © ${new Date().getFullYear()} Al-mutamir. All rights reserved.
-            </div>
-        </div>
-    </div>
-</body>
-</html></p>`,
+          text: `Dear ${mainPilgrim.firstName},
+
+Your booking has been received. We will contact you soon.
+
+Thank you for choosing Al-mutamir!`,
+          html: `
+      <div style="font-family: Arial, sans-serif; color: #014034;">
+        <h2 style="color: #007F5F;">Booking Confirmation</h2>
+        <p>Dear ${mainPilgrim.firstName},</p>
+        <p>Your booking has been received. We will contact you soon.</p>
+        <hr style="border: none; border-top: 1px solid #E3B23C; margin: 16px 0;" />
+        <p>
+          <strong>Package:</strong> ${packageType || "Not specified"}<br/>
+          <strong>Departure:</strong> ${departureCity || "Not specified"} on ${departureDate || "Not specified"}<br/>
+          <strong>Return:</strong> ${returnDate || "Not specified"}<br/>
+        </p>
+        <p>
+          <strong>Pilgrims:</strong><br/>
+          ${pilgrims.map((p: any) =>
+            `${p.firstName || "?"} ${p.lastName || "?"} (${p.email || "?"}, ${p.phone || "?"})`
+          ).join("<br/>")}
+        </p>
+        <p>
+          <strong>Preferred Itinerary:</strong><br/>
+          ${preferredItinerary.length
+            ? preferredItinerary.map((item: string) => `- ${item || "(empty)"}`).join("<br/>")
+            : "(No specific itinerary provided)"}
+        </p>
+        <p>
+          <strong>Selected Services:</strong><br/>
+          ${Object.entries(selectedServices)
+            .filter(([_, v]: any) => v.selected)
+            .map(([k, v]: any) => {
+              let tier = v.tier ? ` (${v.tier})` : ""
+              return `${k.charAt(0).toUpperCase() + k.slice(1)}${tier}`
+            }).join("<br/>") || "None"}
+        </p>
+        <p>Thank you for choosing <strong>Al-mutamir</strong>!</p>
+        <p style="font-size: 12px; color: #888;">If you have any questions, reply to this email.</p>
+      </div>
+    `,
         }),
       })
+      if (!mailRes.ok) {
+        throw new Error("Mail API failed")
+      }
 
-      // --- Notify Discord ---
-      await notifyDiscord(bookingDetails)
+      // --- Notify Discord directly ---
+      await notifyDiscord({
+        ...bookingDetails,
+        packageTitle: packageType,
+        travelDate: departureDate,
+        returnDate: returnDate,
+        status: "pending",
+        paymentStatus: "unpaid",
+        highlights: preferredItinerary,
+        selectedServices: {
+          visa: { ...selectedServices.visa },
+          flight: { ...selectedServices.flight },
+          accommodation: { ...selectedServices.accommodation },
+          transport: { ...selectedServices.transport },
+          food: { ...selectedServices.food },
+          visitation: { ...selectedServices.visitation },
+        },
+      })
 
+      setTimeout(() => {
+        setShowSuccess(true)
+        setIsSubmitting(false)
+      }, 1500)
     } catch (e) {
-      console.error("Failed to store booking details or send email:", e)
-    }
-    setTimeout(() => {
-      setShowSuccess(true)
       setIsSubmitting(false)
-    }, 1500)
+      alert("Submission failed. Please check your network and try again.")
+      console.error("Failed to store booking details or send email/discord:", e)
+    }
   }
 
   // Check if form is valid for current step
