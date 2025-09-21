@@ -268,7 +268,7 @@ export default function PackageDetailsPage() {
     }
   }
 
-  const publicKey = "pk_live_160eeba29aa4385ec5888315c289e2379b7ef531" // Replace with your Paystack public key
+  const publicKey = process.env.public_key
 
   // Amount in kobo (for NGN)
   const amount = (packageData?.price || 0) * 100

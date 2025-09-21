@@ -7,6 +7,7 @@ import { AuthProviderWithRoleHandler } from "@/context/auth-context"
 import { SiteHeader } from "@/components/site-header"
 import { Footer } from "@/components/footer"
 import { GoogleAnalytics } from '@next/third-parties/google'
+import { Analytics } from "@vercel/analytics/next"
 
 // Ensure Firebase is initialized
 import "@/lib/firebase/config"
@@ -98,6 +99,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <Analytics />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProviderWithRoleHandler>
             <SiteHeader />
