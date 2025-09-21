@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProviderWithRoleHandler } from "@/context/auth-context"
 import { SiteHeader } from "@/components/site-header"
 import { Footer } from "@/components/footer"
+import { GoogleAnalytics } from '@next/third-parties/google'
 
 // Ensure Firebase is initialized
 import "@/lib/firebase/config"
@@ -25,7 +26,49 @@ export const metadata: Metadata = {
     "Travel Services",
     "Religious Tourism",
     "Halal Travel",
-    "Faith-Based Travel"
+    "Faith-Based Travel",
+    "save for hajj and umrah",
+    "cheap hajj packages",
+    "cheap umrah packages",
+    "luxury hajj packages",
+    "luxury umrah packages",
+    "hajj visa assistance",
+    "umrah visa assistance",
+    "group hajj packages",
+    "family umrah packages",
+    "hajj and umrah deals",
+    "best hajj packages",
+    "best umrah packages",
+    "hajj and umrah offers",
+    "affordable hajj packages",
+    "affordable umrah packages",
+    "hajj and umrah discounts",
+    "hajj and umrah promotions",
+    "hajj and umrah travel agency",
+    "trusted hajj and umrah services",
+    "reliable hajj and umrah partner",
+    "hajj and umrah planning",
+    "hajj and umrah arrangements",
+    "hajj and umrah bookings",
+    "hajj and umrah itineraries",
+    "hajj and umrah accommodations",
+    "hajj and umrah transportation",
+    "hajj and umrah packages for seniors",
+    "hajj and umrah packages for students",
+    "custom hajj packages",
+    "custom umrah packages",
+    "hajj and umrah customer support",
+    "hajj and umrah reviews",
+    "hajj and umrah testimonials",
+    "hajj and umrah experiences",
+    "hajj and umrah blog",
+    "hajj and umrah tips",
+    "hajj and umrah guides",
+    "hajj and umrah resources",
+    "hajj and umrah FAQs",
+    "hajj and umrah policies",
+    "hajj and umrah terms and conditions",
+    "hajj and umrah refund policy",
   ],
   authors: [{ name: "Al-Mutamir", url: "https://almutamir.com" }],
   creator: "Al-Mutamir",
@@ -63,6 +106,7 @@ export default function RootLayout({
           </AuthProviderWithRoleHandler>
         </ThemeProvider>
       </body>
+      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || 'G-79E3MHKNQD'} />
     </html>
   )
 }
