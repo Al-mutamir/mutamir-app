@@ -116,38 +116,79 @@ export default function RegisterPage() {
 
   // Update the handleSubmit function to ensure it only runs when the user clicks the button
   // and properly redirects after successful registration
+  // Centralized post-registration logic
+  const postRegistration = async (userObj: any, userDataObj?: any) => {
+    // Send welcome email
+    if (userObj?.email && (userObj?.displayName || (formData.firstName && formData.lastName))) {
+      const name = userObj.displayName || `${formData.firstName} ${formData.lastName}`;
+      await sendWelcomeEmail(userObj.email, name);
+    }
+
+    // Send Discord notification if agency
+    const role = userDataObj?.role || formData.role;
+    if (role === "agency") {
+      const firstName = userObj?.displayName?.split(" ")[0] || formData.firstName;
+      const lastName = userObj?.displayName?.split(" ")[1] || formData.lastName;
+      await notifyDiscordAgencyRegistration({
+        firstName,
+        lastName,
+        email: userObj?.email || formData.email,
+        status: "unverified",
+      });
+    }
+
+    toast({
+      title: "Registration Successful!",
+      description: "Welcome to Al-Mutamir.",
+      duration: 3000,
+    });
+
+    // Redirect to onboarding or dashboard
+    if (userDataObj) {
+      if (userDataObj.role === "pilgrim" || userDataObj.role === "agency" || userDataObj.role === "admin") {
+        if (!userDataObj.onboardingCompleted) {
+          navigation.push(`/onboarding/${userDataObj.role}`);
+        } else {
+          navigation.push(userDataObj.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency");
+        }
+      } else {
+        navigation.push("/");
+      }
+    } else {
+      navigation.push(`/onboarding/${formData.role}`);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+    e.preventDefault();
+    setError("");
 
     // Validate form
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      setError("All fields are required")
-      return
+      setError("All fields are required");
+      return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
-      return
+      setError("Passwords do not match");
+      return;
     }
 
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters")
-      return
+      setError("Password must be at least 6 characters");
+      return;
     }
 
-    const fullName = `${formData.firstName} ${formData.lastName}`
+    const fullName = `${formData.firstName} ${formData.lastName}`;
 
     try {
-      const userCredential = await signUp(formData.email, formData.password, formData.role, fullName)
-      // Send welcome email
-      await sendWelcomeEmail(formData.email, fullName)
+      const userCredential = await signUp(formData.email, formData.password, formData.role, fullName);
 
-      // If agency, set unverified status in user db and notify Discord
+      // If agency, set unverified status in user db
       if (formData.role === "agency" && userCredential?.user?.uid) {
         await createUserDocument(userCredential.user.uid, {
           status: "unverified",
-        })
+        });
         await updateUserProfile(userCredential.user.uid, {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -173,84 +214,36 @@ export default function RegisterPage() {
             marketingEmails: false,
             language: ""
           }
-        })
-        await notifyDiscordAgencyRegistration({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          status: "unverified",
-        })
+        });
       }
 
-      toast({
-        title: "Registration Successful!",
-        description: "Welcome to Al-Mutamir.",
-        duration: 3000,
-      })
-
-      // Redirect to onboarding based on role
-      navigation.push(`/onboarding/${formData.role}`)
+      // Fetch userData for redirect logic
+      let userDataObj: UserData | undefined;
+      if (userCredential?.user?.uid) {
+        userDataObj = await getUserData(userCredential.user.uid) as UserData;
+      }
+      await postRegistration(userCredential.user, userDataObj);
     } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.")
-      console.error(err)
+      setError(err.message || "Registration failed. Please try again.");
+      console.error(err);
     }
-  }
+  };
 
   // Update the Google sign-up function to use the selected role
   const handleGoogleSignUp = async () => {
     try {
-      // Pass the selected role to signInWithGoogle
-      await signInWithGoogle(formData.role)
-
-      // Wait for user to be available after Google sign-in
+      await signInWithGoogle(formData.role);
       setTimeout(async () => {
         if (user && user.uid) {
-          const userData = await getUserData(user.uid) as UserData
-
-          // Send welcome email after Google signup
-          if (user?.email && user?.displayName) {
-            await sendWelcomeEmail(user.email, user.displayName)
-          }
-
-          // Send Discord notification if agency
-          if (userData?.role === "agency") {
-            await notifyDiscordAgencyRegistration({
-              firstName: user?.displayName?.split(" ")[0] || "",
-              lastName: user?.displayName?.split(" ")[1] || "",
-              email: user?.email || "",
-              status: "unverified",
-            })
-          }
-
-          toast({
-            title: "Registration Successful!",
-            description: "Welcome to Al-Mutamir.",
-            duration: 3000,
-          })
-
-          if (userData) {
-            if (userData.role === "pilgrim" || userData.role === "agency" || userData.role === "admin") {
-              // If onboarding not completed, redirect to onboarding
-              if (!userData.onboardingCompleted) {
-                navigation.push(`/onboarding/${userData.role}`)
-              } else {
-                // Redirect based on role
-                navigation.push(userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency")
-              }
-            } else {
-              navigation.push("/")
-            }
-          } else {
-            // If userData does not exist, use the selected role for redirect
-            navigation.push(`/onboarding/${formData.role}`)
-          }
+          const userDataObj = await getUserData(user.uid) as UserData;
+          await postRegistration(user, userDataObj);
         }
-      }, 500)
+      }, 500);
     } catch (err: any) {
-      setError(err.message || "Google sign-up failed")
-      console.error(err)
+      setError(err.message || "Google sign-up failed");
+      console.error(err);
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen">
