@@ -349,103 +349,95 @@ export default function AdminBookingsPage() {
           </div>
           {/* Tabs */}
           {/* Tabs with dropdown for mobile */}
-          <Tabs defaultValue="list" className="w-full">
-            <div className="w-full flex md:hidden mb-2">
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select view" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="list">List View</SelectItem>
-                  <SelectItem value="grid">Grid View</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <TabsList className="hidden md:grid w-full grid-cols-2">
-              <TabsTrigger value="list">List View</TabsTrigger>
-              <TabsTrigger value="grid">Grid View</TabsTrigger>
-            </TabsList>
-            <TabsContent value="list">
-              <Card>
-                {/* Removed Bookings Number of bookings above the table */}
-                <CardContent>
-                  <div
-                    className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-auto max-h-[420px] min-w-full"
-                    style={{ WebkitOverflowScrolling: 'touch', overflowX: 'auto', overflowY: 'auto' }}
-                  >
-                    <div className="min-w-[1200px]">
-                      <div className="grid grid-cols-8 bg-gradient-to-r from-blue-50 to-green-50 px-3 py-2 font-semibold text-gray-700 rounded-t-lg border-b border-gray-200 sticky top-0 z-10">
-                        <div className="px-1 py-1">Package</div>
-                        <div className="px-1 py-1">Departure City</div>
-                        <div className="px-1 py-1">User Email</div>
-                        <div className="px-1 py-1">Pilgrim Name</div>
-                        <div className="px-1 py-1">Payment Status</div>
-                        <div className="px-1 py-1">Total Price</div>
-                        <div className="px-1 py-1">Travel Date</div>
-                        <div className="px-1 py-1 text-right whitespace-nowrap">Actions</div>
-                      </div>
-                      <div className="divide-y divide-gray-100">
-                        {filteredBookings.length === 0 ? (
-                          <div className="p-4 text-center text-muted-foreground">No bookings found</div>
+            <Tabs defaultValue="grid" className="w-full">
+              {/* Only show grid view on mobile */}
+              <TabsList className="hidden md:grid w-full grid-cols-2">
+                <TabsTrigger value="list">List View</TabsTrigger>
+                <TabsTrigger value="grid">Grid View</TabsTrigger>
+              </TabsList>
+              <TabsContent value="grid">
+                {/* Pagination logic for grid view - hooks moved to component body */}
+                {(() => {
+                  const totalPages = Math.ceil(filteredBookings.length / pageSize);
+                  const paginatedBookings = filteredBookings.slice((gridPage - 1) * pageSize, gridPage * pageSize);
+                  return (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {paginatedBookings.length === 0 ? (
+                          <div className="col-span-3 p-4 text-center text-muted-foreground">No bookings found</div>
                         ) : (
-                          filteredBookings.map((booking) => (
-                            <div key={booking.id || booking.uid} className="grid grid-cols-8 items-center px-1 py-2 bg-white hover:bg-blue-50 transition-all text-xs">
-                              <div className="font-medium truncate px-1" style={{minWidth: 0}} title={booking.packageTitle}>{booking.packageTitle ? booking.packageTitle.charAt(0).toUpperCase() + booking.packageTitle.slice(1).toLowerCase() : "Unknown"}</div>
-                              <div className="truncate px-1" style={{minWidth: 0}} title={booking.departureCity}>{booking.departureCity || "Unknown"}</div>
-                              <div className="truncate px-1" style={{minWidth: 0}} title={booking.userEmail}>{booking.userEmail || "Unknown"}</div>
-                              <div className="truncate px-1" style={{minWidth: 0}}>
-                                {booking.pilgrims && booking.pilgrims.length > 0
-                                  ? `${booking.pilgrims[0].firstName || ""} ${booking.pilgrims[0].lastName || ""}`
-                                  : "Unknown"}
-                              </div>
-                              <div className="px-1" style={{minWidth: 0}}>
-                                <Badge
-                                  variant={(booking.paymentStatus ?? booking.status ?? "") === "paid" ? "default" : "secondary"}
-                                  className={(booking.paymentStatus ?? booking.status ?? "") === "paid" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
-                                >
-                                  {(booking.paymentStatus ?? booking.status ?? "Unpaid")}
-                                </Badge>
-                              </div>
-                              <div className="font-medium truncate px-1" style={{minWidth: 0}}>₦{typeof booking.amountPaid === "number" ? booking.amountPaid.toLocaleString() : (booking.amountPaid ? Number(booking.amountPaid).toLocaleString() : (typeof booking.totalPrice === "number" ? booking.totalPrice.toLocaleString() : "0"))}</div>
-                              <div className="truncate px-1" style={{minWidth: 0}}>{booking.travelDate || "Unknown"}</div>
-                              <div className="flex justify-end gap-1 px-1" style={{ marginLeft: '8px', minWidth: 0 }}>
-                                <Button variant="outline" size="icon" className="h-7 w-7 p-0" onClick={async () => {
-                                  setLoading(true);
-                                  try {
-                                    const latestBooking = await getBookingById(booking.id || booking.uid);
-                                    setSelectedBooking(latestBooking || booking);
-                                    setIsViewDialogOpen(true);
-                                  } catch (error) {
-                                    setSelectedBooking(booking);
-                                    setIsViewDialogOpen(true);
-                                  } finally {
-                                    setLoading(false);
-                                  }
-                                }}>
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button variant="outline" size="icon" className="h-7 w-7 p-0" onClick={() => handleEditBooking(booking)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="icon"
-                                  className="h-7 w-7 p-0"
-                                  disabled={deletingId === (booking.id || booking.uid)}
-                                  onClick={() => handleDeleteBooking(booking.id || booking.uid)}
-                                >
-                                  {deletingId === (booking.id || booking.uid) ? <span className="text-xs">...</span> : <span className="text-xs">✕</span>}
-                                </Button>
-                              </div>
-                            </div>
-                          ))
+                          paginatedBookings.map((booking) => {
+                            return (
+                              <Card key={booking.id || booking.uid} className="overflow-hidden bg-white">
+                                <CardHeader className="pb-2">
+                                  <div className="flex justify-between items-start">
+                                    <CardTitle className="text-lg">
+                                      {booking.packageTitle ? booking.packageTitle.charAt(0).toUpperCase() + booking.packageTitle.slice(1).toLowerCase() : "Unknown Package"}
+                                    </CardTitle>
+                                    <Badge
+                                      variant={booking.paymentStatus === "paid" ? "default" : "secondary"}
+                                      className={booking.paymentStatus === "paid" ? "bg-green-100 text-green-800" : ""}
+                                    >
+                                      {booking.paymentStatus ? booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1).toLowerCase() : "Unpaid"}
+                                    </Badge>
+                                  </div>
+                                  <CardDescription>{booking.userEmail}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="pb-2">
+                                  <div className="space-y-2">
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Pilgrim: </span>
+                                      {booking.pilgrims && booking.pilgrims.length > 0
+                                        ? `${booking.pilgrims[0].firstName || ""} ${booking.pilgrims[0].lastName || ""}`
+                                        : "Unknown"}
+                                    </div>
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Total Price: </span>
+                                      <span className="font-medium">₦{booking.totalPrice?.toLocaleString() || "0"}</span>
+                                    </div>
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Travel Date: </span>
+                                      {booking.travelDate || "Unknown"}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                                <div className="flex justify-end gap-2 p-4 pt-0">
+                                  <Button variant="outline" size="sm" onClick={() => handleViewBooking(booking)}>
+                                    <Eye className="h-4 w-4 mr-1" /> View
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleEditBooking(booking)}>
+                                    <Edit className="h-4 w-4 mr-1" /> Edit
+                                  </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      disabled={deletingId === (booking.id || booking.uid)}
+                                      onClick={() => handleDeleteBooking(booking.id || booking.uid)}
+                                    >
+                                      {deletingId === (booking.id || booking.uid) ? "Deleting..." : "Delete"}
+                                    </Button>
+                                </div>
+                              </Card>
+                            );
+                          })
                         )}
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                      {/* Pagination controls */}
+                      {totalPages > 1 && (
+                        <div className="flex justify-center items-center gap-2 mt-6">
+                          <Button variant="outline" size="sm" disabled={gridPage === 1} onClick={() => setGridPage(gridPage - 1)}>
+                            Previous
+                          </Button>
+                          <span className="text-sm">Page {gridPage} of {totalPages}</span>
+                          <Button variant="outline" size="sm" disabled={gridPage === totalPages} onClick={() => setGridPage(gridPage + 1)}>
+                            Next
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </TabsContent>
             <TabsContent value="grid">
               {/* Pagination logic for grid view - hooks moved to component body */}
               {(() => {
