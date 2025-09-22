@@ -1,10 +1,41 @@
+import { getFirestore, collection, getDocs } from "firebase/firestore";
+
+// Fetch all bookings in the custom Firestore format
+export async function getAllBookings() {
+  const db = getFirestore();
+  const bookingsRef = collection(db, "bookings");
+  const snapshot = await getDocs(bookingsRef);
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      uid: doc.id,
+      agencyId: data.agencyId || "",
+      createdAt: data.createdAt || null,
+      departureCity: data.departureCity || "",
+      groupMembers: Array.isArray(data.groupMembers) ? data.groupMembers : [],
+      highlights: Array.isArray(data.highlights) ? data.highlights : [],
+      isCreatingGroup: data.isCreatingGroup || false,
+      isGroupBooking: data.isGroupBooking || false,
+      notes: data.notes || "",
+      packageId: data.packageId || "",
+      packageTitle: data.packageTitle || "",
+      paymentStatus: data.paymentStatus || "",
+      pilgrimId: data.pilgrimId || "",
+      pilgrims: Array.isArray(data.pilgrims) ? data.pilgrims : [],
+      selectedServices: data.selectedServices || {},
+      status: data.status || "",
+      totalPrice: typeof data.totalPrice === "number" ? data.totalPrice : 0,
+      travelDate: data.travelDate || "",
+      updatedAt: data.updatedAt || null,
+      userEmail: data.userEmail || "",
+    };
+  });
+}
 import {
   doc,
   setDoc,
   getDoc,
   updateDoc,
-  collection,
-  getDocs,
   serverTimestamp,
   query,
   where,

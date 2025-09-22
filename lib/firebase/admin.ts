@@ -1,3 +1,40 @@
+// Delete a booking by ID
+export const deleteBooking = async (bookingId: string) => {
+  try {
+    await deleteDoc(doc(db!, "bookings", bookingId));
+    return true;
+  } catch (error) {
+    console.error("Error deleting booking:", error);
+    throw error;
+  }
+};
+// Update booking with arbitrary fields (for admin edit)
+export const updateBooking = async (bookingId: string, updates: Partial<any>) => {
+  try {
+    await updateDoc(doc(db!, "bookings", bookingId), {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error("Error updating booking:", error);
+    throw error;
+  }
+};
+// Update booking status and amount paid
+export const updateBookingStatusAndAmount = async (bookingId: string, status: string, amountPaid: number) => {
+  try {
+    await updateDoc(doc(db!, "bookings", bookingId), {
+      status,
+      amountPaid,
+      updatedAt: serverTimestamp(),
+    })
+    return true
+  } catch (error) {
+    console.error("Error updating booking status/amount:", error)
+    throw error
+  }
+}
 import { db } from "@/lib/firebase/config"
 import {
   collection,

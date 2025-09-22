@@ -233,12 +233,43 @@ export default function RegisterPage() {
   const handleGoogleSignUp = async () => {
     try {
       await signInWithGoogle(formData.role);
-      setTimeout(async () => {
-        if (user && user.uid) {
-          const userDataObj = await getUserData(user.uid) as UserData;
-          await postRegistration(user, userDataObj);
+      // Refetch the user directly from Firebase Auth
+      const firebaseUser = window?.firebase?.auth?.().currentUser || user;
+      if (firebaseUser && firebaseUser.uid) {
+        // If agency, set unverified status and full profile in user db
+        if (formData.role === "agency") {
+          const profile = {
+            firstName: firebaseUser.displayName?.split(" ")[0] || "",
+            lastName: firebaseUser.displayName?.split(" ")[1] || "",
+            email: firebaseUser.email || "",
+            status: "unverified",
+            phone: "",
+            address: "",
+            city: "",
+            state: "",
+            country: "",
+            dateOfBirth: "",
+            gender: "",
+            passportNumber: "",
+            passportExpiry: "",
+            emergencyContact: {
+              name: "",
+              relationship: "",
+              phone: ""
+            },
+            preferences: {
+              emailNotifications: false,
+              smsNotifications: false,
+              marketingEmails: false,
+              language: ""
+            }
+          };
+          await createUserDocument(firebaseUser.uid, profile);
+          await updateUserProfile(firebaseUser.uid, profile);
         }
-      }, 500);
+        const userDataObj = await getUserData(firebaseUser.uid) as UserData;
+        await postRegistration(firebaseUser, userDataObj);
+      }
     } catch (err: any) {
       setError(err.message || "Google sign-up failed");
       console.error(err);

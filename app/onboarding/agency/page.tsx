@@ -31,6 +31,7 @@ interface FormData {
     localTransportation: boolean
     touristGuide: boolean
   }
+  status?: string // Add status property to match the expected object
 }
 
 export default function AgencyOnboarding() {
@@ -143,15 +144,9 @@ export default function AgencyOnboarding() {
     setIsSubmitting(true)
     try {
       await updateUserOnboardingData(user.uid, {
-        agencyName: formData.agencyName,
-        managerName: formData.managerName,
-        countryOfOperation: formData.countryOfOperation,
-        cityOfOperation: formData.cityOfOperation,
-        phoneNumber: formData.phoneNumber,
-        alternativeEmail: formData.alternativeEmail,
-        averagePilgrimsPerYear: Number.parseInt(formData.averagePilgrimsPerYear),
-        servicesOffered: formData.servicesOffered,
+        ...formData,
         onboardingCompleted: true,
+        status: "unverified", // Add this if you want to track agency status
       })
 
       toast({
