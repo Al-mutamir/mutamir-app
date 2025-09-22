@@ -14,7 +14,32 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { UserRole } from "@/types/auth"
-import { getUserData, setUserData, updateUserProfile } from "@/lib/firebase/firestore"
+import { getUserData, createUserDocument, updateUserProfile } from "@/lib/firebase/firestore"
+
+// Add this type extension if not already present in your Firestore logic/types
+type AgencyUserDocument = {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  address: string
+  city: string
+  state: string
+  country: string
+  dateOfBirth: string
+  gender: string
+  passportNumber: string
+  passportExpiry: string
+  emergencyContact: {
+    name: string
+    phone: string
+    relationship: string
+  }
+  preferences: {
+    [key: string]: any
+  }
+  status?: string // <-- Add this line to allow 'status'
+}
 import { sendWelcomeEmail } from "@/utils/sendWelcomeEmail"
 
 type UserData = {
@@ -24,13 +49,18 @@ type UserData = {
 }
 
 // Add this utility function at the top or in your utils:
-async function notifyDiscordAgencyRegistration({ firstName, lastName, email }: { firstName: string; lastName: string; email: string }) {
+async function notifyDiscordAgencyRegistration({
+  firstName,
+  lastName,
+  email,
+  status,
+}: { firstName: string; lastName: string; email: string; status: string }) {
   try {
     const webhookUrl = "https://discordapp.com/api/webhooks/1374112883260002304/LR9DEcBQPEl2OQ6AWVS9JNUQlZaXt2os3o54zCTD8iIgYDoUYhmrEjD1-2Do099xw7SB"
     const content = `🏢 **New Agency Registration**
 **Name:** ${firstName} ${lastName}
 **Email:** ${email}
-Status: unverified`
+Status: ${status}`
     await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -50,7 +80,6 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     role: "pilgrim" as UserRole,
-    status: "unverified",
   })
 
   const [showPassword, setShowPassword] = useState(false)
@@ -81,6 +110,9 @@ export default function RegisterPage() {
   const hasUppercase = /[A-Z]/.test(formData.password)
   const hasLowercase = /[a-z]/.test(formData.password)
   const passwordsMatch = formData.password === formData.confirmPassword
+  const isFormValid = hasMinLength && hasNumber && (hasUppercase || hasLowercase) && passwordsMatch
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+
 
   // Update the handleSubmit function to ensure it only runs when the user clicks the button
   // and properly redirects after successful registration
@@ -113,7 +145,7 @@ export default function RegisterPage() {
 
       // If agency, set unverified status in user db and notify Discord
       if (formData.role === "agency" && userCredential?.user?.uid) {
-        await setUserData(userCredential.user.uid, {
+        await createUserDocument(userCredential.user.uid, {
           status: "unverified",
         })
         await updateUserProfile(userCredential.user.uid, {
@@ -121,11 +153,32 @@ export default function RegisterPage() {
           lastName: formData.lastName,
           email: formData.email,
           status: "unverified",
+          phone: "",
+          address: "",
+          city: "",
+          state: "",
+          country: "",
+          dateOfBirth: "",
+          gender: "",
+          passportNumber: "",
+          passportExpiry: "",
+          emergencyContact: {
+            name: "",
+            relationship: "",
+            phone: ""
+          },
+          preferences: {
+            emailNotifications: false,
+            smsNotifications: false,
+            marketingEmails: false,
+            language: ""
+          }
         })
         await notifyDiscordAgencyRegistration({
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
+          status: "unverified",
         })
       }
 

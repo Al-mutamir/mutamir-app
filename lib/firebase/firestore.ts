@@ -647,10 +647,13 @@ export async function deletePackage(packageId: string) {
 }
 
 // Create or update user profile
-export async function updateUserProfile(userId: string, profileData: { firstName: string; lastName: string; email: string; phone: string; address: string; city: string; state: string; country: string; dateOfBirth: string; gender: string; passportNumber: string; passportExpiry: string; emergencyContact: { name: string; relationship: string; phone: string }; preferences: { emailNotifications: boolean; smsNotifications: boolean; marketingEmails: boolean; language: string } }) {
+export async function updateUserProfile(userId: string, profileData: { firstName: string; lastName: string; email: string; phone: string; address: string; city: string; state: string; country: string; dateOfBirth: string; gender: string; passportNumber: string; status?: string; passportExpiry: string; emergencyContact: { name: string; relationship: string; phone: string }; preferences: { emailNotifications: boolean; smsNotifications: boolean; marketingEmails: boolean; language: string } }) {
   if (!userId) throw new Error("updateUserProfile: userId is undefined or null")
   try {
     if (!checkDb()) throw new Error("Firestore not initialized")
+
+    // Extend the profileData type to allow 'status' property
+
 
     const userRef = doc(db!, "users", userId)
     const userSnap = await getDoc(userRef)
