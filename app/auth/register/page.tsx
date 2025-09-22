@@ -202,16 +202,31 @@ export default function RegisterPage() {
       // Pass the selected role to signInWithGoogle
       await signInWithGoogle(formData.role)
 
-      toast({
-        title: "Registration Successful!",
-        description: "Welcome to Al-Mutamir.",
-        duration: 3000,
-      })
-
       // Wait for user to be available after Google sign-in
       setTimeout(async () => {
         if (user && user.uid) {
           const userData = await getUserData(user.uid) as UserData
+
+          // Send welcome email after Google signup
+          if (user?.email && user?.displayName) {
+            await sendWelcomeEmail(user.email, user.displayName)
+          }
+
+          // Send Discord notification if agency
+          if (userData?.role === "agency") {
+            await notifyDiscordAgencyRegistration({
+              firstName: user?.displayName?.split(" ")[0] || "",
+              lastName: user?.displayName?.split(" ")[1] || "",
+              email: user?.email || "",
+              status: "unverified",
+            })
+          }
+
+          toast({
+            title: "Registration Successful!",
+            description: "Welcome to Al-Mutamir.",
+            duration: 3000,
+          })
 
           if (userData) {
             if (userData.role === "pilgrim" || userData.role === "agency" || userData.role === "admin") {
