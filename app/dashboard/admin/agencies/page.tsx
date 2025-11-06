@@ -352,163 +352,234 @@ export default function AdminAgenciesPage() {
             </Select>
           </div>
 
-          <Tabs defaultValue="list" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="list">List View</TabsTrigger>
-              <TabsTrigger value="grid">Grid View</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="list">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Agencies</CardTitle>
-                  <CardDescription>
-                    {filteredAgencies.length} {filteredAgencies.length === 1 ? "agency" : "agencies"} found
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="rounded-md border">
-                    <div className="grid grid-cols-6 bg-gray-100 p-4 font-medium">
-                      <div className="col-span-2">Agency</div>
-                      <div>Location</div>
-                      <div>Status</div>
-                      <div>Created At</div>
-                      <div className="text-right">Actions</div>
-                    </div>
-                    <div className="divide-y">
-                      {filteredAgencies.length === 0 ? (
-                        <div className="p-4 text-center text-muted-foreground">No agencies found</div>
-                      ) : (
-                        filteredAgencies.map((agency) => (
-                          <div key={agency.uid} className="grid grid-cols-6 p-4 items-center">
-                            <div className="col-span-2">
-                              <div className="font-medium">
-                                {agency.agencyName || agency.displayName || "Unnamed Agency"}
-                              </div>
-                              <div className="text-sm text-muted-foreground">{agency.email}</div>
-                            </div>
-                            <div className="text-sm">
-                              {agency.cityOfOperation}, {agency.countryOfOperation}
-                            </div>
-                            <div>
-                              <Badge
-                                variant={agency.verified ? "default" : "secondary"}
-                                className={agency.verified ? "bg-green-100 text-green-800" : ""}
-                              >
-                                {agency.verified ? "Verified" : "Unverified"}
-                              </Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {agency.createdAt ? new Date(agency.createdAt).toLocaleDateString() : "Unknown"}
-                            </div>
-                            <div className="flex justify-end gap-2">
-                              <Button variant="outline" size="icon" onClick={() => handleViewAgency(agency)}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              {agency.verified ? (
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="text-amber-600 border-amber-600"
-                                  onClick={() => handleVerifyAgency(agency.uid, false)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="text-green-600 border-green-600"
-                                  onClick={() => handleVerifyAgency(agency.uid, true)}
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                              )}
-                              <Button variant="destructive" size="icon" onClick={() => handleDeleteAgency(agency)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="grid">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredAgencies.length === 0 ? (
-                  <div className="col-span-3 p-4 text-center text-muted-foreground">No agencies found</div>
-                ) : (
-                  filteredAgencies.map((agency) => (
-                    <Card key={agency.uid} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-lg">
-                            {agency.agencyName || agency.displayName || "Unnamed Agency"}
-                          </CardTitle>
-                          <Badge
-                            variant={agency.verified ? "default" : "secondary"}
-                            className={agency.verified ? "bg-green-100 text-green-800" : ""}
-                          >
-                            {agency.verified ? "Verified" : "Unverified"}
-                          </Badge>
+          {/* Responsive: Only grid view on mobile */}
+          <div className="block md:hidden">
+            <div className="grid grid-cols-1 gap-6">
+              {filteredAgencies.length === 0 ? (
+                <div className="col-span-1 p-4 text-center text-muted-foreground">No agencies found</div>
+              ) : (
+                filteredAgencies.map((agency) => (
+                  <Card key={agency.uid} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">
+                          {agency.agencyName || agency.displayName || "Unnamed Agency"}
+                        </CardTitle>
+                        <Badge
+                          variant={agency.verified ? "default" : "secondary"}
+                          className={agency.verified ? "bg-green-100 text-green-800" : ""}
+                        >
+                          {agency.verified ? "Verified" : "Unverified"}
+                        </Badge>
+                      </div>
+                      <CardDescription>{agency.email}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Location: </span>
+                          {agency.cityOfOperation}, {agency.countryOfOperation}
                         </div>
-                        <CardDescription>{agency.email}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="pb-2">
-                        <div className="space-y-2">
-                          <div className="text-sm">
-                            <span className="text-muted-foreground">Location: </span>
-                            {agency.cityOfOperation}, {agency.countryOfOperation}
-                          </div>
-                          <div className="text-sm">
-                            <span className="text-muted-foreground">Phone: </span>
-                            {agency.phone || "Not provided"}
-                          </div>
-                          {agency.description && (
-                            <div className="text-sm mt-2">
-                              <p className="line-clamp-2">{agency.description}</p>
-                            </div>
-                          )}
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Phone: </span>
+                          {agency.phone || "Not provided"}
                         </div>
-                      </CardContent>
-                      <div className="flex justify-end gap-2 p-4 pt-0">
-                        <Button variant="outline" size="sm" onClick={() => handleViewAgency(agency)}>
-                          <Eye className="h-4 w-4 mr-1" /> View
-                        </Button>
-                        {agency.verified ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-amber-600 border-amber-600"
-                            onClick={() => handleVerifyAgency(agency.uid, false)}
-                          >
-                            <X className="h-4 w-4 mr-1" /> Unverify
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-green-600 border-green-600"
-                            onClick={() => handleVerifyAgency(agency.uid, true)}
-                          >
-                            <Check className="h-4 w-4 mr-1" /> Verify
-                          </Button>
+                        {agency.description && (
+                          <div className="text-sm mt-2">
+                            <p className="line-clamp-2">{agency.description}</p>
+                          </div>
                         )}
                       </div>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+                    </CardContent>
+                    <div className="flex justify-end gap-2 p-4 pt-0">
+                      <Button variant="outline" size="sm" onClick={() => handleViewAgency(agency)}>
+                        <Eye className="h-4 w-4 mr-1" /> View
+                      </Button>
+                      {agency.verified ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-amber-600 border-amber-600"
+                          onClick={() => handleVerifyAgency(agency.uid, false)}
+                        >
+                          <X className="h-4 w-4 mr-1" /> Unverify
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-green-600 border-green-600"
+                          onClick={() => handleVerifyAgency(agency.uid, true)}
+                        >
+                          <Check className="h-4 w-4 mr-1" /> Verify
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+          {/* Desktop: Tabs for list/grid view */}
+          <div className="hidden md:block">
+            <Tabs defaultValue="list" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="list">List View</TabsTrigger>
+                <TabsTrigger value="grid">Grid View</TabsTrigger>
+              </TabsList>
+              <TabsContent value="list">
+                {/* ...existing list view code... */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Agencies</CardTitle>
+                    <CardDescription>
+                      {filteredAgencies.length} {filteredAgencies.length === 1 ? "agency" : "agencies"} found
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-md border">
+                      <div className="grid grid-cols-6 bg-gray-100 p-4 font-medium" style={{ minWidth: '900px' }}>
+                        <div className="col-span-2 truncate" style={{ minWidth: '180px', maxWidth: '240px' }}>Agency</div>
+                        <div className="truncate" style={{ minWidth: '120px', maxWidth: '160px' }}>Location</div>
+                        <div className="truncate" style={{ minWidth: '100px', maxWidth: '120px' }}>Status</div>
+                        <div className="truncate" style={{ minWidth: '120px', maxWidth: '140px' }}>Created At</div>
+                        <div className="text-right" style={{ minWidth: '120px', maxWidth: '140px' }}>Actions</div>
+                      </div>
+                      <div className="divide-y">
+                        {filteredAgencies.length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">No agencies found</div>
+                        ) : (
+                          filteredAgencies.map((agency) => (
+                            <div key={agency.uid} className="grid grid-cols-6 p-4 items-center" style={{ minWidth: '900px', wordBreak: 'break-word' }}>
+                              <div className="col-span-2 truncate" style={{ minWidth: '180px', maxWidth: '240px', overflowWrap: 'break-word' }}>
+                                <div className="font-medium truncate" style={{ maxWidth: '220px' }}>
+                                  {agency.agencyName || agency.displayName || "Unnamed Agency"}
+                                </div>
+                                <div className="text-sm text-muted-foreground truncate" style={{ maxWidth: '220px' }}>{agency.email}</div>
+                              </div>
+                              <div className="text-sm truncate" style={{ minWidth: '120px', maxWidth: '160px', overflowWrap: 'break-word' }}>
+                                {agency.cityOfOperation}, {agency.countryOfOperation}
+                              </div>
+                              <div style={{ minWidth: '100px', maxWidth: '120px' }}>
+                                <Badge
+                                  variant={agency.verified ? "default" : "secondary"}
+                                  className={agency.verified ? "bg-green-100 text-green-800" : ""}
+                                >
+                                  {agency.verified ? "Verified" : "Unverified"}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground truncate" style={{ minWidth: '120px', maxWidth: '140px' }}>
+                                {agency.createdAt ? new Date(agency.createdAt).toLocaleDateString() : "Unknown"}
+                              </div>
+                              <div className="flex justify-end gap-2" style={{ minWidth: '120px', maxWidth: '140px' }}>
+                                <Button variant="outline" size="icon" onClick={() => handleViewAgency(agency)}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {agency.verified ? (
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="text-amber-600 border-amber-600"
+                                    onClick={() => handleVerifyAgency(agency.uid, false)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="text-green-600 border-green-600"
+                                    onClick={() => handleVerifyAgency(agency.uid, true)}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button variant="destructive" size="icon" onClick={() => handleDeleteAgency(agency)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="grid">
+                {/* ...existing grid view code... */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAgencies.length === 0 ? (
+                    <div className="col-span-3 p-4 text-center text-muted-foreground">No agencies found</div>
+                  ) : (
+                    filteredAgencies.map((agency) => (
+                      <Card key={agency.uid} className="overflow-hidden">
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg">
+                              {agency.agencyName || agency.displayName || "Unnamed Agency"}
+                            </CardTitle>
+                            <Badge
+                              variant={agency.verified ? "default" : "secondary"}
+                              className={agency.verified ? "bg-green-100 text-green-800" : ""}
+                            >
+                              {agency.verified ? "Verified" : "Unverified"}
+                            </Badge>
+                          </div>
+                          <CardDescription>{agency.email}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pb-2">
+                          <div className="space-y-2">
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Location: </span>
+                              {agency.cityOfOperation}, {agency.countryOfOperation}
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Phone: </span>
+                              {agency.phone || "Not provided"}
+                            </div>
+                            {agency.description && (
+                              <div className="text-sm mt-2">
+                                <p className="line-clamp-2">{agency.description}</p>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                        <div className="flex justify-end gap-2 p-4 pt-0">
+                          <Button variant="outline" size="sm" onClick={() => handleViewAgency(agency)}>
+                            <Eye className="h-4 w-4 mr-1" /> View
+                          </Button>
+                          {agency.verified ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-amber-600 border-amber-600"
+                              onClick={() => handleVerifyAgency(agency.uid, false)}
+                            >
+                              <X className="h-4 w-4 mr-1" /> Unverify
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-green-600 border-green-600"
+                              onClick={() => handleVerifyAgency(agency.uid, true)}
+                            >
+                              <Check className="h-4 w-4 mr-1" /> Verify
+                            </Button>
+                          )}
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
 
           {/* View Agency Dialog */}
           <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-3xl md:max-w-3xl sm:max-w-lg" style={{ maxHeight: '90vh', height: 'auto', margin: '10vh auto', width: '95vw', maxWidth: '95vw' }}>
               <DialogHeader>
                 <DialogTitle>Agency Details</DialogTitle>
                 <DialogDescription>Detailed information about the agency</DialogDescription>

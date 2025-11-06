@@ -39,20 +39,16 @@ export default function LoginPage() {
         try {
           const userData = await getUserData(user.uid) as UserData
           if (userData) {
-            if (userData.onboardingCompleted) {
-              // Use window.location for hard navigation
-              if (userData.role === "admin") {
-                router.push("/dashboard/admin")
-              } else {
-                router.push(userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency")
-              }
-            } else {
-              if (userData.role === "admin") {
-                router.push("/onboarding/admin")
-              } else {
-                router.push(`/onboarding/${userData.role}`)
-              }
-            }
+                // Always redirect to dashboard; onboarding enforcement is handled by middleware
+                if (userData.role === "admin") {
+                  router.push("/dashboard/admin")
+                } else if (userData.role === "agency") {
+                  router.push("/dashboard/agency")
+                } else if (userData.role === "pilgrim") {
+                  router.push("/dashboard/pilgrim")
+                } else {
+                  router.push("/")
+                }
           }
         } catch (err) {
           console.error("Error checking auth:", err)

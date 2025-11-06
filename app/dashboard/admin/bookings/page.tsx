@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Eye, Filter, Clock, ArrowUpRight, Users, Edit } from "lucide-react";
 import { getAllBookings, getBookingById, updateBooking } from "@/lib/firebase/admin";
+import { formatDate, parseDate } from "@/lib/utils";
 import ProtectedRoute from "@/components/protected-route";
 import DashboardLayout from "@/components/dashboard-layout";
 import { useToast } from "@/hooks/use-toast";
@@ -52,20 +53,21 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     let filtered = bookings;
-    if (filter !== "all") {
+    // Only filter if a filter is selected
+    if (filter === "paymentStatus" && filter !== "all") {
       filtered = filtered.filter((booking) => (booking.paymentStatus ?? booking.status ?? "") === filter);
     }
-    if (dateFilter) {
+    if (filter === "date" && dateFilter) {
       filtered = filtered.filter((booking) => {
         if (!booking.travelDate) return false;
         const d = new Date(booking.travelDate);
         return `${d.getMonth() + 1}/${d.getFullYear()}` === dateFilter;
       });
     }
-    if (packageFilter) {
+    if (filter === "package" && packageFilter) {
       filtered = filtered.filter((booking) => booking.packageTitle && (booking.packageTitle.charAt(0).toUpperCase() + booking.packageTitle.slice(1).toLowerCase()) === packageFilter);
     }
-    if (groupFilter !== "all") {
+    if (filter === "group" && groupFilter !== "all") {
       filtered = filtered.filter((booking) =>
         groupFilter === "group" ? (booking.pilgrims?.length > 1) : (booking.pilgrims?.length === 1)
       );
@@ -154,8 +156,9 @@ export default function AdminBookingsPage() {
     }
   };
     // New: Delete booking handler
+    // Delete confirmation state
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const handleDeleteBooking = async (bookingId: string) => {
-      if (!window.confirm("Are you sure you want to delete this booking? This action cannot be undone.")) return;
       setDeletingId(bookingId);
       try {
         // Dynamically import Firestore delete logic
@@ -174,6 +177,7 @@ export default function AdminBookingsPage() {
         toast({ title: "Error", description: error.message || "Failed to delete booking.", variant: "destructive" });
       } finally {
         setDeletingId(null);
+        setConfirmDeleteId(null);
       }
     };
 
@@ -260,9 +264,20 @@ export default function AdminBookingsPage() {
             </Card>
           </div>
           {/* Filters */}
-          {/* New Filter UI: 2 bars */}
+          {/* Search bar (separate from filters) */}
+          <div className="mb-2">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="Search by name or email..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+          {/* Filter bar */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-            {/* Filter type selector */}
             <Select value={filter} onValueChange={setFilter}>
               <SelectTrigger>
                 <span className="flex items-center">
@@ -271,25 +286,12 @@ export default function AdminBookingsPage() {
                 </span>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="search">Search</SelectItem>
                 <SelectItem value="paymentStatus">Payment Status</SelectItem>
                 <SelectItem value="date">Month/Year</SelectItem>
                 <SelectItem value="package">Package</SelectItem>
                 <SelectItem value="group">Group/Individual</SelectItem>
               </SelectContent>
             </Select>
-            {/* Filter value bar */}
-            {filter === "search" && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search by name or email..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            )}
             {filter === "paymentStatus" && (
               <Select value={filter} onValueChange={setFilter}>
                 <SelectTrigger>
@@ -315,7 +317,7 @@ export default function AdminBookingsPage() {
                     if (!b.travelDate) return null;
                     const d = new Date(b.travelDate);
                     return `${d.getMonth() + 1}/${d.getFullYear()}`;
-                  }))).filter(Boolean).map(date => (
+                  }))).filter((date): date is string => typeof date === 'string').map(date => (
                     <SelectItem key={date} value={date}>{date}</SelectItem>
                   ))}
                 </SelectContent>
@@ -350,94 +352,7 @@ export default function AdminBookingsPage() {
           {/* Tabs */}
           {/* Tabs with dropdown for mobile */}
             <Tabs defaultValue="grid" className="w-full">
-              {/* Only show grid view on mobile */}
-              <TabsList className="hidden md:grid w-full grid-cols-2">
-                <TabsTrigger value="list">List View</TabsTrigger>
-                <TabsTrigger value="grid">Grid View</TabsTrigger>
-              </TabsList>
-              <TabsContent value="grid">
-                {/* Pagination logic for grid view - hooks moved to component body */}
-                {(() => {
-                  const totalPages = Math.ceil(filteredBookings.length / pageSize);
-                  const paginatedBookings = filteredBookings.slice((gridPage - 1) * pageSize, gridPage * pageSize);
-                  return (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {paginatedBookings.length === 0 ? (
-                          <div className="col-span-3 p-4 text-center text-muted-foreground">No bookings found</div>
-                        ) : (
-                          paginatedBookings.map((booking) => {
-                            return (
-                              <Card key={booking.id || booking.uid} className="overflow-hidden bg-white">
-                                <CardHeader className="pb-2">
-                                  <div className="flex justify-between items-start">
-                                    <CardTitle className="text-lg">
-                                      {booking.packageTitle ? booking.packageTitle.charAt(0).toUpperCase() + booking.packageTitle.slice(1).toLowerCase() : "Unknown Package"}
-                                    </CardTitle>
-                                    <Badge
-                                      variant={booking.paymentStatus === "paid" ? "default" : "secondary"}
-                                      className={booking.paymentStatus === "paid" ? "bg-green-100 text-green-800" : ""}
-                                    >
-                                      {booking.paymentStatus ? booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1).toLowerCase() : "Unpaid"}
-                                    </Badge>
-                                  </div>
-                                  <CardDescription>{booking.userEmail}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="pb-2">
-                                  <div className="space-y-2">
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Pilgrim: </span>
-                                      {booking.pilgrims && booking.pilgrims.length > 0
-                                        ? `${booking.pilgrims[0].firstName || ""} ${booking.pilgrims[0].lastName || ""}`
-                                        : "Unknown"}
-                                    </div>
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Total Price: </span>
-                                      <span className="font-medium">₦{booking.totalPrice?.toLocaleString() || "0"}</span>
-                                    </div>
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Travel Date: </span>
-                                      {booking.travelDate || "Unknown"}
-                                    </div>
-                                  </div>
-                                </CardContent>
-                                <div className="flex justify-end gap-2 p-4 pt-0">
-                                  <Button variant="outline" size="sm" onClick={() => handleViewBooking(booking)}>
-                                    <Eye className="h-4 w-4 mr-1" /> View
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => handleEditBooking(booking)}>
-                                    <Edit className="h-4 w-4 mr-1" /> Edit
-                                  </Button>
-                                    <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      disabled={deletingId === (booking.id || booking.uid)}
-                                      onClick={() => handleDeleteBooking(booking.id || booking.uid)}
-                                    >
-                                      {deletingId === (booking.id || booking.uid) ? "Deleting..." : "Delete"}
-                                    </Button>
-                                </div>
-                              </Card>
-                            );
-                          })
-                        )}
-                      </div>
-                      {/* Pagination controls */}
-                      {totalPages > 1 && (
-                        <div className="flex justify-center items-center gap-2 mt-6">
-                          <Button variant="outline" size="sm" disabled={gridPage === 1} onClick={() => setGridPage(gridPage - 1)}>
-                            Previous
-                          </Button>
-                          <span className="text-sm">Page {gridPage} of {totalPages}</span>
-                          <Button variant="outline" size="sm" disabled={gridPage === totalPages} onClick={() => setGridPage(gridPage + 1)}>
-                            Next
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </TabsContent>
+              {/* Unified bookings UI: always render grid view via TabsContent below */}
             <TabsContent value="grid">
               {/* Pagination logic for grid view - hooks moved to component body */}
               {(() => {
@@ -629,11 +544,11 @@ export default function AdminBookingsPage() {
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Created At</p>
-                          <p>{selectedBooking.createdAt ? (selectedBooking.createdAt.seconds ? new Date(selectedBooking.createdAt.seconds * 1000).toLocaleString() : selectedBooking.createdAt) : "Unknown"}</p>
+        <p>{selectedBooking.createdAt ? (typeof selectedBooking.createdAt === 'string' ? selectedBooking.createdAt : (selectedBooking.createdAtDate ? new Date(selectedBooking.createdAtDate).toLocaleString() : (parseDate(selectedBooking.createdAt) ? parseDate(selectedBooking.createdAt).toLocaleString() : 'Unknown'))) : "Unknown"}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Updated At</p>
-                          <p>{selectedBooking.updatedAt ? (selectedBooking.updatedAt.seconds ? new Date(selectedBooking.updatedAt.seconds * 1000).toLocaleString() : selectedBooking.updatedAt) : "Unknown"}</p>
+                          <p>{selectedBooking.updatedAt ? (parseDate(selectedBooking.updatedAt) ? parseDate(selectedBooking.updatedAt).toLocaleString() : (typeof selectedBooking.updatedAt === 'string' ? selectedBooking.updatedAt : 'Unknown')) : "Unknown"}</p>
                         </div>
                       </div>
                     </div>

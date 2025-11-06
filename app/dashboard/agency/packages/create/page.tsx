@@ -66,6 +66,7 @@ export default function CreatePackagePage() {
 		name: "",
 		type: "",
 		price: "",
+		minPaymentPercent: "",
 		description: "",
 		duration: "",
 		services: [] as string[],
@@ -219,9 +220,7 @@ export default function CreatePackagePage() {
 
 		setLoading(true)
 		try {
-			// Get user profile data for handler information
 			const userProfile = await getUserData(user.uid)
-
 			const selectedServices = availableServices.filter((service) => packageData.services.includes(service.id))
 			const selectedImageData = packageImages.find((img) => img.id === packageData.selectedImage)
 
@@ -233,35 +232,30 @@ export default function CreatePackagePage() {
 					packageData.description || `${packageData.type} package with ${selectedServices.length} services included`,
 				duration: Number(packageData.duration) || 7,
 				agencyId: user.uid,
-				agencyName: user.agencyName || user.displayName || user.email, // <-- updated line
-				// handlerFirstName: userProfile?.handlerFirstName || "",
-				// handlerLastName: userProfile?.handlerLastName || "",
-				// handlerFullName:
-				// 	userProfile?.handlerFirstName && userProfile?.handlerLastName
-				// 		? `${userProfile.handlerFirstName} ${userProfile.handlerLastName}`
-				// 		: "",
-				status: status,
+				agencyName: user.agencyName || user.displayName || user.email,
+				status: status || "active", // Default to 'active' (published)
 				services: selectedServices,
 				itinerary: packageData.includeItinerary ? packageData.itinerary : [],
 				inclusions: selectedServices.map((s) => s.label),
 				exclusions: availableServices
 					.filter((service) => !packageData.services.includes(service.id))
 					.map((s) => s.label),
-				groupSize: Number(packageData.slots), // <-- Use slots as groupSize
+				groupSize: Number(packageData.slots),
+				minPaymentPercent: packageData.minPaymentPercent ? Number(packageData.minPaymentPercent) : undefined,
 				accommodationType: "Hotel",
 				transportation: packageData.services.includes("local-transportation") ? "Included" : "Not Included",
 				meals: packageData.services.includes("meals") ? "Included" : "Not Included",
 				imageUrl: selectedImageData?.url || "",
 				imageName: selectedImageData?.name || "",
-				slots: Number(packageData.slots), // <-- Save slots explicitly too
+				slots: Number(packageData.slots),
 			}
 
 			const result = await createPackage(packagePayload)
 
 			toast({
-				title: status === "active" ? "Package Published" : "Package Saved",
+				title: (status || "active") === "active" ? "Package Published" : "Package Saved",
 				description:
-					status === "active"
+					(status || "active") === "active"
 						? "Your package has been published and is now visible to pilgrims"
 						: "Your package has been saved as a draft",
 				variant: "default",
@@ -349,6 +343,19 @@ export default function CreatePackagePage() {
 												value={packageData.price}
 												onChange={(e) => handleInputChange("price", e.target.value)}
 											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="minPaymentPercent">Minimum Payable (%)</Label>
+											<Input
+												id="minPaymentPercent"
+												type="number"
+												min={0}
+												max={100}
+												placeholder="e.g., 30"
+												value={packageData.minPaymentPercent}
+												onChange={(e) => handleInputChange("minPaymentPercent", e.target.value)}
+											/>
+											<p className="text-xs text-muted-foreground">Enter the minimum percent pilgrims must pay when choosing "pay small small".</p>
 										</div>
 										<div className="space-y-2">
 											<Label htmlFor="duration">Duration (days)</Label>
@@ -606,16 +613,16 @@ export default function CreatePackagePage() {
 
 							{/* Action Buttons */}
 							<div className="flex justify-end gap-3">
-								<Button variant="outline" onClick={() => router.push("/dashboard/agency/offerings")} disabled={loading}>
+								<Button variant="outline" onClick={() => router.push("/dashboard/agency/offerings")} disabled={loading} className="flex items-center gap-2">
 									Cancel
 								</Button>
-								<Button variant="secondary" onClick={() => handleSubmit("draft")} disabled={loading}>
-									<Save className="h-4 w-4 mr-2" />
-									Save as Draft
+								<Button variant="secondary" onClick={() => handleSubmit("draft")} disabled={loading} className="flex items-center gap-2">
+									<Save className="h-4 w-4" />
+									<span>Save as Draft</span>
 								</Button>
-								<Button onClick={() => handleSubmit("active")} disabled={loading || isUnverified}>
-									<Eye className="h-4 w-4 mr-2" />
-									Publish Package
+								<Button onClick={() => handleSubmit("active")} disabled={loading || isUnverified} className="flex items-center gap-2">
+									<Eye className="h-4 w-4" />
+									<span>Publish Package</span>
 								</Button>
 							</div>
 						</div>
@@ -668,6 +675,14 @@ export default function CreatePackagePage() {
 											{packageData.duration && (
 												<p className="text-sm text-muted-foreground">{packageData.duration} days</p>
 											)}
+										</div>
+									)}
+
+									{packageData.minPaymentPercent && packageData.price && (
+										<div>
+											<p className="text-sm text-muted-foreground">Minimum Payable</p>
+											<p className="text-lg font-semibold">{Number(packageData.minPaymentPercent)}% — ₦{Math.round((Number(packageData.price) * Number(packageData.minPaymentPercent)) / 100).toLocaleString()}</p>
+											<p className="text-xs text-muted-foreground">Pilgrims can choose "pay small small" to pay this deposit amount.</p>
 										</div>
 									)}
 

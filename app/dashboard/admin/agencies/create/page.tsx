@@ -119,23 +119,23 @@ type FormErrors = {
 
       // Prepare agency data
       const agencyData = {
-        agencyName: formData.name,
-        email: formData.email,
-        password: formData.password,
-        phoneNumber: formData.phoneNumber,
-        description: formData.description,
-        website: formData.website,
-        address: formData.address,
-        cityOfOperation: formData.city,
-        stateOfOperation: formData.state,
-        countryOfOperation: formData.country,
-        yearsInOperation: formData.yearsInOperation,
-        servicesOffered: formData.servicesOffered,
-        pilgrimsServed: formData.pilgrimsServed,
-        verified: formData.verified,
-        role: "agency",
-        createdAt: new Date(),
-        onboardingCompleted: true,
+    agencyName: formData.name,
+    email: formData.email,
+    password: formData.password,
+    phoneNumber: formData.phoneNumber,
+    description: formData.description,
+    website: formData.website,
+    address: formData.address,
+    cityOfOperation: formData.city,
+    stateOfOperation: formData.state,
+    countryOfOperation: formData.country,
+    yearsInOperation: formData.yearsInOperation,
+    servicesOffered: formData.servicesOffered,
+    pilgrimsServed: formData.pilgrimsServed,
+    verified: formData.verified,
+    role: "agency",
+    createdAt: new Date(),
+    onboardingCompleted: true, // Required by type, but global enforcement is via middleware
       }
 
       // Create agency

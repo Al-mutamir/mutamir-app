@@ -143,19 +143,19 @@ export default function RegisterPage() {
       duration: 3000,
     });
 
-    // Redirect to onboarding or dashboard
+    // Redirect to dashboard; onboarding enforcement is now handled by middleware
     if (userDataObj) {
-      if (userDataObj.role === "pilgrim" || userDataObj.role === "agency" || userDataObj.role === "admin") {
-        if (!userDataObj.onboardingCompleted) {
-          navigation.push(`/onboarding/${userDataObj.role}`);
-        } else {
-          navigation.push(userDataObj.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency");
-        }
+      if (userDataObj.role === "admin") {
+        navigation.push("/dashboard/admin");
+      } else if (userDataObj.role === "agency") {
+        navigation.push("/dashboard/agency");
+      } else if (userDataObj.role === "pilgrim") {
+        navigation.push("/dashboard/pilgrim");
       } else {
         navigation.push("/");
       }
     } else {
-      navigation.push(`/onboarding/${formData.role}`);
+      navigation.push("/");
     }
   };
 
@@ -293,7 +293,7 @@ export default function RegisterPage() {
 
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">Sign Up</h1>
-          <p className="text-gray-500 mt-2">Create your Al-Mutamir account</p>
+          <p className="text-gray-500 mt-2">Create your AlMutamir account</p>
         </div>
 
         <div className="mb-6">
@@ -392,7 +392,7 @@ export default function RegisterPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="user@email.com"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -556,7 +556,7 @@ export default function RegisterPage() {
         <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-4/5 z-10">
           <div className="bg-white rounded-xl p-6 shadow-lg mb-8">
             <h3 className="text-lg font-semibold mb-2">Your Pilgrimage Journey Starts Here</h3>
-            <p className="text-gray-600 mb-4">Join thousands of pilgrims who trust Al-Mutamir</p>
+            <p className="text-gray-600 mb-4">Join thousands of pilgrims who trust AlMutamir</p>
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-full bg-[#008000]/20 flex items-center justify-center">
                 <Check className="h-4 w-4 text-[#008000]" />

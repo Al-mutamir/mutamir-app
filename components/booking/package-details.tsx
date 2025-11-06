@@ -1,25 +1,12 @@
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, parseDate } from "@/lib/utils"
 import { CheckCircle } from "lucide-react"
 
-export function PackageDetails({ packageDetails }) {
+export function PackageDetails({ packageDetails }: { packageDetails: any }) {
   if (!packageDetails) return <p>No package information available</p>
 
-  const formatDate = (date) => {
-    if (!date) return "Not specified"
-
-    try {
-      if (typeof date === "string") {
-        return new Date(date).toLocaleDateString()
-      }
-
-      if (date.seconds) {
-        return new Date(date.seconds * 1000).toLocaleDateString()
-      }
-
-      return new Date(date).toLocaleDateString()
-    } catch (error) {
-      return "Invalid date"
-    }
+  const formatDate = (date: any) => {
+    const d = parseDate(date)
+    return d ? d.toLocaleDateString() : "Not specified"
   }
 
   return (

@@ -9,7 +9,7 @@ import { MapPin, Calendar, Users, ArrowRight, Package, Building, AlertCircle } f
 import Link from "next/link"
 import Image from "next/image"
 import { getAllPackages, getAllUsers } from "@/lib/firebase/firestore"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, parseDate, formatDate } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ChevronDown, Filter } from "lucide-react"
 
@@ -37,6 +37,7 @@ interface Package {
   createdBy?: string
   isStandard?: boolean
   agencyId?: string
+  status?: string
 }
 
 interface AgencyPackage extends Package {
@@ -60,10 +61,7 @@ interface EmptyStateProps {
 }
 
 export default function StandardPackagesPage() {
-  const [packages, setPackages] = useState<{ hajj: Package[]; umrah: Package[] }>({
-    hajj: [],
-    umrah: [],
-  })
+  const [allPackages, setAllPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [showFilter, setShowFilter] = useState(false)
@@ -84,6 +82,8 @@ export default function StandardPackagesPage() {
   // Filter logic
   const filterPackages = (pkgs: Package[]) => {
     let filtered = [...pkgs]
+    // Only show packages with status 'active' (published)
+    filtered = filtered.filter(pkg => pkg.status === "active" || !pkg.status)
     // Price filter
     if (filter.price) {
       filtered = filtered.filter(pkg => {
@@ -105,15 +105,7 @@ export default function StandardPackagesPage() {
           return typeof pkg.departureDate === "string" && pkg.departureDate.toLowerCase() === "flexible"
         }
         // Try to parse date
-        let pkgDate: Date | null = null
-        if (typeof pkg.departureDate === "string") {
-          const d = new Date(pkg.departureDate)
-          pkgDate = isNaN(d.getTime()) ? null : d
-        } else if (typeof pkg.departureDate === "object" && "toDate" in pkg.departureDate) {
-          pkgDate = pkg.departureDate.toDate()
-        } else if (pkg.departureDate instanceof Date) {
-          pkgDate = pkg.departureDate
-        }
+        const pkgDate = parseDate(pkg.departureDate)
         if (!pkgDate) return false
         // Compare only date part
         const filterDate = new Date(filter.date)
@@ -132,23 +124,11 @@ export default function StandardPackagesPage() {
       try {
         setLoading(true)
         setError(null)
-        const allPackages = await getAllPackages()
-        const hajjPackages = allPackages.filter((pkg: Package) => pkg.type?.toLowerCase() === "hajj")
-        // Group both "umrah" and "group-umrah" as Umrah
-        const umrahPackages = allPackages.filter((pkg: Package) => {
-          const type = pkg.type?.toLowerCase()
-          return type === "umrah" || type === "group-umrah"
-        })
-        setPackages({
-          hajj: hajjPackages,
-          umrah: umrahPackages,
-        })
+        const packages = await getAllPackages()
+        setAllPackages(packages)
       } catch (err) {
         setError("Failed to load packages. Please try again later.")
-        setPackages({
-          hajj: [],
-          umrah: [],
-        })
+        setAllPackages([])
       } finally {
         setLoading(false)
       }
@@ -156,44 +136,10 @@ export default function StandardPackagesPage() {
     fetchPackages()
   }, [])
 
-  const formatDate = (date?: string | Date | { toDate: () => Date }): string => {
+  const formatDateSafe = (date?: any): string => {
     if (!date) return "TBA"
-
-    try {
-      if (typeof date === "string") {
-        if (date.toLowerCase() === "flexible") return "Flexible"
-        const d = new Date(date)
-        if (isNaN(d.getTime())) return "TBA"
-        return d.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
-      }
-
-      if (date && typeof date === "object" && "toDate" in date) {
-        const d = date.toDate()
-        if (isNaN(d.getTime())) return "TBA"
-        return d.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
-      }
-
-      if (date instanceof Date) {
-        if (isNaN(date.getTime())) return "TBA"
-        return date.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
-      }
-
-      return "TBA"
-    } catch (error) {
-      return "TBA"
-    }
+    if (typeof date === "string" && date.toLowerCase() === "flexible") return "Flexible"
+    return formatDate(date, "MMM d, yyyy")
   }
 
   const PackageCard = ({ pkg, showAgency = false }: PackageCardProps) => (
@@ -295,7 +241,7 @@ export default function StandardPackagesPage() {
     )
   }
 
-  const hasAnyPackages = packages.hajj.length > 0 || packages.umrah.length > 0
+  const hasAnyPackages = allPackages.length > 0
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -381,65 +327,30 @@ export default function StandardPackagesPage() {
         <EmptyState
           icon={<Package className="h-12 w-12 text-gray-400 mx-auto" />}
           title="No Packages Available"
-          description="There are currently no published Hajj or Umrah packages available. Please check back later or contact our support team for more information."
+          description="There are currently no published packages available. Please check back later or contact our support team for more information."
         />
       ) : (
-        <Tabs defaultValue="umrah" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="umrah" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Umrah Packages ({filterPackages(packages.umrah).length})
-            </TabsTrigger>
-            <TabsTrigger value="hajj" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Hajj Packages ({filterPackages(packages.hajj).length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="umrah">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Umrah Packages</h2>
-              <p className="text-gray-600">
-                Discover our curated Umrah packages, offering excellent value and comprehensive services for your sacred journey.
-              </p>
+        <div>
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">All Published Packages</h2>
+            <p className="text-gray-600">
+              Browse all active packages published by Almutamir admin and agencies. Use filters to narrow your search.
+            </p>
+          </div>
+          {filterPackages(allPackages).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filterPackages(allPackages).map((pkg) => (
+                <PackageCard key={pkg.id} pkg={pkg} showAgency={true} />
+              ))}
             </div>
-            {filterPackages(packages.umrah).length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filterPackages(packages.umrah).map((pkg) => (
-                  <PackageCard key={pkg.id} pkg={pkg} showAgency={false} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={<Package className="h-12 w-12 text-gray-400 mx-auto" />}
-                title="No Umrah Packages Available"
-                description="There are currently no Umrah packages published. Please check back later for our upcoming offerings."
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="hajj">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Hajj Packages</h2>
-              <p className="text-gray-600">
-                Discover our curated Hajj packages, offering excellent value and comprehensive services for your sacred journey.
-              </p>
-            </div>
-            {filterPackages(packages.hajj).length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filterPackages(packages.hajj).map((pkg) => (
-                  <PackageCard key={pkg.id} pkg={pkg} showAgency={false} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={<Package className="h-12 w-12 text-gray-400 mx-auto" />}
-                title="No Hajj Packages Available"
-                description="There are currently no Hajj packages published. Please check back later for our upcoming offerings."
-              />
-            )}
-          </TabsContent>
-        </Tabs>
+          ) : (
+            <EmptyState
+              icon={<Package className="h-12 w-12 text-gray-400 mx-auto" />}
+              title="No Packages Available"
+              description="There are currently no published packages available. Please check back later for our upcoming offerings."
+            />
+          )}
+        </div>
       )}
     </div>
   )

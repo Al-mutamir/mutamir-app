@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BarChart, LineChart } from "@/components/ui/chart"
 import { CreditCard, Package, Users, Building, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { parseDate, formatDate } from "@/lib/utils"
 import Link from "next/link"
 
 // Define proper types for the booking structure
@@ -95,45 +96,9 @@ const AdminDashboardPage = () => {
     }
   }, [user])
 
-  const formatDate = (date: any): string => {
+  const formatDateSafe = (date: any): string => {
     if (!date) return "N/A"
-
-    try {
-      let dateObj: Date
-
-      // Handle Firestore Timestamp
-      if (date && typeof date.toDate === "function") {
-        dateObj = date.toDate()
-      }
-      // Handle string dates
-      else if (typeof date === "string") {
-        dateObj = new Date(date)
-      }
-      // Handle Date objects
-      else if (date instanceof Date) {
-        dateObj = date
-      }
-      // Handle timestamp numbers
-      else if (typeof date === "number") {
-        dateObj = new Date(date)
-      } else {
-        return "N/A"
-      }
-
-      // Check if the date is valid
-      if (isNaN(dateObj.getTime())) {
-        return "N/A"
-      }
-
-      return dateObj.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    } catch (error) {
-      console.error("Error formatting date:", error)
-      return "N/A"
-    }
+    return formatDate(date, "MMM d, yyyy")
   }
 
   // Prepare chart data
@@ -233,8 +198,8 @@ const AdminDashboardPage = () => {
 
   return (
     <DashboardLayout userType="admin" title="Dashboard" description="Welcome to your admin dashboard">
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="space-y-6 px-2 sm:px-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -279,7 +244,7 @@ const AdminDashboardPage = () => {
           </Card>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>User Growth</CardTitle>
@@ -300,7 +265,7 @@ const AdminDashboardPage = () => {
           </Card>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Package Types</CardTitle>
@@ -329,31 +294,23 @@ const AdminDashboardPage = () => {
           <CardContent>
             <div className="rounded-md border">
               {stats.recentBookings.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-muted/50">
-                        <th className="p-3 text-left font-medium">ID</th>
-                        <th className="p-3 text-left font-medium">User</th>
-                        <th className="p-3 text-left font-medium">Agency</th>
-                        <th className="p-3 text-left font-medium">Package</th>
-                        <th className="p-3 text-left font-medium">Date</th>
-                        <th className="p-3 text-left font-medium">Status</th>
-                        <th className="p-3 text-left font-medium">Amount</th>
-                        <th className="p-3 text-left font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <div>
+                  {/* Mobile: grid view, Desktop: table view */}
+                  <div className="block sm:hidden">
+                    <div className="grid grid-cols-1 gap-4">
                       {stats.recentBookings.map((booking, index) => (
-                        <tr key={booking.id || index} className="border-t">
-                          <td className="p-3">#{booking.id?.substring(0, 6) || `BOOK${index + 1}`}</td>
-                          <td className="p-3">{booking.userName || "User"}</td>
-                          <td className="p-3">{booking.agencyName || "Agency"}</td>
-                          <td className="p-3">{booking.packageName || "Package"}</td>
-                          <td className="p-3">{formatDate(booking.createdAt) || "N/A"}</td>
-                          <td className="p-3">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        <Card key={booking.id || index} className="bg-white border">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-semibold">{booking.packageName || "Package"}</CardTitle>
+                            <CardDescription>#{booking.id?.substring(0, 6) || `BOOK${index + 1}`}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-1">
+                            <div className="text-sm"><span className="text-muted-foreground">User: </span>{booking.userName || "User"}</div>
+                            <div className="text-sm"><span className="text-muted-foreground">Agency: </span>{booking.agencyName || "Agency"}</div>
+                            <div className="text-sm"><span className="text-muted-foreground">Date: </span>{formatDate(booking.createdAt) || "N/A"}</div>
+                            <div className="text-sm"><span className="text-muted-foreground">Amount: </span>₦{(booking.totalPrice || 0).toLocaleString()}</div>
+                            <div className="text-sm">
+                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                 booking.status === "confirmed"
                                   ? "bg-green-100 text-green-800"
                                   : booking.status === "pending"
@@ -361,23 +318,70 @@ const AdminDashboardPage = () => {
                                     : booking.status === "completed"
                                       ? "bg-blue-100 text-blue-800"
                                       : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : "Pending"}
-                            </span>
-                          </td>
-                          <td className="p-3">₦{(booking.totalPrice || 0).toLocaleString()}</td>
-                          <td className="p-3">
-                            <Link href={`/dashboard/admin/bookings/${booking.id || index}`}>
-                              <Button variant="outline" size="sm">
-                                View
-                              </Button>
-                            </Link>
-                          </td>
-                        </tr>
+                              }`}>
+                                {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : "Pending"}
+                              </span>
+                            </div>
+                            <div>
+                              <Link href={`/dashboard/admin/bookings/${booking.id || index}`}>
+                                <Button variant="outline" size="sm" className="w-full mt-2">View</Button>
+                              </Link>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-muted/50">
+                          <th className="p-3 text-left font-medium">ID</th>
+                          <th className="p-3 text-left font-medium">User</th>
+                          <th className="p-3 text-left font-medium">Agency</th>
+                          <th className="p-3 text-left font-medium">Package</th>
+                          <th className="p-3 text-left font-medium">Date</th>
+                          <th className="p-3 text-left font-medium">Status</th>
+                          <th className="p-3 text-left font-medium">Amount</th>
+                          <th className="p-3 text-left font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats.recentBookings.map((booking, index) => (
+                          <tr key={booking.id || index} className="border-t">
+                            <td className="p-3">#{booking.id?.substring(0, 6) || `BOOK${index + 1}`}</td>
+                            <td className="p-3">{booking.userName || "User"}</td>
+                            <td className="p-3">{booking.agencyName || "Agency"}</td>
+                            <td className="p-3">{booking.packageName || "Package"}</td>
+                            <td className="p-3">{formatDate(booking.createdAt) || "N/A"}</td>
+                            <td className="p-3">
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                  booking.status === "confirmed"
+                                    ? "bg-green-100 text-green-800"
+                                    : booking.status === "pending"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : booking.status === "completed"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : "Pending"}
+                              </span>
+                            </td>
+                            <td className="p-3">₦{(booking.totalPrice || 0).toLocaleString()}</td>
+                            <td className="p-3">
+                              <Link href={`/dashboard/admin/bookings/${booking.id || index}`}>
+                                <Button variant="outline" size="sm">
+                                  View
+                                </Button>
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center p-8 text-center">

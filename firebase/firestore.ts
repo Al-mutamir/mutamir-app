@@ -208,8 +208,9 @@ export async function getPackages(): Promise<Package[]> {
       ...doc.data(),
     })) as Package[]
     return packages.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-      const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+      const { parseDate } = require('@/lib/utils')
+      const dateA = a.createdAt ? (parseDate(a.createdAt) || new Date(0)) : new Date(0)
+      const dateB = b.createdAt ? (parseDate(b.createdAt) || new Date(0)) : new Date(0)
       return dateB.getTime() - dateA.getTime()
     })
   } catch (error) {
@@ -232,8 +233,9 @@ export async function getPackagesByAgency(agencyId: string): Promise<Package[]> 
         }) as Package,
     )
     return packages.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-      const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+      const { parseDate } = require('@/lib/utils')
+      const dateA = a.createdAt ? (parseDate(a.createdAt) || new Date(0)) : new Date(0)
+      const dateB = b.createdAt ? (parseDate(b.createdAt) || new Date(0)) : new Date(0)
       return dateB.getTime() - dateA.getTime()
     })
   } catch (error) {
@@ -268,8 +270,9 @@ export async function getPublishedPackages(): Promise<Package[]> {
       }
     }
     return verifiedPackages.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-      const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+      const { parseDate } = require('@/lib/utils')
+      const dateA = a.createdAt ? (parseDate(a.createdAt) || new Date(0)) : new Date(0)
+      const dateB = b.createdAt ? (parseDate(b.createdAt) || new Date(0)) : new Date(0)
       return dateB.getTime() - dateA.getTime()
     })
   } catch (error) {
@@ -363,8 +366,9 @@ export async function getBookingsByAgency(agencyId: string): Promise<Booking[]> 
         }) as Booking,
     )
     return bookings.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-      const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+      const { parseDate } = require('@/lib/utils')
+      const dateA = a.createdAt ? (parseDate(a.createdAt) || new Date(0)) : new Date(0)
+      const dateB = b.createdAt ? (parseDate(b.createdAt) || new Date(0)) : new Date(0)
       return dateB.getTime() - dateA.getTime()
     })
   } catch (error) {
@@ -387,8 +391,9 @@ export async function getBookingsByPilgrim(pilgrimId: string): Promise<Booking[]
         }) as Booking,
     )
     return bookings.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-      const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+      const { parseDate } = require('@/lib/utils')
+      const dateA = a.createdAt ? (parseDate(a.createdAt) || new Date(0)) : new Date(0)
+      const dateB = b.createdAt ? (parseDate(b.createdAt) || new Date(0)) : new Date(0)
       return dateB.getTime() - dateA.getTime()
     })
   } catch (error) {
@@ -459,8 +464,9 @@ export async function getBookings(): Promise<Booking[]> {
         }) as Booking,
     )
     return bookings.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-      const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+      const { parseDate } = require('@/lib/utils')
+      const dateA = a.createdAt ? (parseDate(a.createdAt) || new Date(0)) : new Date(0)
+      const dateB = b.createdAt ? (parseDate(b.createdAt) || new Date(0)) : new Date(0)
       return dateB.getTime() - dateA.getTime()
     })
   } catch (error) {

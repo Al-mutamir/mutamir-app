@@ -15,6 +15,7 @@ import { getPackagesByAgency, getBookingsByAgency, deletePackage} from "@/lib/fi
 import { Package as pkg, Booking } from "@/firebase/firestore"
 import { Edit, Eye, Loader2, Package, Plus, Search, Users, Star, Share2, XCircle } from "lucide-react"
 import { format } from "date-fns"
+import { formatDate, parseDate } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 
 export default function AgencyOfferingsPage() {
@@ -90,14 +91,14 @@ export default function AgencyOfferingsPage() {
     switch (sortCriteria) {
       case "newest":
         return sorted.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-          const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+            const dateA = a.createdAt ? (a.createdAtDate ? new Date(a.createdAtDate) : parseDate(a.createdAt) || new Date(0)) : new Date(0)
+            const dateB = b.createdAt ? (b.createdAtDate ? new Date(b.createdAtDate) : parseDate(b.createdAt) || new Date(0)) : new Date(0)
           return dateB.getTime() - dateA.getTime()
         })
       case "oldest":
         return sorted.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-          const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+            const dateA = a.createdAt ? (a.createdAtDate ? new Date(a.createdAtDate) : parseDate(a.createdAt) || new Date(0)) : new Date(0)
+            const dateB = b.createdAt ? (b.createdAtDate ? new Date(b.createdAtDate) : parseDate(b.createdAt) || new Date(0)) : new Date(0)
           return dateA.getTime() - dateB.getTime()
         })
       case "priceHigh":
@@ -359,9 +360,9 @@ export default function AgencyOfferingsPage() {
                           <div className="flex justify-between">
                             <span className="text-sm text-muted-foreground">Created:</span>
                             <span>
-                              {pkg.createdAt
-                                ? format(new Date(pkg.createdAt.seconds * 1000), "MMM d, yyyy")
-                                : "Unknown"}
+                              {pkg.createdAtDate
+                                ? format(new Date(pkg.createdAtDate), "MMM d, yyyy")
+                                : (pkg.createdAt ? formatDate(pkg.createdAt) : "Unknown")}
                             </span>
                           </div>
                         </div>
@@ -458,7 +459,7 @@ export default function AgencyOfferingsPage() {
                             </Badge>
                           </td>
                           <td className="p-3">
-                            {pkg.createdAt ? format(new Date(pkg.createdAt.seconds * 1000), "MMM d, yyyy") : "Unknown"}
+                            {pkg.createdAt ? (pkg.createdAtDate ? format(new Date(pkg.createdAtDate), "MMM d, yyyy") : formatDate(pkg.createdAt)) : "Unknown"}
                           </td>
                           <td className="p-3 text-right">
                             <div className="flex justify-end gap-2">

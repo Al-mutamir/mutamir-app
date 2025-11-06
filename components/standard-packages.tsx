@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import Image from "next/image"
 import { getAllPackages } from "@/lib/firebase/firestore"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, formatDate } from "@/lib/utils"
 import { MapPin, Users, ArrowRight, Package } from "lucide-react"
 
 export default function StandardPackagesSection() {
@@ -45,31 +45,11 @@ export default function StandardPackagesSection() {
     fetchPackages()
   }, [])
 
-  const formatDate = (date) => {
-    if (!date) return "TBA"
-    try {
-      if (typeof date === "string") {
-        return new Date(date).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
-      }
-      if (date && typeof date === "object" && "toDate" in date) {
-        return date.toDate().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
-      }
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    } catch (error) {
-      return "TBA"
-    }
+  // reuse shared formatDate helper for consistency
+  // formatDate from utils returns 'Unknown' when unparseable; map to 'TBA' for UI here
+  const formatDateLocal = (date) => {
+    const formatted = formatDate(date, "MMM d, yyyy")
+    return formatted === "Unknown" ? "TBA" : formatted
   }
 
   const PackageCard = ({ pkg }) => (
@@ -105,7 +85,7 @@ export default function StandardPackagesSection() {
           </div>
         </div>
         <div className="mt-2 text-sm text-gray-500">
-          <span>Departure: {formatDate(pkg.departureDate)}</span>
+          <span>Departure: {formatDateLocal(pkg.departureDate)}</span>
         </div>
       </CardContent>
       <CardFooter className="flex justify-between items-center border-t pt-4">

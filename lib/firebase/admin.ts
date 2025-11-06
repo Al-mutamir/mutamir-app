@@ -53,6 +53,8 @@ import {
 } from "firebase/firestore"
 import { sendWebhook } from "@/lib/webhooks"
 import { Package } from "@/firebase/firestore"
+import { parseDate } from "@/lib/utils"
+import { normalizeDoc } from "@/lib/firebase/normalize"
 
 // Update the getAdminStats function to provide more comprehensive data
 export const getAdminStats = async () => {
@@ -116,7 +118,7 @@ export const getAdminStats = async () => {
 
     userGrowthSnapshot.forEach((doc) => {
       const userData = doc.data()
-      const createdAt = userData.createdAt?.toDate() || new Date()
+      const createdAt = parseDate(userData.createdAt) || new Date()
       const monthYear = `${createdAt.getMonth()}-${createdAt.getFullYear()}`
 
       usersByMonth[monthYear] = (usersByMonth[monthYear] || 0) + 1
@@ -138,7 +140,7 @@ export const getAdminStats = async () => {
     const bookingsByMonth: Record<string, number> = {}
     revenueSnapshot.forEach((doc) => {
       const payment = doc.data()
-      const paymentDate = payment.date?.toDate() || new Date()
+      const paymentDate = parseDate(payment.date) || new Date()
       const monthYear = `${paymentDate.getMonth()}-${paymentDate.getFullYear()}`
 
       if (payment.status === "confirmed") {
@@ -148,7 +150,7 @@ export const getAdminStats = async () => {
 
     bookingsSnapshot.forEach((doc) => {
       const booking = doc.data()
-      const bookingDate = booking.createdAt?.toDate() || new Date()
+      const bookingDate = parseDate(booking.createdAt) || new Date()
       const monthYear = `${bookingDate.getMonth()}-${bookingDate.getFullYear()}`
 
       bookingsByMonth[monthYear] = (bookingsByMonth[monthYear] || 0) + 1
@@ -305,19 +307,20 @@ export const getAgencies = async () => {
     const agenciesSnapshot = await getDocs(query(collection(db!, "users"), where("role", "==", "agency")))
     return agenciesSnapshot.docs.map((doc) => {
       const data = doc.data()
-      return {
-        uid: doc.id,
-        agencyName: data.agencyName ?? "",
-        displayName: data.displayName ?? "",
-        name: data.name ?? "",
-        email: data.email ?? "",
-        phoneNumber: data.phoneNumber ?? "",
-        cityOfOperation: data.cityOfOperation ?? "",
-        countryOfOperation: data.countryOfOperation ?? "",
-        verified: data.verified ?? false,
-        createdAt: data.createdAt ?? null,
-        // Add any other fields you want to expose here
+      const normalized: any = {
+        ...data,
       }
+      normalized.id = doc.id
+      normalized.uid = doc.id
+      // normalize createdAt
+      if (data.createdAt && typeof (data.createdAt as any).toDate === "function") {
+  normalized.createdAt = parseDate(data.createdAt)?.toISOString() || null
+  normalized.createdAtDate = parseDate(data.createdAt) || null
+      } else if (data.createdAt instanceof Date) {
+        normalized.createdAt = data.createdAt.toISOString()
+        normalized.createdAtDate = data.createdAt
+      }
+      return normalized
     })
   } catch (error) {
     console.error("Error getting all agencies:", error)
@@ -412,10 +415,7 @@ export const updateAgencyVerification = async (agencyId: string, isVerified: boo
 export const getAllBookings = async () => {
   try {
     const bookingsSnapshot = await getDocs(collection(db!, "bookings"))
-    return bookingsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
+    return bookingsSnapshot.docs.map((doc) => normalizeDoc(doc.id, doc.data()))
   } catch (error) {
     console.error("Error getting all bookings:", error)
     throw error
@@ -429,10 +429,7 @@ export const getBookingById = async (bookingId: string) => {
     if (!bookingDoc.exists()) {
       return null
     }
-    return {
-      id: bookingDoc.id,
-      ...bookingDoc.data(),
-    }
+    return normalizeDoc(bookingDoc.id, bookingDoc.data())
   } catch (error) {
     console.error("Error getting booking by ID:", error)
     throw error
@@ -461,7 +458,7 @@ export const updateBookingPaymentStatus = async (bookingId: string, paymentStatu
 }
 
 // Create a new agency
-export const createAgency = async (agencyData: { agencyName: string; email: string; password: string; phoneNumber: string; description: string; website: string; address: string; cityOfOperation: string; stateOfOperation: string; countryOfOperation: string; yearsInOperation: string; servicesOffered: never[]; pilgrimsServed: string; verified: boolean; role: string; createdAt: Date; onboardingCompleted: boolean }) => {
+export const createAgency = async (agencyData: { agencyName: string; email: string; password: string; phoneNumber: string; description: string; website: string; address: string; cityOfOperation: string; stateOfOperation: string; countryOfOperation: string; yearsInOperation: string; servicesOffered: never[]; pilgrimsServed: string; verified: boolean; role: string; createdAt: Date; onboardingCompleted?: boolean }) => {
   try {
     // Create user document in Firestore
     const agencyRef = await addDoc(collection(db!, "users"), {
@@ -653,13 +650,13 @@ export const getPilgrimStats = async (userId: unknown) => {
     // Get upcoming bookings (future departure date)
     const now = new Date()
     const upcomingBookings = bookings.filter((booking) => {
-      const departureDate = booking.departureDate?.toDate() || new Date(booking.departureDate)
+  const departureDate = parseDate(booking.departureDate) || new Date(booking.departureDate)
       return departureDate > now && booking.status !== "cancelled"
     })
 
     // Get completed bookings (past departure date)
     const completedBookings = bookings.filter((booking) => {
-      const departureDate = booking.departureDate?.toDate() || new Date(booking.departureDate)
+  const departureDate = parseDate(booking.departureDate) || new Date(booking.departureDate)
       return departureDate <= now && booking.status !== "cancelled"
     })
 
@@ -674,12 +671,12 @@ export const getPilgrimStats = async (userId: unknown) => {
     }> = [
       ...bookings.map((booking: any) => ({
         type: "booking",
-        date: booking.createdAt?.toDate() || new Date(),
+  date: parseDate(booking.createdAt) || new Date(),
         data: booking,
       })),
       ...payments.map((payment: any) => ({
         type: "payment",
-        date: payment.date?.toDate() || new Date(),
+  date: parseDate(payment.date) || new Date(),
         data: payment,
       })),
     ]
@@ -743,22 +740,22 @@ export const getAgencyStats = async (agencyId: unknown) => {
     const now = new Date()
     const upcomingBookings = bookings
       .filter((booking) => {
-        const travelDate = booking.travelDate?.toDate() || new Date(booking.travelDate)
+  const travelDate = parseDate(booking.travelDate) || new Date(booking.travelDate)
         return travelDate > now && booking.status !== "cancelled"
       })
       .sort((a, b) => {
-        const dateA = a.travelDate?.toDate() || new Date(a.travelDate)
-        const dateB = b.travelDate?.toDate() || new Date(b.travelDate)
-        return dateA - dateB
+  const dateA = parseDate(a.travelDate) || new Date(a.travelDate)
+  const dateB = parseDate(b.travelDate) || new Date(b.travelDate)
+  return (dateA?.getTime() || 0) - (dateB?.getTime() || 0)
       })
       .slice(0, 5)
 
     // Get recent bookings
     const recentBookings = [...bookings]
       .sort((a, b) => {
-        const dateA = a.createdAt?.toDate() || new Date()
-        const dateB = b.createdAt?.toDate() || new Date()
-        return dateB - dateA
+  const dateA = parseDate(a.createdAt) || new Date()
+  const dateB = parseDate(b.createdAt) || new Date()
+  return (dateB?.getTime() || 0) - (dateA?.getTime() || 0)
       })
       .slice(0, 5)
 

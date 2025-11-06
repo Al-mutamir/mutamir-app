@@ -293,6 +293,7 @@ export default function AdminPackagesPage() {
       // Refresh packages
       const updatedPackages = await getAllPackages()
       setPackages(updatedPackages)
+      // Optionally, filter out unpublished packages from UI state if needed
     } catch (error) {
       console.error("Error updating package status:", error)
     } finally {
@@ -341,253 +342,6 @@ export default function AdminPackagesPage() {
               <h1 className="text-2xl font-bold">Package Management</h1>
               <p className="text-muted-foreground">Manage all packages across agencies and Al-Mutamir</p>
             </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Package
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create New Package</DialogTitle>
-                  <DialogDescription>Create a new package for Al-Mutamir or on behalf of an agency</DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-1 gap-4 mb-4">
-                    <div>
-                      <Label htmlFor="agency" className="mb-2 block">
-                        Create Package For <span className="text-red-500">*</span>
-                      </Label>
-                      <Select onValueChange={handleAgencySelect}>
-                        <SelectTrigger id="agency" className={cn(formErrors.agencyId && "border-red-500")}>
-                          <SelectValue placeholder="Select agency or Al-Mutamir" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Al-Mutamir (Admin Package)</SelectItem>
-                          <SelectItem value="divider" disabled>
-                            ────────────────────────────
-                          </SelectItem>
-                          {agencies.map((agency) => (
-                            <SelectItem key={agency.id} value={agency.id}>
-                              {agency.agencyName ||
-                                agency.displayName ||
-                                agency.name ||
-                                agency.email ||
-                                "Unknown Agency"}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {formErrors.agencyId && <p className="text-red-500 text-sm mt-1">{formErrors.agencyId}</p>}
-                      {newPackage.agencyName && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Creating package for: <span className="font-medium">{newPackage.agencyName}</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="title" className="mb-2 block">
-                        Package Title <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="title"
-                        value={newPackage.title}
-                        onChange={(e) => {
-                          setNewPackage({ ...newPackage, title: e.target.value })
-                          setFormErrors({ ...formErrors, title: null })
-                        }}
-                        className={cn(formErrors.title && "border-red-500")}
-                      />
-                      {formErrors.title && <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="location" className="mb-2 block">
-                        Location <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="location"
-                        value={newPackage.location}
-                        onChange={(e) => {
-                          setNewPackage({ ...newPackage, location: e.target.value })
-                          setFormErrors({ ...formErrors, location: null })
-                        }}
-                        className={cn(formErrors.location && "border-red-500")}
-                      />
-                      {formErrors.location && <p className="text-red-500 text-sm mt-1">{formErrors.location}</p>}
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description" className="mb-2 block">
-                      Description <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      id="description"
-                      value={newPackage.description}
-                      onChange={(e) => {
-                        setNewPackage({ ...newPackage, description: e.target.value })
-                        setFormErrors({ ...formErrors, description: null })
-                      }}
-                      className={cn(formErrors.description && "border-red-500")}
-                      rows={3}
-                    />
-                    {formErrors.description && <p className="text-red-500 text-sm mt-1">{formErrors.description}</p>}
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="price" className="mb-2 block">
-                        Price (₦) <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        value={newPackage.price}
-                        onChange={(e) => {
-                          setNewPackage({ ...newPackage, price: e.target.value })
-                          setFormErrors({ ...formErrors, price: null })
-                        }}
-                        className={cn(formErrors.price && "border-red-500")}
-                      />
-                      {formErrors.price && <p className="text-red-500 text-sm mt-1">{formErrors.price}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="duration" className="mb-2 block">
-                        Duration (days) <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="duration"
-                        type="number"
-                        value={newPackage.duration}
-                        onChange={(e) => {
-                          setNewPackage({ ...newPackage, duration: e.target.value })
-                          setFormErrors({ ...formErrors, duration: null })
-                        }}
-                        className={cn(formErrors.duration && "border-red-500")}
-                      />
-                      {formErrors.duration && <p className="text-red-500 text-sm mt-1">{formErrors.duration}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="groupSize" className="mb-2 block">
-                        Group Size
-                      </Label>
-                      <Input
-                        id="groupSize"
-                        type="number"
-                        value={newPackage.groupSize}
-                        onChange={(e) => setNewPackage({ ...newPackage, groupSize: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="mb-2 block">Start Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !newPackage.startDate && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {newPackage.startDate ? format(newPackage.startDate, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={newPackage.startDate}
-                            onSelect={(date) => {
-                              if (date) setNewPackage({ ...newPackage, startDate: date })
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div>
-                      <Label className="mb-2 block">End Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !newPackage.endDate && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {newPackage.endDate ? format(newPackage.endDate, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={newPackage.endDate}
-                            onSelect={(date) => {
-                              if (date) setNewPackage({ ...newPackage, endDate: date })
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="inclusions" className="mb-2 block">
-                      Inclusions
-                    </Label>
-                    <Textarea
-                      id="inclusions"
-                      value={newPackage.inclusions}
-                      onChange={(e) => setNewPackage({ ...newPackage, inclusions: e.target.value })}
-                      placeholder="What's included in the package? (e.g., accommodation, meals, transportation)"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="exclusions" className="mb-2 block">
-                      Exclusions
-                    </Label>
-                    <Textarea
-                      id="exclusions"
-                      value={newPackage.exclusions}
-                      onChange={(e) => setNewPackage({ ...newPackage, exclusions: e.target.value })}
-                      placeholder="What's not included in the package? (e.g., flights, visa fees)"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="itinerary" className="mb-2 block">
-                      Itinerary
-                    </Label>
-                    <Textarea
-                      id="itinerary"
-                      value={newPackage.itinerary}
-                      onChange={(e) => setNewPackage({ ...newPackage, itinerary: e.target.value })}
-                      placeholder="Day-by-day breakdown of activities"
-                      rows={5}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreatePackage}>Create Package</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </div>
 
           {/* Filters and Search */}
@@ -698,46 +452,32 @@ export default function AdminPackagesPage() {
                         </div>
                       </CardContent>
                       <CardFooter className="flex justify-between pt-3 border-t">
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/packages/${pkg.id}`)}>
-                          <Eye className="h-4 w-4 mr-1" /> View
-                        </Button>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(`/dashboard/admin/packages/edit/${pkg.id}`)}
-                          >
-                            <Edit className="h-4 w-4 mr-1" /> Edit
+                        <div className="flex items-center gap-3">
+                          <Button variant="outline" size="sm" className="!px-1 !py-1 flex items-center gap-1 text-xs" style={{ fontSize: '80%' }} onClick={() => router.push(`/packages/${pkg.id}`)}>
+                            <Eye className="h-3 w-3 mr-0.5" /> View
                           </Button>
                           {pkg.status === "active" ? (
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-amber-600 !px-2"
+                              className="text-amber-600 !px-1 !py-1 flex items-center gap-1 text-xs"
+                              style={{ fontSize: '80%' }}
                               onClick={() => handleUpdatePackageStatus(pkg.id, "draft")}
                             >
-                              <X className="h-4 w-4 mr-1" /> Unpublish
+                              <X className="h-3 w-3 mr-0.5" /> Unpublish
                             </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-green-600"
-                              onClick={() => handleUpdatePackageStatus(pkg.id, "active")}
-                            >
-                              <Check className="h-4 w-4 mr-1" /> Publish
-                            </Button>
-                          )}
+                          ) : null}
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-600"
+                            className="text-red-600 !px-1 !py-1 flex items-center gap-1"
+                            style={{ fontSize: '80%' }}
                             onClick={() => {
                               setSelectedPackage(pkg)
                               setIsDeleteDialogOpen(true)
                             }}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </CardFooter>
@@ -798,13 +538,6 @@ export default function AdminPackagesPage() {
                               <Button variant="outline" size="sm" onClick={() => router.push(`/packages/${pkg.id}`)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push(`/dashboard/admin/packages/edit/${pkg.id}`)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
                               {pkg.status === "active" ? (
                                 <Button
                                   variant="outline"
@@ -814,16 +547,7 @@ export default function AdminPackagesPage() {
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-green-600"
-                                  onClick={() => handleUpdatePackageStatus(pkg.id, "active")}
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                              )}
+                              ) : null}
                               <Button
                                 variant="outline"
                                 size="sm"

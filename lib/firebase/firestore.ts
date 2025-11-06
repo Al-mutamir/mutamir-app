@@ -15,6 +15,7 @@ import {
   WriteBatch,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase/firebase"
+import { normalizeDoc } from "./normalize"
 import { Package, Booking } from "@/firebase/firestore"
 
 // Helper function to check if Firestore is initialized
@@ -37,10 +38,7 @@ export const getAllPackages = async () => {
 
     const packages: any[] = []
     querySnapshot.forEach((doc) => {
-      packages.push({
-        id: doc.id,
-        ...doc.data(),
-      })
+      packages.push(normalizeDoc(doc.id, doc.data()))
     })
 
     return packages
@@ -76,7 +74,7 @@ export const getPackageById = async (packageId: string): Promise<Package | null>
     const packageSnap = await getDoc(packageRef)
 
     if (packageSnap.exists()) {
-      return { id: packageSnap.id, ...packageSnap.data() } as Package
+      return normalizeDoc(packageSnap.id, packageSnap.data()) as Package
     } else {
       console.log("No package found with ID:", packageId)
       return null
@@ -98,10 +96,7 @@ export const getPackagesByAgency = async (agencyId: string) => {
 
     const packages: any[] = []
     querySnapshot.forEach((doc) => {
-      packages.push({
-        id: doc.id,
-        ...doc.data(),
-      })
+      packages.push(normalizeDoc(doc.id, doc.data()))
     })
 
     return packages
@@ -137,20 +132,17 @@ export const getBookingsByAgency = async (agencyId: string) => {
 
       querySnapshot.forEach((doc) => {
         const bookingData = doc.data()
-        allBookings.push({
-          id: doc.id,
-          ...bookingData,
-          paymentStatus: bookingData.paymentStatus || "pending",
-          // Add package title for display purposes
-          packageTitle: agencyPackages.find((pkg) => pkg.id === bookingData.packageId)?.title || "Unknown Package",
-        })
+        const normalized = normalizeDoc(doc.id, bookingData)
+        normalized.paymentStatus = bookingData.paymentStatus || "pending"
+        normalized.packageTitle = agencyPackages.find((pkg) => pkg.id === bookingData.packageId)?.title || "Unknown Package"
+        allBookings.push(normalized)
       })
     }
 
     // Sort all bookings by creation date (newest first)
     allBookings.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-      const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+      const dateA = a.createdAtDate ? a.createdAtDate : a.createdAt ? new Date(a.createdAt) : new Date(0)
+      const dateB = b.createdAtDate ? b.createdAtDate : b.createdAt ? new Date(b.createdAt) : new Date(0)
       return dateB.getTime() - dateA.getTime()
     })
 
@@ -194,7 +186,7 @@ export async function getUserProfile(userId: unknown) {
     const docSnap = await getDoc(userRef)
 
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() }
+      return normalizeDoc(docSnap.id, docSnap.data())
     } else {
       console.log("No user profile found!")
       return null
@@ -235,10 +227,7 @@ export async function getUserBookings(userId: string) {
 
     const bookings: any[] = []
     querySnapshot.forEach((doc) => {
-      bookings.push({
-        id: doc.id,
-        ...doc.data(),
-      })
+      bookings.push(normalizeDoc(doc.id, doc.data()))
     })
 
     return bookings
@@ -414,9 +403,8 @@ export async function getAgencyStats(agencyId: string) {
     // Upcoming trips: active packages with future departureDate
     const upcomingTrips = packages.filter(pkg => {
       if (pkg.status !== "active" || !pkg.departureDate) return false
-      const dep = typeof pkg.departureDate === "object" && "toDate" in pkg.departureDate
-        ? pkg.departureDate.toDate()
-        : new Date(pkg.departureDate)
+      const { parseDate } = require('@/lib/utils')
+      const dep = parseDate(pkg.departureDate) || new Date(pkg.departureDate)
       return dep > now
     })
 
@@ -424,8 +412,8 @@ export async function getAgencyStats(agencyId: string) {
     const allBookings = await getBookingsByAgency(agencyId)
     // Sort bookings by createdAt (newest first)
     allBookings.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0)
-      const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+      const dateA = a.createdAtDate ? a.createdAtDate : a.createdAt ? new Date(a.createdAt) : new Date(0)
+      const dateB = b.createdAtDate ? b.createdAtDate : b.createdAt ? new Date(b.createdAt) : new Date(0)
       return dateB.getTime() - dateA.getTime()
     })
     // Recent bookings: last 5 bookings
@@ -523,7 +511,7 @@ export async function getAdminStats() {
 }
 
 // Create a booking
-export async function createBooking(bookingData: { packageId?: string; packageTitle?: string; paymentStatus?: string; paymentReference?: any; userName?: string | null; userEmail?: string | null; userPhone?: any; totalPrice?: number | undefined; packageType?: string; agencyId?: string | undefined; agencyName?: string | undefined; userId?: string; status?: any; createdAt?: Date; departureDate?: any; returnDate?: any; duration?: number | undefined; location?: string | undefined }) {
+export async function createBooking(bookingData: { packageId?: string; packageTitle?: string; paymentStatus?: string; paymentReference?: any; userName?: string | null; userEmail?: string | null; userPhone?: any; totalPrice?: number | undefined; packageType?: string; agencyId?: string | undefined; agencyName?: string | undefined; userId?: string; status?: any; createdAt?: Date; departureDate?: any; returnDate?: any; duration?: number | undefined; location?: string | undefined; isDeposit?: boolean; depositAmount?: number }) {
   try {
     if (!checkDb()) throw new Error("Firestore not initialized")
 
@@ -531,10 +519,12 @@ export async function createBooking(bookingData: { packageId?: string; packageTi
     const docRef = await addDoc(bookingsRef, {
       ...bookingData,
       status: bookingData.status || "pending",
+      isDeposit: bookingData.isDeposit || false,
+      depositAmount: bookingData.depositAmount || null,
       createdAt: serverTimestamp(),
     })
 
-    return { id: docRef.id }
+    return normalizeDoc(docRef.id, { ...bookingData, status: bookingData.status || "pending", isDeposit: bookingData.isDeposit || false, depositAmount: bookingData.depositAmount || null })
   } catch (error) {
     console.error("Error creating booking:", error)
     throw error
@@ -606,7 +596,7 @@ export async function createPackage(packageData: { title?: string; type?: string
       createdAt: serverTimestamp(),
     })
 
-    return { id: docRef.id }
+    return normalizeDoc(docRef.id, { ...packageData, status: packageData.status || "draft" })
   } catch (error) {
     console.error("Error creating package:", error)
     throw error
@@ -671,7 +661,7 @@ export async function updateUserProfile(userId: string, profileData: { firstName
       })
     }
 
-    return { id: userId }
+    return normalizeDoc(userId, { ...profileData })
   } catch (error) {
     console.error("Error updating user profile:", error)
     throw error
@@ -709,12 +699,9 @@ export async function getAllAgencies() {
     const agenciesRef = collection(db!, "agencies")
     const querySnapshot = await getDocs(agenciesRef)
 
-    const agencies: { id: string }[] = []
+    const agencies: any[] = []
     querySnapshot.forEach((doc) => {
-      agencies.push({
-        id: doc.id,
-        ...doc.data(),
-      })
+      agencies.push(normalizeDoc(doc.id, doc.data()))
     })
 
     return agencies
@@ -731,7 +718,7 @@ export async function getAgencyById(agencyId: string) {
     if (!agencyDoc.exists()) {
       return null
     }
-    return { id: agencyDoc.id, ...agencyDoc.data() }
+    return normalizeDoc(agencyDoc.id, agencyDoc.data())
   } catch (error) {
     console.error("Error getting agency by ID:", error)
     return null
