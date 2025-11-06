@@ -1,6 +1,5 @@
 import React from 'react'
 import nodemailer from 'nodemailer'
-import { render } from '@react-email/render'
 import AlMutamirEmail from '@/components/email/AlMutamirEmail'
 import WelcomeEmail from '@/components/email/WelcomeEmail'
 import RequestEmail from '@/components/email/RequestEmail'

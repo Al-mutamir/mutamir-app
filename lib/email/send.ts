@@ -1,8 +1,5 @@
 import nodemailer from 'nodemailer'
-import { render } from '@react-email/render'
 import AlMutamirEmail from '@/components/email/AlMutamirEmail'
-import WelcomeEmail from '@/components/email/WelcomeEmail'
-import RequestEmail from '@/components/email/RequestEmail'
 import { getRandomEmailHero } from '@/components/email/hero'
 
 const SMTP_HOST = process.env.SMTP_HOST
@@ -50,31 +47,38 @@ export async function sendAlMutamirEmail(params: {
   hero?: 'kaaba' | 'hajj' | 'umrah'
 }) {
   const hero = params.hero ?? getRandomEmailHero()
-  const html = render(
-    <AlMutamirEmail
-      heading={params.heading}
-      subheading={params.subheading}
-      body={params.body}
-      ctaText={params.ctaText}
-      ctaUrl={params.ctaUrl}
-      hero={hero}
-    />
-  )
-
+  const html = AlMutamirEmail({
+    heading: params.heading,
+    subheading: params.subheading,
+    body: typeof params.body === 'string' ? params.body : String(params.body),
+    ctaText: params.ctaText,
+    ctaUrl: params.ctaUrl,
+    hero,
+  })
   await mailerSend({ to: params.to, subject: params.subject, html })
   return { ok: true, hero }
 }
 
 export async function sendWelcomeEmail(opts: { to: string; name: string }) {
   const hero = getRandomEmailHero()
-  const html = render(<WelcomeEmail name={opts.name} hero={hero} />)
+  const html = AlMutamirEmail({
+    heading: 'Welcome to Al‑Mutamir',
+    subheading: `Hi ${opts.name},`,
+    body: 'Thank you for joining Al‑Mutamir. We are excited to have you on board!',
+    hero,
+  })
   await mailerSend({ to: opts.to, subject: 'Welcome to Al‑Mutamir', html })
   return { ok: true, hero }
 }
 
 export async function sendRequestEmail(opts: { to: string; details: any }) {
   const hero = getRandomEmailHero()
-  const html = render(<RequestEmail details={opts.details} hero={hero} />)
+  const html = AlMutamirEmail({
+    heading: 'Request received',
+    subheading: 'We have received your request',
+    body: typeof opts.details === 'string' ? opts.details : JSON.stringify(opts.details),
+    hero,
+  })
   await mailerSend({ to: opts.to, subject: 'Request received', html })
   return { ok: true, hero }
 }
@@ -87,31 +91,20 @@ export async function sendPaymentSuccessEmail(opts: {
   packageTitle?: string
 }) {
   const hero = getRandomEmailHero()
-  const body = (
-    <div>
-      <p>Hi {opts.name ?? 'Customer'},</p>
-      <p>
-        We've successfully received your payment of <strong>₦{opts.amountNgn.toLocaleString()}</strong> for{' '}
-        <strong>{opts.packageTitle ?? 'your booking'}</strong>.
-      </p>
-      <p>Your booking reference is <strong>{opts.bookingId}</strong>.</p>
-      <p>
-        You can view your booking here: <a href={`${process.env.NEXT_PUBLIC_APP_URL}/booking/${opts.bookingId}`}>View booking</a>
-      </p>
-    </div>
-  )
-
-  const html = render(
-    <AlMutamirEmail
-      heading="Payment successful"
-      subheading="Payment received"
-      body={body}
-      ctaText="View booking"
-      ctaUrl={`${process.env.NEXT_PUBLIC_APP_URL}/booking/${opts.bookingId}`}
-      hero={hero}
-    />
-  )
-
+  const body = `
+    <p>Hi ${opts.name ?? 'Customer'},</p>
+    <p>We've successfully received your payment of <strong>₦${opts.amountNgn.toLocaleString()}</strong> for <strong>${opts.packageTitle ?? 'your booking'}</strong>.</p>
+    <p>Your booking reference is <strong>${opts.bookingId}</strong>.</p>
+    <p>You can view your booking here: <a href="${process.env.NEXT_PUBLIC_APP_URL}/booking/${opts.bookingId}">View booking</a></p>
+  `
+  const html = AlMutamirEmail({
+    heading: 'Payment successful',
+    subheading: 'Payment received',
+    body,
+    ctaText: 'View booking',
+    ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL}/booking/${opts.bookingId}`,
+    hero,
+  })
   await mailerSend({ to: opts.to, subject: 'Payment received — Al‑Mutamir', html })
   return { ok: true, hero }
 }
