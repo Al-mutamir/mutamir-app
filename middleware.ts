@@ -44,10 +44,12 @@ export function middleware(request: NextRequest) {
   // Check if the path is for admin onboarding
   const isAdminOnboardingPath = path.startsWith("/onboarding/admin")
 
-  // If the user is not logged in and trying to access a protected route
-  if (!userRole && (isDashboardPath || isOnboardingPath)) {
-    return NextResponse.redirect(new URL("/auth/login", request.url))
-  }
+  // NOTE: We no longer perform a server-side redirect to /auth/login when the
+  // `user-role` cookie is missing. That caused a redirect loop when the client
+  // had just signed in and the AuthProvider hadn't yet set the cookie. Client-
+  // side guards (ProtectedRoute) enforce auth and will redirect unauthenticated
+  // users to the login page. Keeping this check here makes middleware too eager
+  // and interferes with normal client sign-in flows.
 
   // If the user is logged in and trying to access a public route
   if (userRole && (path === "/auth/login" || path === "/auth/register")) {

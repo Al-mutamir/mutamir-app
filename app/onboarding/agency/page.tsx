@@ -143,11 +143,21 @@ export default function AgencyOnboarding() {
 
     setIsSubmitting(true)
     try {
-      await updateUserOnboardingData(user.uid, {
+      const payload: any = {
         ...formData,
         onboardingCompleted: true,
-        status: "unverified", // Add this if you want to track agency status
-      })
+      }
+
+      // Ensure numeric fields have correct types expected by Firestore helper
+      if (payload.averagePilgrimsPerYear && typeof payload.averagePilgrimsPerYear === "string") {
+        const num = parseInt(payload.averagePilgrimsPerYear as string, 10)
+        payload.averagePilgrimsPerYear = isNaN(num) ? undefined : num
+      }
+
+      await updateUserOnboardingData(user.uid, payload)
+
+      // Set onboarding cookie so middleware knows onboarding is done
+      document.cookie = `onboarding-completed=true; path=/; max-age=86400`
 
       toast({
         title: "Onboarding completed!",
@@ -155,8 +165,8 @@ export default function AgencyOnboarding() {
         duration: 3000,
       })
 
-      // Redirect to agency dashboard
-      router.replace("/dashboard/agency")
+      // Use full navigation so middleware and AuthProvider read updated cookies
+      window.location.href = "/dashboard/agency"
     } catch (error) {
       console.error("Error updating user data:", error)
       toast({

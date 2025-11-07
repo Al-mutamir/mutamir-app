@@ -615,9 +615,9 @@ export default function PackageDetailsPage() {
                             {packageData?.flexibleDates
                               ? "Flexible"
                               : packageData?.departureDate
-                                ? (parseDate(packageData.departureDate) ? parseDate(packageData.departureDate).toLocaleDateString() : "Flexible")
+                                ? (parseDate(packageData.departureDate)?.toLocaleDateString() ?? "Flexible")
                                 : packageData?.startDate
-                                  ? (parseDate(packageData.startDate) ? parseDate(packageData.startDate).toLocaleDateString() : "Flexible")
+                                  ? (parseDate(packageData.startDate)?.toLocaleDateString() ?? "Flexible")
                                   : "Flexible"}
                           </p>
                         </div>
@@ -900,9 +900,9 @@ export default function PackageDetailsPage() {
                               {packageData?.flexibleDates
                                 ? "Flexible"
                                 : packageData?.departureDate
-                                  ? (parseDate(packageData.departureDate) ? parseDate(packageData.departureDate)!.toLocaleDateString() : "Flexible")
+                                  ? (parseDate(packageData.departureDate)?.toLocaleDateString() ?? "Flexible")
                                   : packageData?.startDate
-                                    ? (parseDate(packageData.startDate) ? parseDate(packageData.startDate)!.toLocaleDateString() : "Flexible")
+                                    ? (parseDate(packageData.startDate)?.toLocaleDateString() ?? "Flexible")
                                     : "N/A"}
                             </div>
                             <div className="text-sm">

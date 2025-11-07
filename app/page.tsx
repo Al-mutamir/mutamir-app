@@ -13,6 +13,28 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button" 
 
 export default function LandingPage() {
+  // If user role cookie present, redirect to their dashboard (client-side)
+  if (typeof window !== "undefined") {
+    try {
+      const cookies = document.cookie.split("; ").reduce((acc: any, c) => {
+        const [k, v] = c.split("=")
+        acc[k] = v
+        return acc
+      }, {})
+      const role = cookies["user-role"]
+      if (role) {
+        if (role === "agency") {
+          if (window.location.pathname === "/") window.location.href = "/dashboard/agency"
+        } else if (role === "pilgrim") {
+          if (window.location.pathname === "/") window.location.href = "/dashboard/pilgrim"
+        } else if (role === "admin") {
+          if (window.location.pathname === "/") window.location.href = "/dashboard/admin"
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
+  }
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1">

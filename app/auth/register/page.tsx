@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { use, useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -14,62 +14,85 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { UserRole } from "@/types/auth"
-import { getUserData, createUserDocument, updateUserProfile } from "@/lib/firebase/firestore"
-
-// Add this type extension if not already present in your Firestore logic/types
-type AgencyUserDocument = {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  address: string
-  city: string
-  state: string
-  country: string
-  dateOfBirth: string
-  gender: string
-  passportNumber: string
-  passportExpiry: string
-  emergencyContact: {
-    name: string
-    phone: string
-    relationship: string
-  }
-  preferences: {
-    [key: string]: any
-  }
-  status?: string // <-- Add this line to allow 'status'
-}
+import { getUserData, setUserData, updateUserProfile } from "@/lib/firebase/firestore"
 import { sendWelcomeEmail } from "@/utils/sendWelcomeEmail"
+
+// Constants
+const THEME_COLORS = {
+  primary: '#008000',
+  primaryHover: '#006400',
+  primaryLight: '#008000',
+  success: '#4CAF50',
+} as const
+
+const MIN_PASSWORD_LENGTH = 8
 
 type UserData = {
   id: string
   role: UserRole
   onboardingCompleted: boolean
+  status?: string
 }
 
-// Add this utility function at the top or in your utils:
-async function notifyDiscordAgencyRegistration({
-  firstName,
-  lastName,
-  email,
-  status,
-}: { firstName: string; lastName: string; email: string; status: string }) {
+// Utility function for Discord notification
+async function notifyDiscordAgencyRegistration({ 
+  firstName, 
+  lastName, 
+  email 
+}: { 
+  firstName: string
+  lastName: string
+  email: string 
+}) {
   try {
     const webhookUrl = "https://discordapp.com/api/webhooks/1374112883260002304/LR9DEcBQPEl2OQ6AWVS9JNUQlZaXt2os3o54zCTD8iIgYDoUYhmrEjD1-2Do099xw7SB"
     const content = `🏢 **New Agency Registration**
 **Name:** ${firstName} ${lastName}
 **Email:** ${email}
-Status: ${status}`
+Status: unverified`
     await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),
     })
   } catch (err) {
-    // Optionally log error, but don't block user flow
     console.error("Failed to notify Discord (agency registration):", err)
   }
+}
+
+// Password validation helper
+const validatePassword = (password: string) => {
+  return {
+    hasMinLength: password.length >= MIN_PASSWORD_LENGTH,
+    hasNumber: /\d/.test(password),
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  }
+}
+
+// Get user-friendly error messages
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase()
+    
+    if (message.includes('email-already-in-use')) {
+      return "This email is already registered. Please sign in instead."
+    }
+    if (message.includes('invalid-email')) {
+      return "Please enter a valid email address."
+    }
+    if (message.includes('weak-password')) {
+      return "Password is too weak. Please choose a stronger password."
+    }
+    if (message.includes('network')) {
+      return "Network error. Please check your connection and try again."
+    }
+    
+    return error.message
+  }
+  
+  return "An unexpected error occurred. Please try again."
 }
 
 export default function RegisterPage() {
@@ -85,9 +108,41 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState("")
-  const { signUp, loading, signInWithGoogle, userRole, user } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const { signUp, loading, signInWithGoogle, user } = useAuth()
   const navigation = useRouter()
   const { toast } = useToast()
+
+  // Handle Google sign-up redirect with proper state management
+  useEffect(() => {
+    const handleGoogleRedirect = async () => {
+      if (user?.uid && !isSubmitting) {
+        try {
+          const userData = await getUserData(user.uid) as UserData | null
+          
+          if (userData) {
+            const targetRole = userData.role
+            const needsOnboarding = !userData.onboardingCompleted
+            
+            navigation.push(
+              needsOnboarding 
+                ? `/onboarding/${targetRole}` 
+                : `/dashboard/${targetRole}`
+            )
+          } else {
+            // New user from Google sign-up, redirect to onboarding
+            navigation.push(`/onboarding/${formData.role}`)
+          }
+        } catch (err) {
+          console.error("Error fetching user data:", err)
+          setError("Failed to complete sign-up. Please try again.")
+        }
+      }
+    }
+
+    handleGoogleRedirect()
+  }, [user, isSubmitting, formData.role, navigation])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
@@ -95,6 +150,9 @@ export default function RegisterPage() {
       ...prev,
       [id]: value,
     }))
+    
+    // Clear error when user starts typing
+    if (error) setError("")
   }
 
   const handleRoleChange = (role: UserRole) => {
@@ -105,183 +163,136 @@ export default function RegisterPage() {
   }
 
   // Password validation
-  const hasMinLength = formData.password.length >= 6
-  const hasNumber = /\d/.test(formData.password)
-  const hasUppercase = /[A-Z]/.test(formData.password)
-  const hasLowercase = /[a-z]/.test(formData.password)
-  const passwordsMatch = formData.password === formData.confirmPassword
-  const isFormValid = hasMinLength && hasNumber && (hasUppercase || hasLowercase) && passwordsMatch
-  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
-
-
-  // Update the handleSubmit function to ensure it only runs when the user clicks the button
-  // and properly redirects after successful registration
-  // Centralized post-registration logic
-  const postRegistration = async (userObj: any, userDataObj?: any) => {
-    // Send welcome email
-    if (userObj?.email && (userObj?.displayName || (formData.firstName && formData.lastName))) {
-      const name = userObj.displayName || `${formData.firstName} ${formData.lastName}`;
-      await sendWelcomeEmail(userObj.email, name);
-    }
-
-    // Send Discord notification if agency
-    const role = userDataObj?.role || formData.role;
-    if (role === "agency") {
-      const firstName = userObj?.displayName?.split(" ")[0] || formData.firstName;
-      const lastName = userObj?.displayName?.split(" ")[1] || formData.lastName;
-      await notifyDiscordAgencyRegistration({
-        firstName,
-        lastName,
-        email: userObj?.email || formData.email,
-        status: "unverified",
-      });
-    }
-
-    toast({
-      title: "Registration Successful!",
-      description: "Welcome to Al-Mutamir.",
-      duration: 3000,
-    });
-
-    // Redirect to dashboard; onboarding enforcement is now handled by middleware
-    if (userDataObj) {
-      if (userDataObj.role === "admin") {
-        navigation.push("/dashboard/admin");
-      } else if (userDataObj.role === "agency") {
-        navigation.push("/dashboard/agency");
-      } else if (userDataObj.role === "pilgrim") {
-        navigation.push("/dashboard/pilgrim");
-      } else {
-        navigation.push("/");
-      }
-    } else {
-      navigation.push("/");
-    }
-  };
+  const passwordValidation = validatePassword(formData.password)
+  const { hasMinLength, hasNumber, hasUppercase, hasLowercase, hasSpecialChar } = passwordValidation
+  const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== ""
+  const isPasswordValid = hasMinLength && hasNumber && hasUppercase && hasLowercase && hasSpecialChar
+  const canSubmit = isPasswordValid && passwordsMatch && !loading && !isSubmitting
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+    e.preventDefault()
+    
+    // Prevent double submission
+    if (isSubmitting || loading) return
+    
+    setError("")
 
     // Validate form
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      setError("All fields are required");
-      return;
+    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.password) {
+      setError("All fields are required")
+      return
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
+      setError("Passwords do not match")
+      return
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
+    if (!isPasswordValid) {
+      setError("Please meet all password requirements")
+      return
     }
 
-    const fullName = `${formData.firstName} ${formData.lastName}`;
+    const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`
+
+    setIsSubmitting(true)
 
     try {
-      const userCredential = await signUp(formData.email, formData.password, formData.role, fullName);
+      const userCredential = await signUp(formData.email, formData.password, formData.role, fullName)
+      
+      if (!userCredential?.user?.uid) {
+        throw new Error("Failed to create user account")
+      }
 
-      // If agency, set unverified status in user db
-      if (formData.role === "agency" && userCredential?.user?.uid) {
-        await createUserDocument(userCredential.user.uid, {
-          status: "unverified",
-        });
-        await updateUserProfile(userCredential.user.uid, {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+      // Prepare user data based on role
+      const baseUserData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email,
+        role: formData.role,
+      }
+
+      const userData = formData.role === "agency" 
+        ? { ...baseUserData, status: "unverified" }
+        : baseUserData
+
+      // Single atomic write to Firestore
+      await setUserData(userCredential.user.uid, userData)
+
+      // Send welcome email (non-blocking)
+      sendWelcomeEmail(formData.email, fullName).catch(err => {
+        console.error("Failed to send welcome email:", err)
+      })
+
+      // Notify Discord for agency registrations (non-blocking)
+      if (formData.role === "agency") {
+        notifyDiscordAgencyRegistration({
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
           email: formData.email,
-          status: "unverified",
-          phone: "",
-          address: "",
-          city: "",
-          state: "",
-          country: "",
-          dateOfBirth: "",
-          gender: "",
-          passportNumber: "",
-          passportExpiry: "",
-          emergencyContact: {
-            name: "",
-            relationship: "",
-            phone: ""
-          },
-          preferences: {
-            emailNotifications: false,
-            smsNotifications: false,
-            marketingEmails: false,
-            language: ""
-          }
-        });
+        }).catch(err => {
+          console.error("Discord notification failed:", err)
+        })
       }
 
-      // Fetch userData for redirect logic
-      let userDataObj: UserData | undefined;
-      if (userCredential?.user?.uid) {
-        userDataObj = await getUserData(userCredential.user.uid) as UserData;
-      }
-      await postRegistration(userCredential.user, userDataObj);
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
-      console.error(err);
+      toast({
+        title: "Registration Successful!",
+        description: "Welcome to Al-Mutamir.",
+        duration: 3000,
+      })
+
+      // Redirect to onboarding
+      navigation.push(`/onboarding/${formData.role}`)
+    } catch (err) {
+      const errorMessage = getErrorMessage(err)
+      setError(errorMessage)
+      console.error("Registration error:", err)
+    } finally {
+      setIsSubmitting(false)
     }
-  };
+  }
 
-  // Update the Google sign-up function to use the selected role
   const handleGoogleSignUp = async () => {
+    if (isSubmitting || loading) return
+    
+    setError("")
+    setIsSubmitting(true)
+
     try {
-      await signInWithGoogle(formData.role);
-      // Refetch the user directly from Firebase Auth
-      const firebaseUser = window?.firebase?.auth?.().currentUser || user;
-      if (firebaseUser && firebaseUser.uid) {
-        // If agency, set unverified status and full profile in user db
-        if (formData.role === "agency") {
-          const profile = {
-            firstName: firebaseUser.displayName?.split(" ")[0] || "",
-            lastName: firebaseUser.displayName?.split(" ")[1] || "",
-            email: firebaseUser.email || "",
-            status: "unverified",
-            phone: "",
-            address: "",
-            city: "",
-            state: "",
-            country: "",
-            dateOfBirth: "",
-            gender: "",
-            passportNumber: "",
-            passportExpiry: "",
-            emergencyContact: {
-              name: "",
-              relationship: "",
-              phone: ""
-            },
-            preferences: {
-              emailNotifications: false,
-              smsNotifications: false,
-              marketingEmails: false,
-              language: ""
-            }
-          };
-          await createUserDocument(firebaseUser.uid, profile);
-          await updateUserProfile(firebaseUser.uid, profile);
-        }
-        const userDataObj = await getUserData(firebaseUser.uid) as UserData;
-        await postRegistration(firebaseUser, userDataObj);
-      }
-    } catch (err: any) {
-      setError(err.message || "Google sign-up failed");
-      console.error(err);
+      await signInWithGoogle(formData.role)
+
+      toast({
+        title: "Registration Successful!",
+        description: "Welcome to Al-Mutamir.",
+        duration: 3000,
+      })
+      
+      // useEffect will handle redirect based on user state
+    } catch (err) {
+      const errorMessage = getErrorMessage(err)
+      setError(errorMessage)
+      console.error("Google sign-up error:", err)
+      setIsSubmitting(false)
     }
-  };
+  }
+
+  // Get validation message for submit button
+  const getSubmitButtonMessage = () => {
+    if (isSubmitting || loading) return "Creating account..."
+    if (!isPasswordValid) return "Complete password requirements"
+    if (!passwordsMatch && formData.confirmPassword) return "Passwords must match"
+    return "Create account"
+  }
 
   return (
     <div className="flex min-h-screen">
       {/* Left side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col p-10 lg:p-20">
         <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900">
+          <Link 
+            href="/" 
+            className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to home
           </Link>
@@ -293,7 +304,7 @@ export default function RegisterPage() {
 
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">Sign Up</h1>
-          <p className="text-gray-500 mt-2">Create your AlMutamir account</p>
+          <p className="text-gray-500 mt-2">Create your Al-Mutamir account</p>
         </div>
 
         <div className="mb-6">
@@ -302,20 +313,22 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => handleRoleChange("pilgrim")}
+              disabled={isSubmitting || loading}
+              aria-pressed={formData.role === "pilgrim"}
               className={`relative flex items-center justify-center p-4 rounded-lg border-2 transition-all duration-200 ${
                 formData.role === "pilgrim"
-                  ? "border-[#008000] bg-[#008000]/5 shadow-sm"
+                  ? `border-[${THEME_COLORS.primary}] bg-[${THEME_COLORS.primary}]/5 shadow-sm`
                   : "border-gray-200 hover:border-gray-300"
-              }`}
+              } ${(isSubmitting || loading) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
             >
               <div className="flex flex-col items-center space-y-2">
-                <Users className={`h-6 w-6 ${formData.role === "pilgrim" ? "text-[#008000]" : "text-gray-500"}`} />
-                <span className={`font-medium ${formData.role === "pilgrim" ? "text-[#008000]" : "text-gray-700"}`}>
+                <Users className={`h-6 w-6 ${formData.role === "pilgrim" ? `text-[${THEME_COLORS.primary}]` : "text-gray-500"}`} />
+                <span className={`font-medium ${formData.role === "pilgrim" ? `text-[${THEME_COLORS.primary}]` : "text-gray-700"}`}>
                   Pilgrim
                 </span>
               </div>
               {formData.role === "pilgrim" && (
-                <div className="absolute -top-2 -right-2 bg-[#008000] text-white rounded-full p-1">
+                <div className={`absolute -top-2 -right-2 bg-[${THEME_COLORS.primary}] text-white rounded-full p-1`}>
                   <Check className="h-3 w-3" />
                 </div>
               )}
@@ -323,20 +336,22 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => handleRoleChange("agency")}
+              disabled={isSubmitting || loading}
+              aria-pressed={formData.role === "agency"}
               className={`relative flex items-center justify-center p-4 rounded-lg border-2 transition-all duration-200 ${
                 formData.role === "agency"
-                  ? "border-[#008000] bg-[#008000]/5 shadow-sm"
+                  ? `border-[${THEME_COLORS.primary}] bg-[${THEME_COLORS.primary}]/5 shadow-sm`
                   : "border-gray-200 hover:border-gray-300"
-              }`}
+              } ${(isSubmitting || loading) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
             >
               <div className="flex flex-col items-center space-y-2">
-                <Building className={`h-6 w-6 ${formData.role === "agency" ? "text-[#008000]" : "text-gray-500"}`} />
-                <span className={`font-medium ${formData.role === "agency" ? "text-[#008000]" : "text-gray-700"}`}>
+                <Building className={`h-6 w-6 ${formData.role === "agency" ? `text-[${THEME_COLORS.primary}]` : "text-gray-500"}`} />
+                <span className={`font-medium ${formData.role === "agency" ? `text-[${THEME_COLORS.primary}]` : "text-gray-700"}`}>
                   Agency
                 </span>
               </div>
               {formData.role === "agency" && (
-                <div className="absolute -top-2 -right-2 bg-[#008000] text-white rounded-full p-1">
+                <div className={`absolute -top-2 -right-2 bg-[${THEME_COLORS.primary}] text-white rounded-full p-1`}>
                   <Check className="h-3 w-3" />
                 </div>
               )}
@@ -347,7 +362,7 @@ export default function RegisterPage() {
         <div className="mb-4 text-center">
           <p className="text-sm text-gray-500">
             Already a member?{" "}
-            <Link href="/auth/login" className="font-medium text-[#008000] hover:underline">
+            <Link href="/auth/login" className={`font-medium text-[${THEME_COLORS.primary}] hover:underline`}>
               Sign in
             </Link>
           </p>
@@ -370,14 +385,29 @@ export default function RegisterPage() {
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                   <User className="h-5 w-5 text-gray-400" />
                 </div>
-                <Input id="firstName" value={formData.firstName} onChange={handleChange} required className="pl-10" />
+                <Input 
+                  id="firstName" 
+                  value={formData.firstName} 
+                  onChange={handleChange} 
+                  disabled={isSubmitting || loading}
+                  required 
+                  className="pl-10"
+                  autoComplete="given-name"
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName" className="text-sm font-medium">
                 Last name
               </Label>
-              <Input id="lastName" value={formData.lastName} onChange={handleChange} required />
+              <Input 
+                id="lastName" 
+                value={formData.lastName} 
+                onChange={handleChange}
+                disabled={isSubmitting || loading}
+                required
+                autoComplete="family-name"
+              />
             </div>
           </div>
 
@@ -392,11 +422,13 @@ export default function RegisterPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="user@email.com"
+                placeholder="m@example.com"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={isSubmitting || loading}
                 required
                 className="pl-10"
+                autoComplete="email"
               />
             </div>
           </div>
@@ -414,13 +446,17 @@ export default function RegisterPage() {
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleChange}
+                disabled={isSubmitting || loading}
                 required
                 className="pl-10"
+                autoComplete="new-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isSubmitting || loading}
                 className="absolute inset-y-0 right-0 flex items-center pr-3"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5 text-gray-400" />
@@ -438,7 +474,7 @@ export default function RegisterPage() {
                 >
                   {hasMinLength ? <Check className="h-3 w-3" /> : null}
                 </div>
-                <span className={hasMinLength ? "text-green-600" : "text-gray-500"}>At least 6 characters</span>
+                <span className={hasMinLength ? "text-green-600" : "text-gray-500"}>At least {MIN_PASSWORD_LENGTH} characters</span>
               </div>
               <div className="flex items-center text-xs">
                 <div
@@ -458,6 +494,16 @@ export default function RegisterPage() {
                   Uppercase (A-Z) and lowercase (a-z)
                 </span>
               </div>
+              <div className="flex items-center text-xs">
+                <div
+                  className={`w-4 h-4 mr-2 flex items-center justify-center rounded-full ${hasSpecialChar ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`}
+                >
+                  {hasSpecialChar ? <Check className="h-3 w-3" /> : null}
+                </div>
+                <span className={hasSpecialChar ? "text-green-600" : "text-gray-500"}>
+                  Special character (!@#$%^&*)
+                </span>
+              </div>
             </div>
           </div>
 
@@ -474,13 +520,17 @@ export default function RegisterPage() {
                 type={showConfirmPassword ? "text" : "password"}
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                disabled={isSubmitting || loading}
                 required
                 className="pl-10"
+                autoComplete="new-password"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isSubmitting || loading}
                 className="absolute inset-y-0 right-0 flex items-center pr-3"
+                aria-label={showConfirmPassword ? "Hide password confirmation" : "Show password confirmation"}
               >
                 {showConfirmPassword ? (
                   <EyeOff className="h-5 w-5 text-gray-400" />
@@ -504,11 +554,11 @@ export default function RegisterPage() {
           </div>
 
           <Button
-            className="w-full py-6 bg-[#008000] hover:bg-[#006400]"
+            className={`w-full py-6 bg-[${THEME_COLORS.primary}] hover:bg-[${THEME_COLORS.primaryHover}] transition-colors`}
             type="submit"
-            disabled={loading || !passwordsMatch || !hasMinLength || !hasNumber || !(hasUppercase && hasLowercase)}
+            disabled={!canSubmit}
           >
-            {loading ? "Creating account..." : "Create account"}
+            {getSubmitButtonMessage()}
           </Button>
 
           <div className="relative my-6">
@@ -520,7 +570,13 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignUp} disabled={loading}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full transition-colors" 
+            onClick={handleGoogleSignUp} 
+            disabled={isSubmitting || loading}
+          >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -540,50 +596,50 @@ export default function RegisterPage() {
               />
               <path d="M1 1h22v22H1z" fill="none" />
             </svg>
-            Google
+            {(isSubmitting || loading) ? "Signing up..." : "Google"}
           </Button>
         </form>
       </div>
 
       {/* Right side - Decorative */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#008000] to-[#4CAF50] relative overflow-hidden">
+      <div className={`hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[${THEME_COLORS.primary}] to-[${THEME_COLORS.success}] relative overflow-hidden`}>
         {/* Background Image with low opacity */}
         <div
           className="absolute inset-0 bg-cover bg-center opacity-60"
           style={{ backgroundImage: "url('/images/makkah.jpg?height=1080&width=1920')" }}
-        ></div>
+        />
 
         <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-4/5 z-10">
           <div className="bg-white rounded-xl p-6 shadow-lg mb-8">
             <h3 className="text-lg font-semibold mb-2">Your Pilgrimage Journey Starts Here</h3>
-            <p className="text-gray-600 mb-4">Join thousands of pilgrims who trust AlMutamir</p>
+            <p className="text-gray-600 mb-4">Join thousands of pilgrims who trust Al-Mutamir</p>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-[#008000]/20 flex items-center justify-center">
-                <Check className="h-4 w-4 text-[#008000]" />
+              <div className={`w-8 h-8 rounded-full bg-[${THEME_COLORS.primary}]/20 flex items-center justify-center`}>
+                <Check className={`h-4 w-4 text-[${THEME_COLORS.primary}]`} />
               </div>
               <span className="text-sm">Secure and private</span>
             </div>
           </div>
 
           <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-lg relative">
-            <div className="absolute -top-12 -right-12 w-24 h-24 bg-[#008000]/20 rounded-full"></div>
-            <div className="absolute -bottom-8 -left-8 w-16 h-16 bg-[#008000]/30 rounded-full"></div>
+            <div className={`absolute -top-12 -right-12 w-24 h-24 bg-[${THEME_COLORS.primary}]/20 rounded-full`} />
+            <div className={`absolute -bottom-8 -left-8 w-16 h-16 bg-[${THEME_COLORS.primary}]/30 rounded-full`} />
             <h3 className="text-lg font-semibold mb-4">Benefits of joining</h3>
             <ul className="space-y-3">
               <li className="flex items-start">
-                <Check className="h-5 w-5 text-[#008000] mr-2 mt-0.5" />
+                <Check className={`h-5 w-5 text-[${THEME_COLORS.primary}] mr-2 mt-0.5 flex-shrink-0`} />
                 <span className="text-sm">Access to exclusive packages</span>
               </li>
               <li className="flex items-start">
-                <Check className="h-5 w-5 text-[#008000] mr-2 mt-0.5" />
+                <Check className={`h-5 w-5 text-[${THEME_COLORS.primary}] mr-2 mt-0.5 flex-shrink-0`} />
                 <span className="text-sm">Personalized pilgrimage planning</span>
               </li>
               <li className="flex items-start">
-                <Check className="h-5 w-5 text-[#008000] mr-2 mt-0.5" />
+                <Check className={`h-5 w-5 text-[${THEME_COLORS.primary}] mr-2 mt-0.5 flex-shrink-0`} />
                 <span className="text-sm">Connect with verified agencies</span>
               </li>
               <li className="flex items-start">
-                <Check className="h-5 w-5 text-[#008000] mr-2 mt-0.5" />
+                <Check className={`h-5 w-5 text-[${THEME_COLORS.primary}] mr-2 mt-0.5 flex-shrink-0`} />
                 <span className="text-sm">Secure booking and payments</span>
               </li>
             </ul>
@@ -591,8 +647,8 @@ export default function RegisterPage() {
         </div>
 
         {/* Decorative circles */}
-        <div className="absolute top-10 right-10 w-32 h-32 bg-white/10 rounded-full"></div>
-        <div className="absolute bottom-10 left-10 w-40 h-40 bg-white/10 rounded-full"></div>
+        <div className="absolute top-10 right-10 w-32 h-32 bg-white/10 rounded-full" />
+        <div className="absolute bottom-10 left-10 w-40 h-40 bg-white/10 rounded-full" />
       </div>
     </div>
   )

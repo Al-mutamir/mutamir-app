@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { updateUserOnboardingData, getUserData } from "@/lib/firebase/firestore"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,7 @@ interface FormData {
   state: string
   country: string
   dateOfBirth: string
-  gender: string
+  gender: "male" | "female" | "other" | ""
   passportNumber: string
   passportExpiry: string
   emergencyContact: {
@@ -128,6 +128,19 @@ export default function PilgrimOnboarding() {
     fetchUserData()
   }, [user])
 
+  // Prefill name from query param (e.g. ?name=First+Last) when form is empty
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const nameParam = searchParams?.get?.("name")
+    if (nameParam && !formData.firstName && !formData.lastName) {
+      const parts = nameParam.trim().split(/\s+/)
+      const first = parts.shift() || ""
+      const last = parts.join(" ") || ""
+      setFormData((prev) => ({ ...prev, firstName: first, lastName: last }))
+    }
+    // only run when search params or the name fields change
+  }, [searchParams, formData.firstName, formData.lastName])
+
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => {
       const keys = field.split(".")
@@ -137,7 +150,8 @@ export default function PilgrimOnboarding() {
         return {
           ...prev,
           [keys[0]]: {
-            ...prev[keys[0] as keyof typeof prev],
+            // prev[keys[0]] may be typed as non-object; cast to any to allow spread
+            ...((prev as any)[keys[0]] || {}),
             [keys[1]]: value,
           },
         }
@@ -164,10 +178,19 @@ export default function PilgrimOnboarding() {
     if (!user) return
 
     try {
-      await updateUserOnboardingData(user.uid, {
+      const payload = {
+        // map phone -> phoneNumber expected by Firestore helper
         ...formData,
+        phoneNumber: formData.phone,
+        // Firestore expects gender to be one of the union or undefined
+        gender: formData.gender === "" ? undefined : (formData.gender as "male" | "female" | "other"),
         onboardingCompleted: true,
-      })
+      }
+
+      await updateUserOnboardingData(user.uid, payload)
+
+      // Set onboarding cookie so middleware knows onboarding is done
+      document.cookie = `onboarding-completed=true; path=/; max-age=86400`
 
       toast({
         title: "Onboarding completed!",
@@ -175,8 +198,8 @@ export default function PilgrimOnboarding() {
         duration: 3000,
       })
 
-      // Redirect to pilgrim dashboard
-      router.replace("/dashboard/pilgrim")
+      // Use full navigation so middleware and AuthProvider read updated cookies
+      window.location.href = "/dashboard/pilgrim"
     } catch (error) {
       console.error("Error updating user data:", error)
       toast({
@@ -341,13 +364,21 @@ export default function PilgrimOnboarding() {
 
             <div className="space-y-2">
               <Label htmlFor="emergencyContactRelationship">Relationship</Label>
-              <Input
-                id="emergencyContactRelationship"
+              <Select
                 value={formData.emergencyContact.relationship}
-                onChange={(e) => handleChange("emergencyContact.relationship", e.target.value)}
-                placeholder="Enter your relationship with the emergency contact"
-                required
-              />
+                onValueChange={(value) => handleChange("emergencyContact.relationship", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select relationship" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="spouse">Spouse</SelectItem>
+                  <SelectItem value="friend">Friend</SelectItem>
+                  <SelectItem value="sibling">Sibling</SelectItem>
+                  <SelectItem value="parent">Parent</SelectItem>
+                  <SelectItem value="child">Child</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

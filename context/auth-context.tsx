@@ -218,11 +218,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isAdminEmail = email.endsWith("@almutamir.com")
       const userFinalRole = isAdminEmail ? "admin" : role // Use a different variable name to avoid confusion
 
+      // Parse displayName into firstName/lastName when available
+      let firstName: string | null = null
+      let lastName: string | null = null
+      if (displayName) {
+        const parts = displayName.trim().split(" ")
+        firstName = parts[0] || null
+        lastName = parts.slice(1).join(" ") || null
+      }
+
       // Store user data in Firestore
       await setUserData(newUser.uid, {
         uid: newUser.uid,
         email: newUser.email,
         displayName: displayName || null,
+        firstName: firstName,
+        lastName: lastName,
         role: userFinalRole, // Use the determined final role
         photoURL: newUser.photoURL,
         onboardingCompleted: false,
