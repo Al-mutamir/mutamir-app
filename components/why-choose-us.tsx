@@ -39,7 +39,7 @@ export default function WhyChooseUs() {
                 </svg>
               </div>
               <p className="text-lg">
-                Al-Mutamir <br />
+                Almutamir <br />
                 <span className="text-sm text-gray-500">Hajj & Umrah Planner</span>
               </p>
             </div>
@@ -51,7 +51,7 @@ export default function WhyChooseUs() {
               Hajj & Umrah Services?
             </h2>
             <p className="text-gray-600 mb-8">
-              At Al-Mutamir, we understand the sacred significance of your pilgrimage. Our platform gives you the freedom
+              At Almutamir, we understand the sacred significance of your pilgrimage. Our platform gives you the freedom
               to customize every aspect of your journey, ensuring a deeply personal and meaningful experience.
             </p>
 

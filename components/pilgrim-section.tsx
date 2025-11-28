@@ -23,7 +23,7 @@ export default function PilgrimSection() {
               Experience a Spiritual Journey Tailored to Your Needs
             </h2>
             <p className="text-gray-600 mb-6 leading-relaxed">
-              At Al-Mutamir, we understand the sacred significance of your pilgrimage. Our platform gives you the freedom
+              At Almutamir, we understand the sacred significance of your pilgrimage. Our platform gives you the freedom
               to customize every aspect of your journey, ensuring a deeply personal, meaningful, and spiritually
               fulfilling experience that will stay with you for a lifetime.
             </p>

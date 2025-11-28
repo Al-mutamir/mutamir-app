@@ -14,11 +14,11 @@ export async function sendWelcomeEmail(email: string, name: string) {
   })
 
   await transporter.sendMail({
-    from: '"Al-Mutamir" <no-reply@al-mutamir.com>',
+    from: '"Almutamir" <no-reply@Almutamir.com>',
     to: email,
-    subject: "Welcome to Al-Mutamir!",
+    subject: "Welcome to Almutamir!",
     html: `<p>Dear ${name},</p>
-      <p>Welcome to Al-Mutamir! We're excited to have you on board.</p>
-      <p>Best regards,<br/>The Al-Mutamir Team</p>`,
+      <p>Welcome to Almutamir! We're excited to have you on board.</p>
+      <p>Best regards,<br/>The Almutamir Team</p>`,
   })
 }

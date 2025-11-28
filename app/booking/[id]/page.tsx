@@ -70,7 +70,7 @@ const BookingPage = () => {
   const handlePaymentSuccess = (reference: string) => {
     toast({
       title: "Payment Successful",
-      description: "Your booking has been confirmed with Al-mutamir!",
+      description: "Your booking has been confirmed with Almutamir!",
     })
     setPaymentComplete(true)
   }
@@ -88,7 +88,7 @@ const BookingPage = () => {
         })
         toast({
           title: "Download Complete",
-          description: "Your Al-mutamir booking confirmation has been downloaded as PDF.",
+          description: "Your Almutamir booking confirmation has been downloaded as PDF.",
         })
       } catch (error) {
         console.error("Error downloading PDF:", error)
@@ -115,7 +115,7 @@ const BookingPage = () => {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Booking Not Found</CardTitle>
-            <CardDescription>The Al-mutamir booking you're looking for doesn't exist or has been removed.</CardDescription>
+            <CardDescription>The Almutamir booking you're looking for doesn't exist or has been removed.</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => router.push("/dashboard/pilgrim/bookings")} className="w-full">
@@ -134,7 +134,7 @@ const BookingPage = () => {
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
-        <h1 className="text-3xl font-bold text-center">Al-mutamir Booking Details</h1>
+        <h1 className="text-3xl font-bold text-center">Almutamir Booking Details</h1>
         <div className="w-24"></div> {/* Spacer for centering */}
       </div>
 
@@ -144,7 +144,7 @@ const BookingPage = () => {
           <Card>
             <CardHeader>
               <CardTitle>Booking Information</CardTitle>
-              <CardDescription>Details about your Al-mutamir booking</CardDescription>
+              <CardDescription>Details about your Almutamir booking</CardDescription>
             </CardHeader>
             <CardContent>
               <BookingDetails booking={bookingData} />
@@ -155,7 +155,7 @@ const BookingPage = () => {
           <Card>
             <CardHeader>
               <CardTitle>Package Information</CardTitle>
-              <CardDescription>Details about the Al-mutamir package you booked</CardDescription>
+              <CardDescription>Details about the Almutamir package you booked</CardDescription>
             </CardHeader>
             <CardContent>
               {packageData ? <PackageDetails packageDetails={packageData} /> : <p>No package details available.</p>}
@@ -170,15 +170,15 @@ const BookingPage = () => {
           <CardTitle>{paymentComplete ? "Booking Completed" : "Complete Your Payment"}</CardTitle>
           <CardDescription>
             {paymentComplete
-              ? "Your Al-mutamir booking has been completed. You can download or print your confirmation."
-              : "Complete your payment to confirm your Al-mutamir booking"}
+              ? "Your Almutamir booking has been completed. You can download or print your confirmation."
+              : "Complete your payment to confirm your Almutamir booking"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {paymentComplete ? (
             <div className="space-y-6">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800">
-                <p className="font-medium">Your Al-mutamir booking has been completed!</p>
+                <p className="font-medium">Your Almutamir booking has been completed!</p>
                 <p className="text-sm mt-1">
                   Booking reference: <span className="font-mono font-bold">{id.substring(0, 8).toUpperCase()}</span>
                 </p>
@@ -191,7 +191,7 @@ const BookingPage = () => {
                 </TabsList>
                 <TabsContent value="download" className="pt-4">
                   <p className="text-sm mb-4">
-                    Download your Al-mutamir booking confirmation as PDF for your records. You'll need this for check-in.
+                    Download your Almutamir booking confirmation as PDF for your records. You'll need this for check-in.
                   </p>
                   <Button onClick={handleDownloadBooking} className="w-full">
                     <Download className="mr-2 h-4 w-4" />
@@ -199,7 +199,7 @@ const BookingPage = () => {
                   </Button>
                 </TabsContent>
                 <TabsContent value="print" className="pt-4">
-                  <p className="text-sm mb-4">Print your Al-mutamir booking confirmation.</p>
+                  <p className="text-sm mb-4">Print your Almutamir booking confirmation.</p>
                   <Button onClick={handlePrintBooking} variant="outline" className="w-full">
                     <Printer className="mr-2 h-4 w-4" />
                     Print Confirmation
@@ -229,7 +229,7 @@ const BookingPage = () => {
         {paymentComplete && (
           <CardFooter className="border-t pt-4">
             <Button variant="outline" onClick={() => router.push("/dashboard/pilgrim/bookings")} className="w-full">
-              View All My Al-mutamir Bookings
+              View All My Almutamir Bookings
             </Button>
           </CardFooter>
         )}

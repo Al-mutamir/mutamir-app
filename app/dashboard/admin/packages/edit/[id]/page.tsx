@@ -277,7 +277,7 @@ export default function EditPackagePage() {
       setPackageData(prev => ({
         ...prev,
         agencyId: null,
-        agencyName: "Al-Mutamir",
+        agencyName: "Almutamir",
         isAdminPackage: true,
       }))
     } else {
@@ -335,7 +335,7 @@ export default function EditPackagePage() {
         fields: [
           { name: "Package", value: packageData.title },
           { name: "Price", value: `₦${packageData.price}` },
-          { name: "Agency", value: packageData.isAdminPackage ? "Al-Mutamir" : packageData.agencyName },
+          { name: "Agency", value: packageData.isAdminPackage ? "Almutamir" : packageData.agencyName },
         ],
         color: 0x00aaff,
       })
@@ -427,10 +427,10 @@ export default function EditPackagePage() {
                   onValueChange={handleAgencySelect}
                 >
                   <SelectTrigger id="agency">
-                    <SelectValue placeholder="Select agency or Al-Mutamir" />
+                    <SelectValue placeholder="Select agency or Almutamir" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Al-Mutamir (Admin Package)</SelectItem>
+                    <SelectItem value="admin">Almutamir (Admin Package)</SelectItem>
                     <SelectItem value="divider" disabled>
                       ────────────────────────────
                     </SelectItem>

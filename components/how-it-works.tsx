@@ -12,7 +12,7 @@ export default function HowItWorks() {
     },
     {
       title: "Embark on Your Journey",
-      description: "Begin your spiritual journey with Al-mutamir",
+      description: "Begin your spiritual journey with Almutamir",
       image: "/images/embark.webp?height=200&width=300",
     },
   ]

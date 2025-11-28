@@ -39,16 +39,31 @@ export default function LoginPage() {
         try {
           const userData = await getUserData(user.uid) as UserData
           if (userData) {
-                // Always redirect to dashboard; onboarding enforcement is handled by middleware
-                if (userData.role === "admin") {
-                  router.push("/dashboard/admin")
-                } else if (userData.role === "agency") {
-                  router.push("/dashboard/agency")
-                } else if (userData.role === "pilgrim") {
-                  router.push("/dashboard/pilgrim")
-                } else {
-                  router.push("/")
-                }
+            // If Firestore user exists, prefer onboarding if not completed. Otherwise go to dashboard.
+            if (!userData.onboardingCompleted) {
+              // If role missing or null, send user to a safe onboarding route (pilgrim default)
+              const role = userData.role || "pilgrim"
+              router.push(`/onboarding/${role}`)
+            } else {
+              if (userData.role === "admin") {
+                router.push("/dashboard/admin")
+              } else if (userData.role === "agency") {
+                router.push("/dashboard/agency")
+              } else if (userData.role === "pilgrim") {
+                router.push("/dashboard/pilgrim")
+              } else {
+                router.push("/")
+              }
+            }
+          } else {
+            // No Firestore user found (new social login) — prefer to send to onboarding/pilgrim
+            // but also check cookie fallback for role so we don't bounce.
+            const roleFromCookie = document.cookie
+              .split(";")
+              .map((c) => c.trim())
+              .find((c) => c.startsWith("user-role="))
+            const roleValue = roleFromCookie ? roleFromCookie.split("=")[1] : "pilgrim"
+            router.push(`/onboarding/${roleValue}`)
           }
         } catch (err) {
           console.error("Error checking auth:", err)
@@ -147,13 +162,15 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     try {
-      const result = await signInWithGoogle()
+      // signInWithGoogle expects a role or null; we pass null and rely on Firestore/user-cookie to determine role.
+      const result = await signInWithGoogle(null)
       const userEmail = result.user.email || ""
+      const userDisplayName = result.user.displayName || ""
 
       // Check if email is from almutamir.com domain (admin)
       const isAdminEmail = userEmail.endsWith("@almutamir.com")
 
-      // Get user data from Firestore
+      // Get user data from Firestore (may be undefined for new social signups)
       const userData = await getUserData(result.user.uid) as UserData
 
       toast({
@@ -177,6 +194,16 @@ export default function LoginPage() {
             window.location.href = userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency"
           }
         }
+      } else {
+        // No Firestore record yet (new social signup). Redirect to onboarding and include displayName for prefill.
+        // Use cookie fallback to pick role if available, otherwise default to pilgrim.
+        const roleFromCookie = document.cookie
+          .split(";")
+          .map((c) => c.trim())
+          .find((c) => c.startsWith("user-role="))
+        const roleValue = roleFromCookie ? roleFromCookie.split("=")[1] : "pilgrim"
+        const encodedName = encodeURIComponent(userDisplayName || "")
+        window.location.href = `/onboarding/${roleValue}?name=${encodedName}`
       }
     } catch (err: any) {
       console.error("Google sign-in error:", err)

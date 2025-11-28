@@ -24,7 +24,7 @@ export function printElement(elementId: string) {
   printWindow.document.write(`
     <html>
       <head>
-        <title>Al-mutamir - Booking Confirmation</title>
+        <title>Almutamir - Booking Confirmation</title>
         <style>
           * {
             margin: 0;
@@ -341,7 +341,7 @@ export function printElement(elementId: string) {
               <div class="service-left">
                 <div class="logo-circle">AM</div>
                 <div class="service-details">
-                  <h3>AL-MUTAMIR</h3>
+                  <h3>Almutamir</h3>
                   <p>Hajj Services</p>
                 </div>
               </div>
@@ -447,7 +447,7 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
   return `
     <html>
       <head>
-        <title>Al-mutamir Booking Confirmation</title>
+        <title>Almutamir Booking Confirmation</title>
         <style>
           * {
             margin: 0;
@@ -777,7 +777,7 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
               <div class="service-left">
                 <div class="logo-circle">AM</div>
                 <div class="service-details">
-                  <h3>AL-MUTAMIR</h3>
+                  <h3>Almutamir</h3>
                   <p>${isHajj ? 'Hajj' : 'Umrah'} Services</p>
                 </div>
               </div>
@@ -872,10 +872,10 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
             <div class="footer-section">
               <div class="footer-logo">
                 <div class="footer-logo-icon">AM</div>
-                <span style="font-weight: 600;">Al-Mutamir</span>
+                <span style="font-weight: 600;">Almutamir</span>
               </div>
               <div class="footer-text">
-                © ${new Date().getFullYear()} Al-mutamir. All rights reserved.<br>
+                © ${new Date().getFullYear()} Almutamir. All rights reserved.<br>
                 support@almutamir.com
               </div>
             </div>
@@ -945,7 +945,7 @@ function downloadBookingDetailsAsText(bookingRef: string, details: any) {
   const isGroupBooking = details.isGroupBooking || false
 
   let bookingDetails = `
-AL-MUTAMIR BOOKING CONFIRMATION
+Almutamir BOOKING CONFIRMATION
 ============================
 Booking Reference: ${bookingRef}
 Date: ${bookingDate}
@@ -997,9 +997,9 @@ Passport: ${pilgrim.passport}
 
   bookingDetails += `
 This is a summary of your selected package. Final pricing will be determined based on current rates and availability.
-An Al-mutamir representative will contact you shortly to finalize your booking.
+An Almutamir representative will contact you shortly to finalize your booking.
 
-Thank you for choosing Al-mutamir for your sacred journey.
+Thank you for choosing Almutamir for your sacred journey.
 `
 
   // Create a Blob with the text content
@@ -1011,7 +1011,7 @@ Thank you for choosing Al-mutamir for your sacred journey.
   // Create a temporary anchor element
   const a = document.createElement('a')
   a.href = url
-  a.download = `Al-mutamir-Booking-${bookingRef}.txt`
+  a.download = `Almutamir-Booking-${bookingRef}.txt`
 
   // Trigger the download
   document.body.appendChild(a)

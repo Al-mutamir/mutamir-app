@@ -15,7 +15,7 @@ import "@/lib/firebase/config"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Al-Mutamir - Your Trusted Hajj and Umrah Partner",
+  title: "Almutamir - Your Trusted Hajj and Umrah Partner",
   description: "Connect with reliable Hajj and Umrah services for a spiritually fulfilling journey.",
   keywords: [
     "Hajj",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "Pilgrimage",
     "Islamic Travel",
     "Spiritual Journey",
-    "Al-Mutamir",
+    "Almutamir",
     "Travel Services",
     "Religious Tourism",
     "Halal Travel",
@@ -71,19 +71,19 @@ export const metadata: Metadata = {
     "hajj and umrah terms and conditions",
     "hajj and umrah refund policy",
   ],
-  authors: [{ name: "Al-Mutamir", url: "https://almutamir.com" }],
-  creator: "Al-Mutamir",
+  authors: [{ name: "Almutamir", url: "https://almutamir.com" }],
+  creator: "Almutamir",
   openGraph: {
-    title: "Al-Mutamir - Your Trusted Hajj and Umrah Partner",
+    title: "Almutamir - Your Trusted Hajj and Umrah Partner",
     description: "Connect with reliable Hajj and Umrah services for a spiritually fulfilling journey.",
     url: "https://almutamirpilgrimage.com",
-    siteName: "Al-Mutamir",
+    siteName: "Almutamir",
     images: [
       {
         url: "https://almutamirpilgrimage.com/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Al-Mutamir - Your Trusted Hajj and Umrah Partner"
+        alt: "Almutamir - Your Trusted Hajj and Umrah Partner"
       }
     ],
     locale: "en_US",

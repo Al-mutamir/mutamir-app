@@ -170,7 +170,7 @@ export default function CreatePackagePage() {
       setPackageData({
         ...packageData,
         agencyId: "admin",
-        agencyName: "Al-Mutamir",
+        agencyName: "Almutamir",
       })
     } else {
       const selectedAgency = agencies.find((agency) => agency.uid === value)
@@ -422,11 +422,11 @@ export default function CreatePackagePage() {
                       <Select defaultValue="" onValueChange={handleAgencySelect} disabled={loadingAgencies}>
                         <SelectTrigger>
                           <SelectValue
-                            placeholder={loadingAgencies ? "Loading agencies..." : "Select agency or Al-Mutamir"}
+                            placeholder={loadingAgencies ? "Loading agencies..." : "Select agency or Almutamir"}
                           />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Al-Mutamir (Admin)</SelectItem>
+                          <SelectItem value="admin">Almutamir (Admin)</SelectItem>
                           <SelectItem value="" disabled>
                             ── Agencies ──
                           </SelectItem>

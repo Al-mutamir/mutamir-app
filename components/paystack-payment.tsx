@@ -343,7 +343,7 @@ export function PaystackPayment({
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Account Name:</span>
-                  <span>Al-Mutamir Pilgrimages Ltd</span>
+                  <span>Almutamir Pilgrimages Ltd</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Account Number:</span>

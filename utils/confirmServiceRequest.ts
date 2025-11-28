@@ -4,14 +4,14 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: mainPilgrim.email,
-          subject: "Your Al-mutamir Booking Confirmation",
-          text: `Dear ${mainPilgrim.firstName},\n\nYour booking has been received. We will contact you soon.\n\nThank you for choosing Al-mutamir!`,
+          subject: "Your Almutamir Booking Confirmation",
+          text: `Dear ${mainPilgrim.firstName},\n\nYour booking has been received. We will contact you soon.\n\nThank you for choosing Almutamir!`,
           html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Al-mutamir Booking Confirmation</title>
+    <title>Almutamir Booking Confirmation</title>
     <style>
         * {
             margin: 0;
@@ -306,7 +306,7 @@
             </div>
             
             <div class="message">
-                At Al-mutamir, we understand the spiritual significance of your journey. Our experienced team is dedicated to ensuring your pilgrimage is meaningful, comfortable, and memorable.
+                At Almutamir, we understand the spiritual significance of your journey. Our experienced team is dedicated to ensuring your pilgrimage is meaningful, comfortable, and memorable.
             </div>
             
             <div class="message">
@@ -319,17 +319,17 @@
             <div class="footer-text">
                 If you need assistance, please contact us at:
             </div>
-            <a href="mailto:support@al-mutamir.com" class="contact-info">support@almutamir.com</a>
+            <a href="mailto:support@Almutamir.com" class="contact-info">support@almutamir.com</a>
             
             <div class="signature">
                 <div style="margin-top: 20px; font-weight: 500; color: #1a1a1a;">
                     Warm regards,<br>
-                    The Al-mutamir Team
+                    The Almutamir Team
                 </div>
             </div>
             
             <div class="copyright">
-                © ${new Date().getFullYear()} Al-mutamir. All rights reserved.
+                © ${new Date().getFullYear()} Almutamir. All rights reserved.
             </div>
         </div>
     </div>

@@ -3,17 +3,17 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export default function FaqSection() {
   const faqs = [
     {
-      question: "What is Al-Mutamir?",
+      question: "What is Almutamir?",
       answer:
-        "Al-Mutamir is a trusted online platform that helps you plan your Hajj or Umrah journey with peace of mind. From verified service providers to transparent pricing and customizable packages, we make your spiritual journey smooth, simple, and dignified.",
+        "Almutamir is a trusted online platform that helps you plan your Hajj or Umrah journey with peace of mind. From verified service providers to transparent pricing and customizable packages, we make your spiritual journey smooth, simple, and dignified.",
     },
     {
-      question: "How is Al-Mutamir different from traditional agents?",
+      question: "How is Almutamir different from traditional agents?",
       answer:
         "Unlike traditional agents, we offer:\n\n• Full transparency: See exactly what you're paying for.\n• Verified providers: We only work with licensed and trusted agencies.\n• Customizable experiences: You choose your package, flights, hotels, and services.\n• Online support: 24/7 guidance from our team—before, during, and after your trip.",
     },
     {
-      question: "Is Al-Mutamir licensed?",
+      question: "Is Almutamir licensed?",
       answer:
         "Yes. We work only with accredited Hajj and Umrah operators licensed by the appropriate religious and travel authorities. Our platform also complies with local and international pilgrimage regulations.",
     },
@@ -45,7 +45,7 @@ export default function FaqSection() {
     {
       question: "Can I choose my hotel or airline?",
       answer:
-        "Yes. Al-Mutamir gives you full control. Select from multiple airlines and hotels at different price points. You can compare options before booking.",
+        "Yes. Almutamir gives you full control. Select from multiple airlines and hotels at different price points. You can compare options before booking.",
     },
     {
       question: "What support is available during my trip?",
@@ -58,7 +58,7 @@ export default function FaqSection() {
         "We take your trust seriously:\n• All providers are verified and reviewed.\n• All payments are secure and encrypted.\n• We have a clear refund policy.\n• You can read reviews and experiences from other pilgrims.",
     },
     {
-      question: "Can I become a service provider on Al-Mutamir?",
+      question: "Can I become a service provider on Almutamir?",
       answer:
         "Yes. If you run a licensed Hajj/Umrah agency, transport, hospitality, or support service, [apply here](https://www.almutamir.com/auth/register) to join our trusted network.",
     },

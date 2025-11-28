@@ -270,7 +270,7 @@ export default function SavingsPage() {
                     onCheckedChange={(checked) => handleCheckboxChange("notifyUpdates", checked)}
                   />
                   <Label htmlFor="notifyUpdates" className="text-sm font-normal">
-                    Notify me about other Al-Mutamir updates and features
+                    Notify me about other Almutamir updates and features
                   </Label>
                 </div>
                 <div className="flex items-start space-x-2 pt-2">

@@ -79,13 +79,13 @@ export default function TermsPage(): React.ReactElement {
                 <h2>7. Intellectual Property</h2>
                 <p>
                   Our Services and all content and materials included on our Services, including but not limited to text,
-                  graphics, logos, images, and software, are the property of Al-Mutamir or our licensors and are protected by
+                  graphics, logos, images, and software, are the property of Almutamir or our licensors and are protected by
                   copyright, trademark, and other intellectual property laws.
                 </p>
 
                 <h2>8. Limitation of Liability</h2>
                 <p>
-                  To the maximum extent permitted by law, Al-Mutamir shall not be liable for any indirect, incidental,
+                  To the maximum extent permitted by law, Almutamir shall not be liable for any indirect, incidental,
                   special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred
                   directly or indirectly, or any loss of data, use, goodwill, or other intangible losses, resulting from:
                 </p>
@@ -98,7 +98,7 @@ export default function TermsPage(): React.ReactElement {
 
                 <h2>9. Indemnification</h2>
                 <p>
-                  You agree to indemnify, defend, and hold harmless Al-Mutamir and our officers, directors, employees,
+                  You agree to indemnify, defend, and hold harmless Almutamir and our officers, directors, employees,
                   agents, and affiliates from and against any and all claims, liabilities, damages, losses, costs,
                   expenses, or fees (including reasonable attorneys&apos; fees) that such parties may incur as a result of or
                   arising from your violation of these Terms.

@@ -442,12 +442,12 @@ export default function ServicesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: mainPilgrim.email,
-          subject: "Your Al-mutamir Booking Confirmation",
+          subject: "Your Almutamir Booking Confirmation",
           text: `Dear ${mainPilgrim.firstName},
 
 Your booking has been received. We will contact you soon.
 
-Thank you for choosing Al-mutamir!`,
+Thank you for choosing Almutamir!`,
           html: `
       <div style="font-family: Arial, sans-serif; color: #014034;">
         <h2 style="color: #007F5F;">Booking Confirmation</h2>
@@ -480,7 +480,7 @@ Thank you for choosing Al-mutamir!`,
               return `${k.charAt(0).toUpperCase() + k.slice(1)}${tier}`
             }).join("<br/>") || "None"}
         </p>
-        <p>Thank you for choosing <strong>Al-mutamir</strong>!</p>
+        <p>Thank you for choosing <strong>Almutamir</strong>!</p>
         <p style="font-size: 12px; color: #888;">If you have any questions, reply to this email.</p>
       </div>
     `,

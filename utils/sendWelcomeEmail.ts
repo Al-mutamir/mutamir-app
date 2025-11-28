@@ -5,14 +5,14 @@ export async function sendWelcomeEmail(to: string, name: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       to,
-      subject: "Welcome to Al-Mutamir!",
-      text: `Dear ${name},\n\nWelcome to Al-Mutamir! We're excited to have you on board.`,
+      subject: "Welcome to Almutamir!",
+      text: `Dear ${name},\n\nWelcome to Almutamir! We're excited to have you on board.`,
       html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Al-Mutamir</title>
+    <title>Welcome to Almutamir</title>
     <style>
         * {
             margin: 0;
@@ -254,7 +254,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
         <div class="header">
             <div class="logo">
                 <div class="logo-icon">🌙</div>
-                <div class="logo-text">Al-Mutamir</div>
+                <div class="logo-text">Almutamir</div>
               
             </div>
             
@@ -276,14 +276,14 @@ export async function sendWelcomeEmail(to: string, name: string) {
         <!-- Content -->
         <div class="content">
             <div class="greeting">Hi ${name},</div>
-            <div class="app-name">Welcome to Al-Mutamir app!</div>
+            <div class="app-name">Welcome to Almutamir app!</div>
             
             <p class="message">
                 The Journey of a lifetime as it is called. The journey of Hajj and Umrah is a sacred pilgrimage that holds immense significance in the hearts of Muslims around the world. It is a journey of faith, devotion, and spiritual renewal, where pilgrims seek to draw closer to Allah and fulfill one of the Five Pillars of Islam.
             </p>
             
             <p class="message">
-                At Al-Mutamir, we understand this and had this in mind while designing our platform. We are your trusted companion, offering comprehensive services, guidance, and support to help you perform your pilgrimage with peace of mind and devotion.
+                At Almutamir, we understand this and had this in mind while designing our platform. We are your trusted companion, offering comprehensive services, guidance, and support to help you perform your pilgrimage with peace of mind and devotion.
             </p>
             
             <p class="message">
@@ -305,7 +305,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
             
             <p style="margin-top: 15px;">
                 Barakallahu feek! (May Allah bless you),<br>
-                The Al-Mutamir Team
+                The Almutamir Team
             </p>
             
             <div class="social-links">
@@ -315,7 +315,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
             </div>
             
             <div class="copyright">
-                © ${new Date().getFullYear()} Al-Mutamir
+                © ${new Date().getFullYear()} Almutamir
             </div>
         </div>
     </div>

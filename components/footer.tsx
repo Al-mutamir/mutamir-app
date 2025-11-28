@@ -8,7 +8,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="mb-4">
-              <Image src="/images/logo-white.png" alt="Al-Mutamir Logo" width={150} height={40} />
+              <Image src="/images/logo-white.png" alt="Almutamir Logo" width={150} height={40} />
             </div>
             <p className="text-gray-400">Your trusted partner for Hajj and Umrah journeys.</p>
           </div>
@@ -66,7 +66,7 @@ export function Footer() {
           </div>
         </div>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Al-Mutamir. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Almutamir. All rights reserved.</p>
         </div>
       </div>
     </footer>

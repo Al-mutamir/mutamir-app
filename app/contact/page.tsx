@@ -184,7 +184,7 @@ export default function ContactPage() {
               </div>
 
               <div>
-                <h3 className="font-semibold text-lg mb-2">How can agencies partner with Al-Mutamir?</h3>
+                <h3 className="font-semibold text-lg mb-2">How can agencies partner with Almutamir?</h3>
                 <p className="text-gray-600">
                   Agencies can register through our platform and gain access to our comprehensive suite of tools and
                   services.

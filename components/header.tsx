@@ -47,7 +47,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center gap-2 mr-6">
           <MapPin className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold hidden md:inline-block">Al-Mutamir</span>
+          <span className="text-xl font-bold hidden md:inline-block">Almutamir</span>
         </Link>
         <nav className="hidden md:flex gap-6 flex-1">
           {routes.map((route) => (

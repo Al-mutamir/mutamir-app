@@ -16,13 +16,16 @@ import { Stepper, type Step } from "@/components/ui/stepper"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
 interface FormData {
+  firstName: string
+  lastName: string
+  email: string
   agencyName: string
-  managerName: string
-  countryOfOperation: string
-  cityOfOperation: string
+  description: string
+  address: string
   phoneNumber: string
   alternativeEmail: string
-  averagePilgrimsPerYear: string
+  countryOfOperation: string
+  cityOfOperation: string
   servicesOffered: {
     ticketing: boolean
     visaProcessing: boolean
@@ -31,7 +34,6 @@ interface FormData {
     localTransportation: boolean
     touristGuide: boolean
   }
-  status?: string // Add status property to match the expected object
 }
 
 export default function AgencyOnboarding() {
@@ -41,14 +43,18 @@ export default function AgencyOnboarding() {
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<FormData>({
+    firstName: user?.displayName?.split(" ")[0] || "",
+    lastName: user?.displayName?.split(" ").slice(1).join(" ") || "",
+    email: user?.email || "",
     agencyName: "",
-    managerName: user?.displayName || "",
-    countryOfOperation: "",
-    cityOfOperation: "",
+    description: "",
+    address: "",
     phoneNumber: "",
     alternativeEmail: "",
-    averagePilgrimsPerYear: "",
+    countryOfOperation: "",
+    cityOfOperation: "",
     servicesOffered: {
       ticketing: false,
       visaProcessing: false,
@@ -58,7 +64,6 @@ export default function AgencyOnboarding() {
       touristGuide: false,
     },
   })
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const steps: Step[] = [
     {
@@ -79,35 +84,33 @@ export default function AgencyOnboarding() {
   ]
 
   useEffect(() => {
-    // Check if user has already started onboarding
     const fetchUserData = async () => {
       if (user?.uid) {
-        const userData = await getUserData(user.uid)
-        if (userData) {
-          // Pre-fill the form with existing data if available
-          setFormData({
-            agencyName: userData.agencyName || "",
-            managerName: userData.managerName || user?.displayName || "",
-            countryOfOperation: userData.countryOfOperation || "",
-            cityOfOperation: userData.cityOfOperation || "",
-            phoneNumber: userData.phoneNumber || "",
-            alternativeEmail: userData.alternativeEmail || "",
-            averagePilgrimsPerYear: userData.averagePilgrimsPerYear?.toString() || "",
-            servicesOffered: userData.servicesOffered || {
-              ticketing: false,
-              visaProcessing: false,
-              accommodation: false,
-              feeding: false,
-              localTransportation: false,
-              touristGuide: false,
-            },
-          })
+        try {
+          const userData = (await getUserData(user.uid)) as any
+          if (userData) {
+            setFormData((prev) => ({
+              ...prev,
+              firstName: userData.firstName || prev.firstName,
+              lastName: userData.lastName || prev.lastName,
+              email: userData.email || prev.email,
+              agencyName: userData.agencyName || "",
+              description: userData.description || "",
+              address: userData.address || "",
+              phoneNumber: userData.phoneNumber || "",
+              alternativeEmail: userData.alternativeEmail || "",
+              countryOfOperation: userData.countryOfOperation || "",
+              cityOfOperation: userData.cityOfOperation || "",
+              servicesOffered: userData.servicesOffered || prev.servicesOffered,
+            }))
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error)
         }
       }
     }
-
     fetchUserData()
-  }, [user])
+  }, [user?.uid])
 
   const handleChange = (field: keyof Omit<FormData, "servicesOffered">, value: string) => {
     setFormData((prev) => ({
@@ -154,19 +157,27 @@ export default function AgencyOnboarding() {
         payload.averagePilgrimsPerYear = isNaN(num) ? undefined : num
       }
 
+      // Show progress toast
+      toast({
+        title: "Saving",
+        description: "Setting up your agency...",
+      })
+
       await updateUserOnboardingData(user.uid, payload)
+
+      // Show success toast
+      toast({
+        title: "Success",
+        description: "Agency setup completed!",
+      })
 
       // Set onboarding cookie so middleware knows onboarding is done
       document.cookie = `onboarding-completed=true; path=/; max-age=86400`
 
-      toast({
-        title: "Onboarding completed!",
-        description: "Your agency profile has been set up successfully.",
-        duration: 3000,
-      })
-
-      // Use full navigation so middleware and AuthProvider read updated cookies
-      window.location.href = "/dashboard/agency"
+      // Wait a moment for cookie to be written, then redirect
+      setTimeout(() => {
+        window.location.href = "/dashboard/agency"
+      }, 500)
     } catch (error) {
       console.error("Error updating user data:", error)
       toast({
@@ -186,166 +197,247 @@ export default function AgencyOnboarding() {
         return (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="agencyName">Agency Name</Label>
+              <Label htmlFor="agencyName">Agency Name *</Label>
               <Input
                 id="agencyName"
-                value={formData.agencyName}
+                value={formData.agencyName || ""}
                 onChange={(e) => handleChange("agencyName", e.target.value)}
                 placeholder="Enter your agency name"
+                disabled={isSubmitting}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="managerName">Manager Name</Label>
+              <Label htmlFor="description">Description</Label>
               <Input
-                id="managerName"
-                value={formData.managerName}
-                onChange={(e) => handleChange("managerName", e.target.value)}
-                placeholder="Enter manager name"
+                id="description"
+                value={formData.description || ""}
+                onChange={(e) => handleChange("description", e.target.value)}
+                placeholder="Brief description of your agency"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Address *</Label>
+              <Input
+                id="address"
+                value={formData.address || ""}
+                onChange={(e) => handleChange("address", e.target.value)}
+                placeholder="Office address"
+                disabled={isSubmitting}
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="countryOfOperation">Country of Operation</Label>
-                <Select
-                  value={formData.countryOfOperation}
-                  onValueChange={(value) => handleChange("countryOfOperation", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Nigeria">Nigeria</SelectItem>
-                    <SelectItem value="Saudi Arabia">Saudi Arabia</SelectItem>
-                    <SelectItem value="UAE">United Arab Emirates</SelectItem>
-                    <SelectItem value="USA">United States</SelectItem>
-                    <SelectItem value="UK">United Kingdom</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="countryOfOperation">Country of Operation *</Label>
+                <Input
+                  id="countryOfOperation"
+                  value={formData.countryOfOperation || ""}
+                  onChange={(e) => handleChange("countryOfOperation", e.target.value)}
+                  placeholder="Enter country"
+                  disabled={isSubmitting}
+                  required
+                />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="cityOfOperation">City of Operation</Label>
+                <Label htmlFor="cityOfOperation">City of Operation *</Label>
                 <Input
                   id="cityOfOperation"
-                  value={formData.cityOfOperation}
+                  value={formData.cityOfOperation || ""}
                   onChange={(e) => handleChange("cityOfOperation", e.target.value)}
-                  placeholder="Enter your city"
+                  placeholder="Enter city"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
             </div>
           </div>
         )
+
       case 2:
         return (
           <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input
-                id="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={(e) => handleChange("phoneNumber", e.target.value)}
-                placeholder="Enter your phone number"
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName || ""}
+                  onChange={(e) => handleChange("firstName", e.target.value)}
+                  placeholder="First name"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName || ""}
+                  onChange={(e) => handleChange("lastName", e.target.value)}
+                  placeholder="Last name"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="alternativeEmail">Alternative Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
-                id="alternativeEmail"
+                id="email"
                 type="email"
-                value={formData.alternativeEmail}
-                onChange={(e) => handleChange("alternativeEmail", e.target.value)}
-                placeholder="Enter alternative email"
-                required
+                value={formData.email || ""}
+                disabled
+                className="bg-gray-100 cursor-not-allowed"
               />
+              <p className="text-xs text-gray-500">Email cannot be changed</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="averagePilgrimsPerYear">Average Number of Pilgrims Per Year</Label>
-              <Input
-                id="averagePilgrimsPerYear"
-                type="number"
-                value={formData.averagePilgrimsPerYear}
-                onChange={(e) => handleChange("averagePilgrimsPerYear", e.target.value)}
-                placeholder="Enter average number of pilgrims"
-                required
-                min="0"
-              />
-            </div>
-          </div>
-        )
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label className="text-base font-medium">Services Offered</Label>
-              <p className="text-sm text-gray-500">Select all the services your agency provides</p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="ticketing"
-                    checked={formData.servicesOffered.ticketing}
-                    onCheckedChange={() => handleServiceChange("ticketing")}
-                  />
-                  <Label htmlFor="ticketing">Ticketing</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="visaProcessing"
-                    checked={formData.servicesOffered.visaProcessing}
-                    onCheckedChange={() => handleServiceChange("visaProcessing")}
-                  />
-                  <Label htmlFor="visaProcessing">Visa Processing</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="accommodation"
-                    checked={formData.servicesOffered.accommodation}
-                    onCheckedChange={() => handleServiceChange("accommodation")}
-                  />
-                  <Label htmlFor="accommodation">Accommodation</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="feeding"
-                    checked={formData.servicesOffered.feeding}
-                    onCheckedChange={() => handleServiceChange("feeding")}
-                  />
-                  <Label htmlFor="feeding">Feeding</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="localTransportation"
-                    checked={formData.servicesOffered.localTransportation}
-                    onCheckedChange={() => handleServiceChange("localTransportation")}
-                  />
-                  <Label htmlFor="localTransportation">Local Transportation</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="touristGuide"
-                    checked={formData.servicesOffered.touristGuide}
-                    onCheckedChange={() => handleServiceChange("touristGuide")}
-                  />
-                  <Label htmlFor="touristGuide">Tourist Guide</Label>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number *</Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  value={formData.phoneNumber || ""}
+                  onChange={(e) => handleChange("phoneNumber", e.target.value)}
+                  placeholder="Enter phone number"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="alternativeEmail">Alternative Email</Label>
+                <Input
+                  id="alternativeEmail"
+                  type="email"
+                  value={formData.alternativeEmail || ""}
+                  onChange={(e) => handleChange("alternativeEmail", e.target.value)}
+                  placeholder="Alternative email"
+                  disabled={isSubmitting}
+                />
               </div>
             </div>
           </div>
         )
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <h3 className="font-semibold text-lg">Services Offered</h3>
+            <p className="text-sm text-gray-600">Select all services your agency provides</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="ticketing"
+                  checked={formData.servicesOffered.ticketing}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      servicesOffered: { ...prev.servicesOffered, ticketing: checked as boolean },
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+                <Label htmlFor="ticketing" className="font-normal cursor-pointer">
+                  Ticketing
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="visaProcessing"
+                  checked={formData.servicesOffered.visaProcessing}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      servicesOffered: { ...prev.servicesOffered, visaProcessing: checked as boolean },
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+                <Label htmlFor="visaProcessing" className="font-normal cursor-pointer">
+                  Visa Processing
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="accommodation"
+                  checked={formData.servicesOffered.accommodation}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      servicesOffered: { ...prev.servicesOffered, accommodation: checked as boolean },
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+                <Label htmlFor="accommodation" className="font-normal cursor-pointer">
+                  Accommodation
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="feeding"
+                  checked={formData.servicesOffered.feeding}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      servicesOffered: { ...prev.servicesOffered, feeding: checked as boolean },
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+                <Label htmlFor="feeding" className="font-normal cursor-pointer">
+                  Feeding
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="localTransportation"
+                  checked={formData.servicesOffered.localTransportation}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      servicesOffered: { ...prev.servicesOffered, localTransportation: checked as boolean },
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+                <Label htmlFor="localTransportation" className="font-normal cursor-pointer">
+                  Local Transportation
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="touristGuide"
+                  checked={formData.servicesOffered.touristGuide}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      servicesOffered: { ...prev.servicesOffered, touristGuide: checked as boolean },
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+                <Label htmlFor="touristGuide" className="font-normal cursor-pointer">
+                  Tourist Guide
+                </Label>
+              </div>
+            </div>
+          </div>
+        )
+
       default:
         return null
     }

@@ -15,7 +15,7 @@ export default function AgencySection() {
               Streamline Your Operations and Grow Your Business
             </h2>
             <p className="text-gray-600 mb-6 leading-relaxed">
-              Al-Mutamir provides agencies with powerful tools to create, manage, and share Hajj and Umrah packages with
+              Almutamir provides agencies with powerful tools to create, manage, and share Hajj and Umrah packages with
               clients. Our comprehensive dashboard helps you monitor offerings, manage clients, and grow your business.
               Plus, you'll get a dedicated agency@mutamir.com email address and notifications for every new client.
             </p>

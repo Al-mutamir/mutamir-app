@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { updateUserOnboardingData, getUserData } from "@/lib/firebase/firestore"
 import { Button } from "@/components/ui/button"
@@ -19,25 +19,13 @@ interface FormData {
   lastName: string
   email: string
   phone: string
-  address: string
-  city: string
-  state: string
-  country: string
-  dateOfBirth: string
-  gender: "male" | "female" | "other" | ""
+  gender: "male" | "female" | ""
   passportNumber: string
-  passportExpiry: string
-  emergencyContact: {
-    name: string
-    relationship: string
-    phone: string
-  }
-  preferences: {
-    emailNotifications: boolean
-    smsNotifications: boolean
-    marketingEmails: boolean
-    language: string
-  }
+  passportUpload?: string
+  nextOfKinFirstName: string
+  nextOfKinLastName: string
+  nextOfKinPhone: string
+  nextOfKinEmail: string
 }
 
 export default function PilgrimOnboarding() {
@@ -47,46 +35,34 @@ export default function PilgrimOnboarding() {
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<FormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
+    firstName: user?.displayName?.split(" ")[0] || "",
+    lastName: user?.displayName?.split(" ").slice(1).join(" ") || "",
+    email: user?.email || "",
     phone: "",
-    address: "",
-    city: "",
-    state: "",
-    country: "Nigeria",
-    dateOfBirth: "",
     gender: "",
     passportNumber: "",
-    passportExpiry: "",
-    emergencyContact: {
-      name: "",
-      relationship: "",
-      phone: "",
-    },
-    preferences: {
-      emailNotifications: true,
-      smsNotifications: true,
-      marketingEmails: false,
-      language: "en",
-    },
+    nextOfKinFirstName: "",
+    nextOfKinLastName: "",
+    nextOfKinPhone: "",
+    nextOfKinEmail: "",
   })
 
   const steps: Step[] = [
     {
       id: 1,
-      title: "Personal Information",
+      title: "Personal Details",
       status: currentStep > 1 ? "completed" : currentStep === 1 ? "current" : "pending",
     },
     {
       id: 2,
-      title: "Contact Details",
+      title: "Travel Information",
       status: currentStep > 2 ? "completed" : currentStep === 2 ? "current" : "pending",
     },
     {
       id: 3,
-      title: "Travel Information",
+      title: "Security",
       status: currentStep > 3 ? "completed" : currentStep === 3 ? "current" : "pending",
     },
   ]
@@ -94,120 +70,102 @@ export default function PilgrimOnboarding() {
   useEffect(() => {
     const fetchUserData = async () => {
       if (user?.uid) {
-        const userData = await getUserData(user.uid)
-        if (userData) {
-          setFormData({
-            firstName: userData.firstName || "",
-            lastName: userData.lastName || "",
-            email: userData.email || user.email || "",
-            phone: userData.phone || "",
-            address: userData.address || "",
-            city: userData.city || "",
-            state: userData.state || "",
-            country: userData.country || "Nigeria",
-            dateOfBirth: userData.dateOfBirth || "",
-            gender: userData.gender || "",
-            passportNumber: userData.passportNumber || "",
-            passportExpiry: userData.passportExpiry || "",
-            emergencyContact: {
-              name: userData.emergencyContact?.name || "",
-              relationship: userData.emergencyContact?.relationship || "",
-              phone: userData.emergencyContact?.phone || "",
-            },
-            preferences: {
-              emailNotifications: userData.preferences?.emailNotifications ?? true,
-              smsNotifications: userData.preferences?.smsNotifications ?? true,
-              marketingEmails: userData.preferences?.marketingEmails ?? false,
-              language: userData.preferences?.language || "en",
-            },
-          })
+        try {
+          const userData = (await getUserData(user.uid)) as any
+          if (userData) {
+            setFormData((prev) => ({
+              ...prev,
+              firstName: userData.firstName || prev.firstName,
+              lastName: userData.lastName || prev.lastName,
+              email: userData.email || prev.email,
+              phone: userData.phone || userData.phoneNumber || "",
+              gender: userData.gender || "",
+              passportNumber: userData.passportNumber || "",
+              nextOfKinFirstName: userData.nextOfKinFirstName || "",
+              nextOfKinLastName: userData.nextOfKinLastName || "",
+              nextOfKinPhone: userData.nextOfKinPhone || "",
+              nextOfKinEmail: userData.nextOfKinEmail || "",
+            }))
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error)
         }
       }
     }
-
     fetchUserData()
-  }, [user])
+  }, [user?.uid])
 
-  // Prefill name from query param (e.g. ?name=First+Last) when form is empty
-  const searchParams = useSearchParams()
-  useEffect(() => {
-    const nameParam = searchParams?.get?.("name")
-    if (nameParam && !formData.firstName && !formData.lastName) {
-      const parts = nameParam.trim().split(/\s+/)
-      const first = parts.shift() || ""
-      const last = parts.join(" ") || ""
-      setFormData((prev) => ({ ...prev, firstName: first, lastName: last }))
-    }
-    // only run when search params or the name fields change
-  }, [searchParams, formData.firstName, formData.lastName])
-
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev) => {
-      const keys = field.split(".")
-      if (keys.length === 1) {
-        return { ...prev, [field]: value }
-      } else if (keys.length === 2) {
-        return {
-          ...prev,
-          [keys[0]]: {
-            // prev[keys[0]] may be typed as non-object; cast to any to allow spread
-            ...((prev as any)[keys[0]] || {}),
-            [keys[1]]: value,
-          },
-        }
-      } else {
-        // For deeper nesting if needed
-        return prev
-      }
-    })
+  const handleChange = (field: keyof FormData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
   }
 
-  const nextStep = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1)
-    }
+  const handleNextStep = () => {
+    if (currentStep < 3) setCurrentStep(currentStep + 1)
   }
 
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
+  const handlePrevStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
 
   const handleSubmit = async () => {
-    if (!user) return
+    if (!user?.uid) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
 
     try {
+      toast({
+        title: "Saving",
+        description: "Saving your profile...",
+      })
+
       const payload = {
-        // map phone -> phoneNumber expected by Firestore helper
-        ...formData,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
         phoneNumber: formData.phone,
-        // Firestore expects gender to be one of the union or undefined
-        gender: formData.gender === "" ? undefined : (formData.gender as "male" | "female" | "other"),
+        gender: formData.gender || undefined,
+        passportNumber: formData.passportNumber,
+        nextOfKinFirstName: formData.nextOfKinFirstName,
+        nextOfKinLastName: formData.nextOfKinLastName,
+        nextOfKinPhone: formData.nextOfKinPhone,
+        nextOfKinEmail: formData.nextOfKinEmail,
         onboardingCompleted: true,
       }
 
       await updateUserOnboardingData(user.uid, payload)
 
-      // Set onboarding cookie so middleware knows onboarding is done
+      toast({
+        title: "Success",
+        description: "Profile completed!",
+      })
+
+      // Set cookie
       document.cookie = `onboarding-completed=true; path=/; max-age=86400`
 
-      toast({
-        title: "Onboarding completed!",
-        description: "Your profile has been set up successfully.",
-        duration: 3000,
-      })
-
-      // Use full navigation so middleware and AuthProvider read updated cookies
-      window.location.href = "/dashboard/pilgrim"
-    } catch (error) {
-      console.error("Error updating user data:", error)
+      // Redirect to dashboard
+      setTimeout(() => {
+        window.location.href = "/dashboard/pilgrim"
+      }, 500)
+    } catch (error: any) {
+      console.error("Error:", error)
+      setIsSubmitting(false)
       toast({
         title: "Error",
-        description: "Failed to save your information. Please try again.",
+        description: error?.message || "Failed to save your information. Please try again.",
         variant: "destructive",
-        duration: 3000,
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -216,251 +174,246 @@ export default function PilgrimOnboarding() {
       case 1:
         return (
           <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                value={formData.firstName}
-                onChange={(e) => handleChange("firstName", e.target.value)}
-                placeholder="Enter your first name"
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => handleChange("firstName", e.target.value)}
+                  placeholder="First name"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => handleChange("lastName", e.target.value)}
+                  placeholder="Last name"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                value={formData.lastName}
-                onChange={(e) => handleChange("lastName", e.target.value)}
-                placeholder="Enter your last name"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                placeholder="Enter your email address"
-                required
+                disabled
+                className="bg-gray-100 cursor-not-allowed"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
-                placeholder="Enter your phone number"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleChange("address", e.target.value)}
-                placeholder="Enter your address"
-                required
-              />
+              <p className="text-xs text-gray-500">Email cannot be changed</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="phone">Phone Number *</Label>
                 <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => handleChange("city", e.target.value)}
-                  placeholder="Enter your city"
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleChange("phone", e.target.value)}
+                  placeholder="Phone number"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  value={formData.state}
-                  onChange={(e) => handleChange("state", e.target.value)}
-                  placeholder="Enter your state"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Select
-                  value={formData.country}
-                  onValueChange={(value) => handleChange("country", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a country" />
+                <Label htmlFor="gender">Gender *</Label>
+                <Select value={formData.gender} onValueChange={(value) => handleChange("gender", value)} disabled={isSubmitting}>
+                  <SelectTrigger id="gender">
+                    <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Nigeria">Nigeria</SelectItem>
-                    <SelectItem value="Saudi Arabia">Saudi Arabia</SelectItem>
-                    <SelectItem value="UAE">United Arab Emirates</SelectItem>
-                    <SelectItem value="USA">United States</SelectItem>
-                    <SelectItem value="UK">United Kingdom</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                <Input
-                  id="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-                  placeholder="Select your date of birth"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gender</Label>
-              <Select
-                value={formData.gender}
-                onValueChange={(value) => handleChange("gender", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         )
+
       case 2:
         return (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="emergencyContactName">Emergency Contact Name</Label>
-              <Input
-                id="emergencyContactName"
-                value={formData.emergencyContact.name}
-                onChange={(e) => handleChange("emergencyContact.name", e.target.value)}
-                placeholder="Enter emergency contact's name"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContactRelationship">Relationship</Label>
-              <Select
-                value={formData.emergencyContact.relationship}
-                onValueChange={(value) => handleChange("emergencyContact.relationship", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select relationship" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="spouse">Spouse</SelectItem>
-                  <SelectItem value="friend">Friend</SelectItem>
-                  <SelectItem value="sibling">Sibling</SelectItem>
-                  <SelectItem value="parent">Parent</SelectItem>
-                  <SelectItem value="child">Child</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContactPhone">Emergency Contact Phone</Label>
-              <Input
-                id="emergencyContactPhone"
-                value={formData.emergencyContact.phone}
-                onChange={(e) => handleChange("emergencyContact.phone", e.target.value)}
-                placeholder="Enter emergency contact's phone number"
-                required
-              />
-            </div>
-          </div>
-        )
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="passportNumber">Passport Number</Label>
+              <Label htmlFor="passportNumber">Passport Number *</Label>
               <Input
                 id="passportNumber"
                 value={formData.passportNumber}
                 onChange={(e) => handleChange("passportNumber", e.target.value)}
-                placeholder="Enter your passport number"
+                placeholder="Enter passport number"
+                disabled={isSubmitting}
                 required
               />
             </div>
 
+            {/* Passport upload temporarily deactivated */}
             <div className="space-y-2">
-              <Label htmlFor="passportExpiry">Passport Expiry Date</Label>
+              <Label htmlFor="passportUpload">Passport Upload</Label>
               <Input
-                id="passportExpiry"
-                type="date"
-                value={formData.passportExpiry}
-                onChange={(e) => handleChange("passportExpiry", e.target.value)}
-                placeholder="Select your passport expiry date"
-                required
+                id="passportUpload"
+                type="file"
+                disabled
+                className="bg-gray-100 cursor-not-allowed"
               />
+              <p className="text-xs text-gray-500">Passport upload is temporarily disabled.</p>
             </div>
           </div>
         )
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <h3 className="font-semibold text-lg">Next of Kin Details</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nokFirstName">First Name *</Label>
+                <Input
+                  id="nokFirstName"
+                  value={formData.nextOfKinFirstName}
+                  onChange={(e) => handleChange("nextOfKinFirstName", e.target.value)}
+                  placeholder="First name"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nokLastName">Last Name *</Label>
+                <Input
+                  id="nokLastName"
+                  value={formData.nextOfKinLastName}
+                  onChange={(e) => handleChange("nextOfKinLastName", e.target.value)}
+                  placeholder="Last name"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nokPhone">Phone Number *</Label>
+                <Input
+                  id="nokPhone"
+                  type="tel"
+                  value={formData.nextOfKinPhone}
+                  onChange={(e) => handleChange("nextOfKinPhone", e.target.value)}
+                  placeholder="Phone number"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nokEmail">Email *</Label>
+                <Input
+                  id="nokEmail"
+                  type="email"
+                  value={formData.nextOfKinEmail}
+                  onChange={(e) => handleChange("nextOfKinEmail", e.target.value)}
+                  placeholder="Email"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+        )
+
       default:
         return null
     }
   }
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">Complete Your Profile</h1>
-        <p className="text-gray-500">Tell us more about yourself to personalize your pilgrimage experience</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 py-12">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Complete Your Profile</h1>
+          <p className="text-slate-600">Step {currentStep} of 3 - {steps[currentStep - 1]?.title}</p>
+        </div>
 
-      <div className="md:block hidden">
-        <Stepper steps={steps} orientation="horizontal" />
-      </div>
-
-      <div className="md:hidden block">
-        <Stepper steps={steps} orientation="vertical" />
-      </div>
-
-      <Card>
-        <CardContent className="p-6 md:p-8">
-          {renderStep()}
-
-          <div className="flex justify-between mt-8">
-            <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Previous
-            </Button>
-
-            {currentStep < 3 ? (
-              <Button className="bg-[#c8e823] text-black hover:bg-[#b5d31f]" onClick={nextStep}>
-                Next <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button className="bg-[#c8e823] text-black hover:bg-[#b5d31f]" onClick={handleSubmit}>
-                Complete Setup <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
+        {/* Desktop Stepper */}
+        {!isMobile && (
+          <div className="hidden md:block">
+            <Stepper steps={steps} orientation="horizontal" />
           </div>
-        </CardContent>
-      </Card>
+        )}
+
+        {/* Mobile Stepper */}
+        {isMobile && (
+          <div className="md:hidden block">
+            <Stepper steps={steps} orientation="vertical" />
+          </div>
+        )}
+
+        {/* Form Card */}
+        <Card>
+          <CardContent className="p-8">
+            <div className="space-y-8">
+              {renderStep()}
+
+              {/* Navigation Buttons */}
+              <div className="flex justify-between gap-4 pt-8 border-t">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevStep}
+                  disabled={currentStep === 1 || isSubmitting}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+
+                {currentStep < 3 ? (
+                  <Button
+                    onClick={handleNextStep}
+                    disabled={isSubmitting}
+                    className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
+                  >
+                    Next
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v8H4z"
+                          />
+                        </svg>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        Complete Setup
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

@@ -14,7 +14,7 @@ export default function AgencySuccessPage() {
 
         <h1 className="text-2xl font-bold mb-2">Registration Successful!</h1>
         <p className="text-gray-600 mb-6">
-          Thank you for registering your agency with Al-Mutamir. We've received your information and will review it
+          Thank you for registering your agency with Almutamir. We've received your information and will review it
           shortly. Our team will contact you within 2-3 business days to complete the verification process.
         </p>
 

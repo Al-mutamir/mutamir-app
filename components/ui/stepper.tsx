@@ -25,15 +25,15 @@ export function Stepper({ steps, orientation = "horizontal", className }: Steppe
 
 function HorizontalStepper({ steps, className }: Omit<StepperProps, "orientation">) {
   return (
-    <div className={cn("w-full", className)}>
-      <div className="relative flex items-center justify-between">
+    <div className={cn("w-full flex justify-center", className)}>
+      <div className="relative flex items-center justify-between gap-8" style={{ maxWidth: "600px", width: "100%" }}>
         {steps.map((step, index) => (
-          <div key={step.id} className="relative flex flex-col items-center">
+          <div key={step.id} className="relative flex flex-col items-center flex-1">
             {/* Step connector */}
             {index < steps.length - 1 && (
               <div
                 className={cn(
-                  "absolute top-1/2 w-full h-[2px] -translate-y-1/2 left-1/2",
+                  "absolute top-1/2 h-[2px] -translate-y-1/2 left-[calc(50%+40px)] right-[-calc(50%+40px)]",
                   step.status === "completed" ? "bg-primary" : "bg-gray-200",
                 )}
               />

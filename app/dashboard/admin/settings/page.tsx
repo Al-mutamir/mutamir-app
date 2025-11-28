@@ -106,7 +106,7 @@
 //           <div className="flex justify-between items-center">
 //             <div>
 //               <h1 className="text-2xl font-bold">Admin Settings</h1>
-//               <p className="text-muted-foreground">Configure system-wide settings for Al-Mutamir</p>
+//               <p className="text-muted-foreground">Configure system-wide settings for Almutamir</p>
 //             </div>
 //             <Button onClick={handleSaveSettings} disabled={saving}>
 //               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

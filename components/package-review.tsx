@@ -113,7 +113,7 @@ export default function PackageReview({
       <CardContent className="p-6 md:p-8">
         <div className="flex justify-between items-start mb-6 border-b pb-4">
           <div>
-            <h3 className="text-2xl font-bold">Al-mutamir</h3>
+            <h3 className="text-2xl font-bold">Almutamir</h3>
             <p className="text-gray-600">Your Sacred Journey, Your Way</p>
           </div>
           <div className="text-right">

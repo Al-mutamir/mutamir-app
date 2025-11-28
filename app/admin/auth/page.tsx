@@ -88,7 +88,7 @@ export default function AdminAuthPage() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="mb-4">
-            <Image src="/images/logo.png" alt="Al-Mutamir Logo" width={180} height={48} priority />
+            <Image src="/images/logo.png" alt="Almutamir Logo" width={180} height={48} priority />
           </div>
           <h2 className="text-2xl font-bold mb-2">Verifying admin access...</h2>
           <div className="mt-6 flex justify-center">
@@ -103,7 +103,7 @@ export default function AdminAuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-md p-4">
         <div className="flex justify-center mb-8">
-          <Image src="/images/logo.png" alt="Al-Mutamir Logo" width={180} height={48} priority />
+          <Image src="/images/logo.png" alt="Almutamir Logo" width={180} height={48} priority />
         </div>
 
         <Card>

@@ -74,11 +74,11 @@ export default function BookingSuccessPage() {
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: accentColor }}
               >
-               <Image src="/images/logo-white.png" alt="Al-Mutamir Logo" width={32} height={32} className="sm:w-10 sm:h-10 rounded-full" />
+               <Image src="/images/logo-white.png" alt="Almutamir Logo" width={32} height={32} className="sm:w-10 sm:h-10 rounded-full" />
               </div>
               <div>
                 <h3 className="font-bold text-sm sm:text-lg" style={{ color: textColor }}>
-                  AL-MUTAMIR
+                  Almutamir
                 </h3>
                 <p className="text-xs sm:text-sm opacity-75" style={{ color: secondaryText }}>
                   {isHajj ? "Hajj" : "Umrah"} Services
@@ -277,7 +277,7 @@ export default function BookingSuccessPage() {
             {isHajj ? "Hajj" : "Umrah"} Booking Confirmed!
           </h1>
           <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 max-w-lg mx-auto px-4">
-            Thank you for booking your {isHajj ? "Hajj pilgrimage" : "Umrah journey"} with Al-Mutamir. 
+            Thank you for booking your {isHajj ? "Hajj pilgrimage" : "Umrah journey"} with Almutamir. 
             Your {packageType} package has been successfully confirmed. A detailed confirmation
             email has been sent to your registered email address.
           </p>
@@ -300,12 +300,12 @@ export default function BookingSuccessPage() {
             <Link href="/" className="flex items-center justify-center gap-2">
               <Image
                 src="/images/mutamir.png"
-                alt="Al-mutamir Logo"
+                alt="Almutamir Logo"
                 width={100}
                 height={100}
                 className="h-6 w-6 sm:h-7 sm:w-7"
               />
-              <span className="font-semibold text-sm sm:text-base text-[#014034]">Al-Mutamir</span>
+              <span className="font-semibold text-sm sm:text-base text-[#014034]">Almutamir</span>
             </Link>
           </div>
         </div>

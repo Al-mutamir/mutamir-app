@@ -26,7 +26,7 @@ const config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#008000", // Al-Mutamir green
+          DEFAULT: "#008000", // Almutamir green
           foreground: "hsl(var(--primary-foreground))",
           light: "#4CAF50", // Lighter green for gradients
         },

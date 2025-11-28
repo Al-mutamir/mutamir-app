@@ -5,6 +5,27 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Footer } from "@/components/footer"
 
 export default function AboutPage() {
+  const teamMembers = [
+    {
+      name: "Sanni-Anibire Toyyib. A",
+      role: "Founder & CEO",
+      description: "Toyyib is an experienced product developer and researcher who leads Almutamir's vision to transform pilgrimage experience.",
+      image: "/images/team/ahmad.jpg?height=400&width=400",
+    },
+    {
+      name: "Fatima Ibrahim",
+      role: "Head of Operations",
+      description: "Fatima ensures seamless coordination between our global partners and pilgrims, overseeing all operational excellence.",
+      image: "/images/team/fatima.jpg?height=400&width=400",
+    },
+    {
+      name: "Yusuf Rahman",
+      role: "Customer Experience Director",
+      description: "Yusuf and his team provide 24/7 support to pilgrims, ensuring every journey is smooth and spiritually fulfilling.",
+      image: "/images/team/yusuf.jpg?height=400&width=400",
+    },
+  ]
+
   const partnerships = [
     {
       name: "Opulens",
@@ -76,7 +97,7 @@ export default function AboutPage() {
         <div className="container">
           <div className="max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-8">
-              <h1 className="text-3xl font-bold">About Mutamir</h1>
+              <h1 className="text-3xl font-bold">About Almutamir</h1>
               <Link href="/">
                 <Button variant="outline" size="sm">
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
@@ -91,7 +112,7 @@ export default function AboutPage() {
                   <div>
                     <h2 className="text-2xl font-bold mb-4">Our Story</h2>
                     <p className="text-gray-600 mb-4">
-                      Al-Mutamir was conceived in 2023 with a simple mission: to transform the way pilgrims plan and
+                      Almutamir was conceived in 2023 with a simple mission: to transform the way pilgrims plan and
                       experience their Hajj and Umrah journeys, after we recognized that the traditional approach to
                       pilgrimage planning often lacked transparency, flexibility, and personalization.
                     </p>
@@ -104,7 +125,7 @@ export default function AboutPage() {
                     <div className="absolute -z-10 inset-0 bg-[#c8e823]/10 rounded-3xl transform rotate-2"></div>
                     <img
                       src="/images/mutamir.png?height=400&width=500"
-                      alt="Al-Mutamir founding team"
+                      alt="Almutamir founding team"
                       className="rounded-2xl shadow-lg w-full"
                     />
                   </div>
@@ -168,6 +189,30 @@ export default function AboutPage() {
                 </div>
               </section>
 
+              {/* Our Team */}
+              <section>
+                <h2 className="text-2xl font-bold mb-6 text-center">Our Team</h2>
+                <p className="text-gray-600 text-center max-w-2xl mx-auto mb-8">
+                  Meet the dedicated professionals behind Almutamir, committed to making your pilgrimage journey seamless and meaningful.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {teamMembers.map((member, index) => (
+                    <div key={index} className="bg-white rounded-lg overflow-hidden shadow-sm text-center">
+                      <img
+                        src={member.image || "/placeholder.svg"}
+                        alt={member.name}
+                        className="w-full h-64 object-cover"
+                      />
+                      <div className="p-6">
+                        <h3 className="font-bold text-lg">{member.name}</h3>
+                        <p className="text-[#8bc34a] font-medium text-sm mb-3">{member.role}</p>
+                        <p className="text-gray-600 text-sm">{member.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
               {/* Our Partnerships */}
               <section>
                 <h2 className="text-2xl font-bold mb-6 text-center">Strategic Partnerships</h2>
@@ -192,7 +237,7 @@ export default function AboutPage() {
               <section className="bg-white p-8 rounded-lg shadow-sm">
                 <h2 className="text-2xl font-bold mb-6 text-center">Where We Operate</h2>
                 <p className="text-gray-600 text-center max-w-2xl mx-auto mb-8">
-                 Al-Mutamir offers services globally with a focus on providing localized support in regions with high
+                 Almutamir offers services globally with a focus on providing localized support in regions with high
                   demand for Hajj and Umrah travel.
                 </p>
 
@@ -218,10 +263,10 @@ export default function AboutPage() {
 
               {/* Join Us */}
               <section className="bg-[#f0f9d4] p-8 rounded-lg text-center">
-                <h2 className="text-2xl font-bold mb-4">Join the Al-Mutamir Journey</h2>
+                <h2 className="text-2xl font-bold mb-4">Join the Almutamir Journey</h2>
                 <p className="text-gray-700 max-w-2xl mx-auto mb-6">
                   Whether you're a pilgrim seeking a meaningful Hajj or Umrah experience, or an agency looking to expand
-                  your reach, Al-Mutamir is here to support your journey.
+                  your reach, Almutamir is here to support your journey.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link href="/services">

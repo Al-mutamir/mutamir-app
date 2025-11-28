@@ -245,7 +245,7 @@ export default function AdminPackagesPage() {
                           <div className="text-sm text-muted-foreground line-clamp-1">{pkg.description}</div>
                         </div>
                         <div className="text-sm">
-                          {pkg.agencyName || (pkg.agencyId === "admin" ? "Al-Mutamir" : pkg.agencyId)}
+                          {pkg.agencyName || (pkg.agencyId === "admin" ? "Almutamir" : pkg.agencyId)}
                         </div>
                         <div className="font-medium">₦{pkg.price?.toLocaleString()}</div>
                         <div>
@@ -328,7 +328,7 @@ export default function AdminPackagesPage() {
                         <p className="text-sm text-muted-foreground">Agency</p>
                         <p>
                           {selectedPackage.agencyName ||
-                            (selectedPackage.agencyId === "admin" ? "Al-Mutamir" : selectedPackage.agencyId)}
+                            (selectedPackage.agencyId === "admin" ? "Almutamir" : selectedPackage.agencyId)}
                         </p>
                       </div>
                       <div>

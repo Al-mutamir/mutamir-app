@@ -25,7 +25,7 @@ export function SiteHeader() {
   const { user, userRole, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [userProfile, setUserProfile] = useState(null)
+  const [userProfile, setUserProfile] = useState<any>(null)
 
   // Use useEffect to handle client-side rendering
   useEffect(() => {
@@ -77,11 +77,11 @@ export function SiteHeader() {
     },
   ]
 
-  const getInitials = (name) => {
+  const getInitials = (name?: string) => {
     if (!name) return "U"
     return name
       .split(" ")
-      .map((part) => part[0])
+      .map((part: string) => part[0])
       .join("")
       .toUpperCase()
   }
@@ -115,7 +115,34 @@ export function SiteHeader() {
   }
 
   const getDashboardLink = () => {
-    if (!user) return "/auth/login"
+    // If no authenticated user, send to login. If user exists but role is not set, send to onboarding.
+    if (!user) {
+      // Try to read role from cookie for immediate navigation if auth hasn't hydrated yet
+      const roleFromCookie = document.cookie.split(";").map(c => c.trim()).find(c => c.startsWith("user-role="))
+      const roleValue = roleFromCookie ? roleFromCookie.split("=")[1] : null
+      if (roleValue) {
+        if (roleValue === "pilgrim") return "/dashboard/pilgrim"
+        if (roleValue === "agency") return "/dashboard/agency"
+        if (roleValue === "admin") return "/dashboard/admin"
+      }
+      return "/auth/login"
+    }
+    if (!userRole) {
+      // If role is not yet resolved in context, try cookie fallback so header can navigate
+      // correctly before auth has fully hydrated. If still not found, send to pilgrim onboarding.
+      const roleFromCookie = document.cookie
+        .split(";")
+        .map((c) => c.trim())
+        .find((c) => c.startsWith("user-role="))
+      const roleValue = roleFromCookie ? roleFromCookie.split("=")[1] : null
+      if (roleValue) {
+        if (roleValue === "pilgrim") return "/dashboard/pilgrim"
+        if (roleValue === "agency") return "/dashboard/agency"
+        if (roleValue === "admin") return "/dashboard/admin"
+      }
+      return "/onboarding/pilgrim"
+    }
+
     switch (userRole) {
       case "pilgrim":
         return "/dashboard/pilgrim"
@@ -124,7 +151,7 @@ export function SiteHeader() {
       case "admin":
         return "/dashboard/admin"
       default:
-        return "/auth/login"
+        return "/onboarding/pilgrim"
     }
   }
 
@@ -134,7 +161,7 @@ export function SiteHeader() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center">
           <Link href="/" className="flex items-center gap-2 mr-6">
-            <Image src="/images/logo.png" alt="Al-Mutamir Logo" width={150} height={40} priority />
+            <Image src="/images/logo.png" alt="Almutamir Logo" width={150} height={40} priority />
           </Link>
           <div className="flex-1"></div>
         </div>
@@ -146,7 +173,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center gap-2 mr-6">
-          <Image src="/images/logo.png" alt="Al-Mutamir Logo" width={150} height={40} priority />
+          <Image src="/images/logo.png" alt="Almutamir Logo" width={150} height={40} priority />
         </Link>
         <nav className="hidden md:flex gap-6 flex-1">
           {routes.map((route) => (
@@ -178,9 +205,9 @@ export function SiteHeader() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <Link href={getDashboardLink()}>
-                  <DropdownMenuItem>Dashboard</DropdownMenuItem>
-                </Link>
+                <DropdownMenuItem onClick={() => (window.location.href = getDashboardLink())}>
+                  Dashboard
+                </DropdownMenuItem>
                 {userRole === "agency" && (
                   <Link href="/dashboard/agency/profile">
                     <DropdownMenuItem>Profile</DropdownMenuItem>
@@ -215,7 +242,7 @@ export function SiteHeader() {
           </SheetTrigger>
           <SheetContent side="right" className="w-[300px] sm:w-[400px]">
             <div className="flex justify-center mb-8 mt-4">
-              <Image src="/images/logo.png" alt="Al-Mutamir Logo" width={150} height={40} />
+              <Image src="/images/logo.png" alt="Almutamir Logo" width={150} height={40} />
             </div>
             <div className="flex flex-col gap-4">
               {routes.map((route) => (
@@ -244,11 +271,16 @@ export function SiteHeader() {
                     </Avatar>
                     <span className="text-sm font-medium">{getDisplayName()}</span>
                   </div>
-                  <Link href={getDashboardLink()} onClick={() => setIsOpen(false)}>
-                    <Button variant="outline" className="w-full">
-                      Dashboard
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setIsOpen(false)
+                      window.location.href = getDashboardLink()
+                    }}
+                  >
+                    Dashboard
+                  </Button>
                   {userRole === "agency" && (
                     <Link href="/dashboard/agency/profile" onClick={() => setIsOpen(false)}>
                       <Button variant="outline" className="w-full">
