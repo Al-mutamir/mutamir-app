@@ -158,8 +158,8 @@ export function SiteHeader() {
   // Don't render user-specific content until client-side hydration is complete
   if (!mounted) {
     return (
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center">
+      <header className="sticky top-0 z-50 h-20 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
+        <div className="container flex h-full items-center">
           <Link href="/" className="flex items-center gap-2 mr-6">
             <Image src="/images/logo.png" alt="Almutamir Logo" width={150} height={40} priority />
           </Link>
@@ -170,18 +170,18 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
+    <header className="sticky top-0 z-50 h-20 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
+      <div className="container flex h-full items-center">
         <Link href="/" className="flex items-center gap-2 mr-6">
           <Image src="/images/logo.png" alt="Almutamir Logo" width={150} height={40} priority />
         </Link>
-        <nav className="hidden md:flex gap-6 flex-1">
+        <nav className="hidden flex-1 gap-8 md:flex">
           {routes.map((route) => (
             <Link
               key={route.href}
               href={route.href}
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                route.active ? "text-foreground" : "text-muted-foreground"
+              className={`text-sm font-medium transition-colors hover:text-[#007F5F] ${
+                route.active ? "font-bold text-[#007F5F]" : "text-[#444746]"
               }`}
             >
               {route.label}
@@ -228,7 +228,9 @@ export function SiteHeader() {
                 <Button variant="outline">Sign In</Button>
               </Link>
               <Link href="/auth/register">
-                <Button>Sign Up</Button>
+                <Button className="rounded-full bg-[#E3B23C] px-8 font-bold text-[#1a1c1b] hover:bg-[#d5a331]">
+                  Get Started
+                </Button>
               </Link>
             </>
           )}
@@ -249,8 +251,8 @@ export function SiteHeader() {
                 <Link
                   key={route.href}
                   href={route.href}
-                  className={`text-sm font-medium transition-colors hover:text-primary ${
-                    route.active ? "text-foreground" : "text-muted-foreground"
+                  className={`text-sm font-medium transition-colors hover:text-[#007F5F] ${
+                    route.active ? "font-bold text-[#007F5F]" : "text-muted-foreground"
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
@@ -305,7 +307,9 @@ export function SiteHeader() {
                     </Button>
                   </Link>
                   <Link href="/auth/register" onClick={() => setIsOpen(false)}>
-                    <Button className="w-full">Sign Up</Button>
+                    <Button className="w-full bg-[#E3B23C] font-bold text-[#1a1c1b] hover:bg-[#d5a331]">
+                      Get Started
+                    </Button>
                   </Link>
                 </>
               )}
