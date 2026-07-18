@@ -1,31 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
-import { ArrowLeft, ArrowRight, Plus, Trash2, Users, UserPlus, Info, Building, Hotel, ThumbsUp } from "lucide-react"
+import PackageReview from "@/components/package-review"
 import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import PackageReview from "@/components/package-review"
-import { Footer } from "@/components/footer"
+import { useToast } from "@/components/ui/use-toast"
 import { createBooking } from "@/firebase/firestore"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
-import { format, isBefore, isSameDay, startOfDay, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
+import { addDays, format, isBefore, isSameDay, startOfDay } from "date-fns"
+import { ArrowLeft, ArrowRight, Building, CalendarIcon, Hotel, Info, Plus, ThumbsUp, Trash2, UserPlus, Users } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 // Import the utility functions
-import { printElement } from "@/utils/print-utils"
-import { CheckCircle2 } from "lucide-react"
 
 // Beautified Discord notification function that sends all booking details
 async function notifyDiscord(booking: any) {
@@ -408,7 +404,7 @@ export default function ServicesPage() {
 
     try {
       const mainPilgrim = pilgrims[0]
-      await createBooking({
+      const bookingPayload = {
         packageId: selectedPackage || "custom",
         packageTitle: packageType,
         pilgrimId: mainPilgrim.email,
@@ -434,88 +430,108 @@ export default function ServicesPage() {
           food: { ...selectedServices.food },
           visitation: { ...selectedServices.visitation },
         },
+      }
+      
+      console.log("=== SUBMISSION START ===")
+      console.log("1. Payload prepared:", bookingPayload)
+      console.log("2. Attempting createBooking in Firestore...")
+      
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Network timeout: Please check your connection or disable your ad blocker.")), 10000)
       })
+
+      // Race the booking creation against the timeout
+      await Promise.race([
+        createBooking(bookingPayload as any),
+        timeoutPromise
+      ])
+      
+      console.log("3. createBooking succeeded!")
 
       // --- Send confirmation email using your custom HTML template ---
-      const mailRes = await fetch("/api/send-confirmation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: mainPilgrim.email,
-          subject: "Your Almutamir Booking Confirmation",
-          text: `Dear ${mainPilgrim.firstName},
-
-Your booking has been received. We will contact you soon.
-
-Thank you for choosing Almutamir!`,
-          html: `
-      <div style="font-family: Arial, sans-serif; color: #014034;">
-        <h2 style="color: #007F5F;">Booking Confirmation</h2>
-        <p>Dear ${mainPilgrim.firstName},</p>
-        <p>Your booking has been received. We will contact you soon.</p>
-        <hr style="border: none; border-top: 1px solid #E3B23C; margin: 16px 0;" />
-        <p>
-          <strong>Package:</strong> ${packageType || "Not specified"}<br/>
-          <strong>Departure:</strong> ${departureCity || "Not specified"} on ${departureDate || "Not specified"}<br/>
-          <strong>Return:</strong> ${returnDate || "Not specified"}<br/>
-        </p>
-        <p>
-          <strong>Pilgrims:</strong><br/>
-          ${pilgrims.map((p: any) =>
-            `${p.firstName || "?"} ${p.lastName || "?"} (${p.email || "?"}, ${p.phone || "?"})`
-          ).join("<br/>")}
-        </p>
-        <p>
-          <strong>Preferred Itinerary:</strong><br/>
-          ${preferredItinerary.length
-            ? preferredItinerary.map((item: string) => `- ${item || "(empty)"}`).join("<br/>")
-            : "(No specific itinerary provided)"}
-        </p>
-        <p>
-          <strong>Selected Services:</strong><br/>
-          ${Object.entries(selectedServices)
-            .filter(([_, v]: any) => v.selected)
-            .map(([k, v]: any) => {
-              let tier = v.tier ? ` (${v.tier})` : ""
-              return `${k.charAt(0).toUpperCase() + k.slice(1)}${tier}`
-            }).join("<br/>") || "None"}
-        </p>
-        <p>Thank you for choosing <strong>Almutamir</strong>!</p>
-        <p style="font-size: 12px; color: #888;">If you have any questions, reply to this email.</p>
-      </div>
-    `,
-        }),
-      })
-      if (!mailRes.ok) {
-        throw new Error("Mail API failed")
+      try {
+        console.log("4. Attempting to send email confirmation...")
+        const mailRes = await fetch("/api/send-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: mainPilgrim.email,
+            subject: "Your Almutamir Booking Confirmation",
+            text: `Dear ${mainPilgrim.firstName},\n\nYour booking has been received. We will contact you soon.\n\nThank you for choosing Almutamir!`,
+            html: `
+        <div style="font-family: Arial, sans-serif; color: #014034;">
+          <h2 style="color: #007F5F;">Booking Confirmation</h2>
+          <p>Dear ${mainPilgrim.firstName},</p>
+          <p>Your booking has been received. We will contact you soon.</p>
+          <hr style="border: none; border-top: 1px solid #E3B23C; margin: 16px 0;" />
+          <p>
+            <strong>Package:</strong> ${packageType || "Not specified"}<br/>
+            <strong>Departure:</strong> ${departureCity || "Not specified"} on ${departureDate || "Not specified"}<br/>
+            <strong>Return:</strong> ${returnDate || "Not specified"}<br/>
+          </p>
+          <p>
+            <strong>Pilgrims:</strong><br/>
+            ${pilgrims.map((p: any) =>
+              `${p.firstName || "?"} ${p.lastName || "?"} (${p.email || "?"}, ${p.phone || "?"})`
+            ).join("<br/>")}
+          </p>
+          <p>
+            <strong>Preferred Itinerary:</strong><br/>
+            ${preferredItinerary.length
+              ? preferredItinerary.map((item: string) => `- ${item || "(empty)"}`).join("<br/>")
+              : "(No specific itinerary provided)"}
+          </p>
+          <p>
+            <strong>Selected Services:</strong><br/>
+            ${Object.entries(selectedServices)
+              .filter(([_, v]: any) => v.selected)
+              .map(([k, v]: any) => {
+                let tier = v.tier ? ` (${v.tier})` : ""
+                return `${k.charAt(0).toUpperCase() + k.slice(1)}${tier}`
+              }).join("<br/>") || "None"}
+          </p>
+          <p>Thank you for choosing <strong>Almutamir</strong>!</p>
+          <p style="font-size: 12px; color: #888;">If you have any questions, reply to this email.</p>
+        </div>
+      `,
+          }),
+        })
+        if (!mailRes.ok) {
+          console.error("Mail API failed with status:", mailRes.status)
+        } else {
+          console.log("5. Email confirmation sent successfully.")
+        }
+      } catch (mailErr) {
+        console.error("Failed to send confirmation email:", mailErr)
       }
 
       // --- Notify Discord directly ---
-      await notifyDiscord({
-        ...bookingDetails,
-        packageTitle: packageType,
-        travelDate: departureDate,
-        returnDate: returnDate,
-        status: "pending",
-        paymentStatus: "unpaid",
-        highlights: preferredItinerary,
-        selectedServices: {
-          visa: { ...selectedServices.visa },
-          flight: { ...selectedServices.flight },
-          accommodation: { ...selectedServices.accommodation },
-          transport: { ...selectedServices.transport },
-          food: { ...selectedServices.food },
-          visitation: { ...selectedServices.visitation },
-        },
-      })
+      try {
+        console.log("6. Attempting to send Discord notification...")
+        await notifyDiscord({
+          ...bookingPayload,
+          packageTitle: packageType,
+          travelDate: departureDate,
+          returnDate: returnDate,
+          status: "pending",
+          paymentStatus: "unpaid",
+          highlights: preferredItinerary,
+        })
+        console.log("7. Discord notification sent successfully.")
+      } catch (discordErr) {
+        console.error("Failed to send Discord notification:", discordErr)
+      }
 
+      console.log("8. Setting timeout to show success modal...")
       setTimeout(() => {
+        console.log("9. Showing success modal!")
         setShowSuccess(true)
         setIsSubmitting(false)
       }, 1500)
-    } catch (e) {
+    } catch (e: any) {
       setIsSubmitting(false)
-      alert("Submission failed. Please check your network and try again.")
+      alert("Submission failed: " + (e.message || "Please check your network and try again."))
       console.error("Failed to store booking details or send email/discord:", e)
     }
   }

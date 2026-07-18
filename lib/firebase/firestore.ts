@@ -197,10 +197,10 @@ export async function getUserProfile(userId: unknown) {
   }
 }
 
-//  Function to 
+// Function to create user document
 export async function createUserDocument(uid: string, userData: any) {
   try {
-    await setDoc(doc(db, "users", uid), userData)
+    await setDoc(doc(db, "users", uid), userData, { merge: true })
   } catch (error) {
     console.error("Error creating user document:", error)
     throw error

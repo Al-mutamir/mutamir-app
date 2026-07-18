@@ -7,7 +7,7 @@ import { Bell, BellOff, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/context/auth-context"
 import { db } from "@/lib/firebase/firebase"
-import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore"
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore"
 
 export function NotificationBell() {
   const { user } = useAuth()
@@ -17,26 +17,24 @@ export function NotificationBell() {
   useEffect(() => {
     if (!user) return
 
-    const notificationsRef = collection(db, `users/${user.uid}/notifications`)
-    const q = query(notificationsRef, orderBy("timestamp", "desc"), limit(5))
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
+    const fetchNotifications = async () => {
+      try {
+        const notificationsRef = collection(db, `users/${user.uid}/notifications`)
+        const q = query(notificationsRef, orderBy("timestamp", "desc"), limit(5))
+        const snapshot = await getDocs(q)
         const newNotifications = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }))
         setNotifications(newNotifications)
-        setLoading(false)
-      },
-      (error) => {
+      } catch (error) {
         console.error("Error getting notifications:", error)
+      } finally {
         setLoading(false)
-      },
-    )
+      }
+    }
 
-    return () => unsubscribe()
+    fetchNotifications()
   }, [user])
 
   const unreadCount = notifications.filter((notification) => !notification.read).length

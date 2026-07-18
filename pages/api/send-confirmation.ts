@@ -16,6 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       user: email,
       pass: password,
     },
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 5000,
   })
 
   try {
