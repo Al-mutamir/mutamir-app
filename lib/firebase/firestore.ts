@@ -740,13 +740,12 @@ export async function updateAgency(agencyId: string, agencyData: any) {
         updatedAt: serverTimestamp(),
       })
     } else {
-      // Create new agency
-      await updateDoc(agencyRef, {
-        ...agencyData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-    }
+  await setDoc(agencyRef, {
+    ...agencyData,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+}
 
     return { id: agencyId }
   } catch (error) {
@@ -945,3 +944,5 @@ export async function getBookingsByPackageId(packageId: string) {
     return []
   }
 }
+
+export const setUserData = createUserDocument
