@@ -21,7 +21,7 @@ import {
   Eye,
   Plus,
 } from "lucide-react"
-import { getPackages, deletePackage } from "@/lib/firebase/admin"
+import { getPackages, deletePackage } from "@/lib/firebase/services/admin"
 import AdminProtectedRoute from "@/components/admin-protected-route"
 import {
   Dialog,

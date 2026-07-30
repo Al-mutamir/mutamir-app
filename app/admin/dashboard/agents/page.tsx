@@ -21,7 +21,7 @@ import {
   ExternalLink,
   Eye,
 } from "lucide-react"
-import { getAgencies, updateAgencyVerification } from "@/lib/firebase/admin"
+import { getAgencies, updateAgencyVerification } from "@/lib/firebase/services/admin"
 import AdminProtectedRoute from "@/components/admin-protected-route"
 import {
   Dialog,

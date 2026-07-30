@@ -9,22 +9,28 @@ import Link from "next/link"
 import Image from "next/image"
 import useEmblaCarousel from "embla-carousel-react"
 
-import { getAllPackages } from "@/lib/firebase/firestore"
+import { getAllPackages} from "@/lib/firebase/services/package"
+import type { Package } from "@/lib/firebase/interface/package"
 import { formatCurrency, formatDate } from "@/lib/utils"
+
+
+
 
 import {
   MapPin,
   Users,
   ArrowRight,
-  Package,
+  Package as PackageIcon,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
 
-
 export default function StandardPackagesSection() {
 
-  const [packages, setPackages] = useState({
+  const [packages, setPackages] = useState<{
+    hajj: Package[];
+    umrah: Package[];
+  }>({
     hajj: [],
     umrah: [],
   })
@@ -80,7 +86,7 @@ export default function StandardPackagesSection() {
 
 
 
-  const formatDateLocal = (date) => {
+  const formatDateLocal = (date: Date | null) => {
 
     const formatted = formatDate(
       date,
@@ -110,7 +116,9 @@ export default function StandardPackagesSection() {
   */
 
   const PackageCarousel = ({
-    items
+    items,
+  }: {
+    items: Package[];
   }) => {
 
 
@@ -328,7 +336,7 @@ export default function StandardPackagesSection() {
 
   }
 
-    const PackageCard = ({ pkg }) => (
+    const PackageCard = ({ pkg }: { pkg: Package }) => (
 
     <Card
       className="
@@ -489,7 +497,7 @@ export default function StandardPackagesSection() {
 
           Departure:
           {" "}
-          {formatDateLocal(pkg.departureDate)}
+          {formatDateLocal(pkg.departureDate ? new Date(pkg.departureDate) : null)}
 
         </div>
 
@@ -559,7 +567,7 @@ export default function StandardPackagesSection() {
 
 
 
-  const renderCarousel = (items) => {
+  const renderCarousel = (items: Package[]) => {
 
 
     if (loading) {
@@ -747,7 +755,7 @@ export default function StandardPackagesSection() {
               "
             >
 
-              <Package
+              <PackageIcon
                 className="h-4 w-4"
               />
 
@@ -769,7 +777,7 @@ export default function StandardPackagesSection() {
               "
             >
 
-              <Package
+              <PackageIcon
                 className="h-4 w-4"
               />
 

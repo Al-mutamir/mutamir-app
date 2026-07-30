@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { UserRole } from "@/types/auth"
-import { getUserData, setUserData, updateUserProfile } from "@/lib/firebase/firestore"
+import type { User as firebaseUser } from "@/lib/firebase/interface/user";
+import { getUserById, createUser, updateUser } from "@/lib/firebase/services/user"
 import { sendWelcomeEmail } from "@/utils/sendWelcomeEmail"
 
 // Constants
@@ -119,7 +120,7 @@ export default function RegisterPage() {
     const handleGoogleRedirect = async () => {
       if (user?.uid && !isSubmitting) {
         try {
-          const userData = await getUserData(user.uid) as UserData | null
+          const userData = await getUserById(user.uid) as UserData | null
           
           if (userData) {
             const targetRole = userData.role
@@ -212,12 +213,19 @@ export default function RegisterPage() {
         role: formData.role,
       }
 
-      const userData = formData.role === "agency" 
-        ? { ...baseUserData, status: "unverified" }
-        : baseUserData
+  const userData: Omit<firebaseUser, "id"> = {
+  uid: userCredential.user.uid,
+  email: formData.email,
+  role: formData.role,
+  firstName: formData.firstName,
+  lastName: formData.lastName,
+  status: formData.role === "agency" ? "verified" : "unverified",
+  onboardingCompleted: false,
+};
 
+        
       // Single atomic write to Firestore
-      await setUserData(userCredential.user.uid, userData)
+      await createUser(userData)
 
       // Send welcome email (non-blocking)
       sendWelcomeEmail(formData.email, fullName).catch(err => {

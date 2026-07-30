@@ -18,15 +18,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { getUserProfile } from "@/lib/firebase/firestore"
+import { getUserById } from "@/lib/firebase/services/user"
+import { User } from "@/lib/firebase/interface/user"
 
 export function SiteHeader() {
   const pathname = usePathname()
   const { user, userRole, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [userProfile, setUserProfile] = useState(null)
-
+  const [userProfile, setUserProfile] = useState<User | null>(null)
+  
   // Use useEffect to handle client-side rendering
   useEffect(() => {
     setMounted(true)
@@ -35,7 +36,7 @@ export function SiteHeader() {
     const fetchUserProfile = async () => {
       if (user?.uid) {
         try {
-          const profileData = await getUserProfile(user.uid)
+          const profileData = await getUserById(user.uid)
           if (profileData) {
             setUserProfile(profileData)
           }
@@ -77,7 +78,7 @@ export function SiteHeader() {
     },
   ]
 
-  const getInitials = (name) => {
+  const getInitials = (name: string | null) => {
     if (!name) return "U"
     return name
       .split(" ")

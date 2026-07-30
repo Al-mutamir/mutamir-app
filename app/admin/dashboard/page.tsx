@@ -16,7 +16,7 @@ import {
   Shield,
   UserCheck,
 } from "lucide-react"
-import { getAdminStats } from "@/lib/firebase/admin"
+import { getAdminStats } from "@/lib/firebase/services/admin"
 import AdminProtectedRoute from "@/components/admin-protected-route"
 
 interface AdminStats {

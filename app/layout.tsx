@@ -97,7 +97,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <Analytics />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
@@ -107,8 +107,10 @@ export default function RootLayout({
             <Footer />
           </AuthProviderWithRoleHandler>
         </ThemeProvider>
+        <GoogleAnalytics strategy="afterInteractive" gaId={process.env.NEXT_PUBLIC_GA_ID || 'G-79E3MHKNQD'} />
       </body>
-      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || 'G-79E3MHKNQD'} />
+    
     </html>
+      
   )
 }

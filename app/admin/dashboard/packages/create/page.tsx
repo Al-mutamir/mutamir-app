@@ -23,7 +23,7 @@ import {
   Save,
   ArrowLeft,
 } from "lucide-react"
-import { createPackage, getAgencies } from "@/lib/firebase/admin"
+import { createPackage, getAgencies } from "@/lib/firebase/services/admin"
 import AdminProtectedRoute from "@/components/admin-protected-route"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"

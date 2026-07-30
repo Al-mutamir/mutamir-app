@@ -26,7 +26,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { CalendarIcon, Check, Edit, Eye, Filter, Package, Plus, Search, Trash2, X } from "lucide-react"
-import { getAllPackages, getAllAgencies, createPackage, updatePackage, deletePackage } from "@/lib/firebase/admin"
+import { getAllPackages, getAllAgencies, createPackage, updatePackage, deletePackage } from "@/lib/firebase/services/admin"
 import { sendDiscordWebhook } from "@/lib/webhooks"
 import { cn } from "@/lib/utils"
 

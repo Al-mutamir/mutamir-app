@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
-import { getAdminSettings, updateAdminSettings } from "@/lib/firebase/admin"
+import { getAdminSettings, updateAdminSettings } from "@/lib/firebase/services/admin"
 import { Loader2, Save } from "lucide-react"
 
 export default function AdminSettingsPage() {

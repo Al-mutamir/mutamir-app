@@ -1,4 +1,4 @@
-// Normalization helper for Firestore documents
+// Normalize Firestore document data to ensure consistent structure and timestamp handling
 export function normalizeDoc(docId: string, data: any) {
   if (!data) return { id: docId, uid: docId }
 

@@ -20,18 +20,23 @@ import { serverTimestamp } from "firebase/firestore"; // Import serverTimestamp
 
 export type UserRole = "pilgrim" | "agency" | "admin" | null
 
-export interface AuthUser {
-  uid: string
-  email: string | null
-  agencyName?: string | null
-  displayName: string | null
-  photoURL: string | null
-  role?: UserRole
-  onboardingCompleted?: boolean
-  gender?: string
-  phoneNumber?: string | null
-  adminRole?: string
-  passportNumber?: string | null
+import type { User } from "@/lib/firebase/interface/user";
+
+export interface AuthUser
+  extends Pick<
+    User,
+    | "uid"
+    | "email"
+    | "displayName"
+    | "photoURL"
+    | "role"
+    | "agencyName"
+    | "phoneNumber"
+    | "passportNumber"
+    | "gender"
+    | "onboardingCompleted"
+  > {
+  adminRole?: string;
 }
 
 // Define context type
@@ -123,9 +128,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // User exists in Firestore, set role from Firestore data
               const userWithRole: AuthUser = {
                 uid: currentUser.uid,
-                email: currentUser.email,
+                email: currentUser.email ?? "",
                 displayName: currentUser.displayName || userData.displayName,
-                photoURL: currentUser.photoURL,
+                photoURL: currentUser.photoURL ?? "",
                 role: isAdminEmail ? "admin" : userData.role, // Admin role takes precedence
                 onboardingCompleted: userData.onboardingCompleted || false,
                 gender: userData.gender || "male",
@@ -144,9 +149,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const initialRole = isAdminEmail ? "admin" : null; // Keep role null for new non-admin social logins
               setUser({
                 uid: currentUser.uid,
-                email: currentUser.email,
-                displayName: currentUser.displayName,
-                photoURL: currentUser.photoURL,
+                email: currentUser.email ?? "",
+                displayName: currentUser.displayName ?? "",
+                photoURL: currentUser.photoURL ?? "",
                 role: initialRole,
                 onboardingCompleted: false,
                 gender: "male",
@@ -165,9 +170,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             setUser({
               uid: currentUser.uid,
-              email: currentUser.email,
-              displayName: currentUser.displayName,
-              photoURL: currentUser.photoURL,
+              email: currentUser.email ?? "",
+              displayName: currentUser.displayName ?? "",
+              photoURL: currentUser.photoURL ?? "",
               role: isAdminEmail ? "admin" : null,
               onboardingCompleted: false,
               gender: "male",

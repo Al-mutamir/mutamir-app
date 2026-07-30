@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Eye, Filter, Clock, ArrowUpRight, Users, Edit } from "lucide-react";
-import { getAllBookings, getBookingById, updateBooking } from "@/lib/firebase/admin";
+import { getAllBookings, getBookingById, updateBooking } from "@/lib/firebase/services/admin";
 import { formatDate, parseDate } from "@/lib/utils";
 import ProtectedRoute from "@/components/protected-route";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -162,7 +162,7 @@ export default function AdminBookingsPage() {
       setDeletingId(bookingId);
       try {
         // Dynamically import Firestore delete logic
-        const { deleteBooking } = await import("@/lib/firebase/admin");
+        const { deleteBooking } = await import("@/lib/firebase/services/admin");
         await deleteBooking(bookingId);
         setBookings((prev) => prev.filter((b) => (b.id || b.uid) !== bookingId));
         setFilteredBookings((prev) => prev.filter((b) => (b.id || b.uid) !== bookingId));

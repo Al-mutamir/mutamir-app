@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import AdminProtectedRoute from "@/components/admin-protected-route"
-import { createUser, createAdminUser } from "@/lib/firebase/admin"
+import { createUser, createAdminUser } from "@/lib/firebase/services/admin"
 import type { UserRole } from "@/context/auth-context"
 
 export default function CreateUserPage() {

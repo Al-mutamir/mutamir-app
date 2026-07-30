@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/auth-context"
-import { getAdminStats } from "@/lib/firebase/admin"
+import { getAdminStats } from "@/lib/firebase/services/admin"
 import DashboardLayout from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, LineChart } from "@/components/ui/chart"

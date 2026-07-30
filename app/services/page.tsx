@@ -16,85 +16,15 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import PackageReview from "@/components/package-review"
 import { Footer } from "@/components/footer"
-import { createBooking } from "@/firebase/firestore"
+import { createBooking } from "@/lib/firebase/services/booking"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon } from "lucide-react"
 import { format, isBefore, isSameDay, startOfDay, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
 
-// Import the utility functions
 import { printElement } from "@/utils/print-utils"
 import { CheckCircle2 } from "lucide-react"
-
-// Beautified Discord notification function that sends all booking details
-async function notifyDiscord(booking: any) {
-  try {
-    // Pilgrims (only filled)
-    const pilgrimsArr = Array.isArray(booking.pilgrims)
-      ? booking.pilgrims.filter((p: any) => p.firstName || p.lastName || p.email || p.phone)
-      : []
-    const pilgrimList = pilgrimsArr.length
-      ? pilgrimsArr.map((p: any, idx: number) =>
-          `• ${p.firstName} ${p.lastName} (${p.email}, ${p.phone})`
-        ).join("\n")
-      : "No pilgrims provided"
-
-    // Itinerary (only filled)
-    const itineraryArr = Array.isArray(booking.highlights)
-      ? booking.highlights.filter((item: string) => item && item.trim() !== "")
-      : []
-    const itineraryList = itineraryArr.length
-      ? itineraryArr.map((item: string) => `  - ${item}`).join("\n")
-      : "  (No specific itinerary provided)"
-
-    // Services (only selected)
-    const servicesObj = typeof booking.selectedServices === "object" && booking.selectedServices !== null
-      ? Object.entries(booking.selectedServices).filter(([_, v]: any) => v.selected)
-      : []
-    const servicesSelected = servicesObj.length
-      ? servicesObj.map(([k, v]: any) => {
-          let tier = v.tier ? ` (${v.tier})` : ""
-          return `• ${k.charAt(0).toUpperCase() + k.slice(1)}${tier}`
-        }).join("\n")
-      : "None"
-
-    // Group members (only filled)
-    const groupMembersArr = Array.isArray(booking.groupMembers)
-      ? booking.groupMembers.filter((m: any) => m.name || m.email || m.phone)
-      : []
-    const groupMembersList = groupMembersArr.length
-      ? groupMembersArr.map((m: any, idx: number) =>
-          `• ${m.name} (${m.email}, ${m.phone})`
-        ).join("\n")
-      : ""
-
-    // Build message
-    const message =
-      `🟢 **New Booking Received**\n` +
-      `**Package:** ${booking.packageTitle}\n` +
-      `**Departure City:** ${booking.departureCity}\n` +
-      `**Departure Date:** ${booking.travelDate}\n` +
-      `**Return Date:** ${booking.returnDate}\n` +
-      `**Status:** ${booking.status}\n` +
-      `**Payment Status:** ${booking.paymentStatus}\n` +
-      `**Pilgrims:**\n${pilgrimList}\n\n` +
-      `**Preferred Itinerary:**\n${itineraryList}\n\n` +
-      `**Selected Services:**\n${servicesSelected}\n\n` +
-      (booking.isGroupBooking ? `**Group Booking:** Yes\n` : "") +
-      (booking.isCreatingGroup && groupMembersArr.length > 0
-        ? `**Group Members:**\n${groupMembersList}\n`
-        : "")
-
-    await fetch("https://discordapp.com/api/webhooks/1396867564990238862/z-zNLucOdqyS0nVtqynFrPZF46x0O4qufL2Ay0feUqZx8fzipMW1OIho4rLa4uPkU4PY", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: message }),
-    })
-  } catch (err) {
-    console.error("Discord notification failed", err)
-  }
-}
 
 interface PilgrimDetails {
   firstName: string
@@ -122,20 +52,14 @@ interface SuccessModalProps {
   }
 }
 
-// Replace SuccessModal with this minimal version:
 function SuccessModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null
-  // Handle click outside to close
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose()
   }
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-      onClick={handleOverlayClick}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={handleOverlayClick}>
       <div className="bg-white rounded-xl shadow-xl max-w-xs w-full p-6 relative flex flex-col items-center">
-        {/* Cancel button top right */}
         <button
           className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl"
           onClick={() => onClose()}
@@ -144,16 +68,15 @@ function SuccessModal({ open, onClose }: { open: boolean; onClose: () => void })
           ×
         </button>
         <ThumbsUp className="h-12 w-12 text-[#007F5F] mb-4" />
-        <h2 className="text-lg font-semibold text-[#014034] text-center mb-2">
-          Booking request successful
-        </h2>
+        <h2 className="text-lg font-semibold text-[#014034] text-center mb-2">Booking request successful</h2>
         <p className="text-gray-600 text-center text-sm mb-8">
-          A representative will contact you shortly.<br />Thanks for choosing Almutamir.
+          A representative will contact you shortly.
+          <br />
+          Thanks for choosing Almutamir.
         </p>
-        {/* Pilgrim Guide button at bottom center */}
         <button
           className="bg-[#E3B23C] text-[#014034] hover:bg-[#007F5F] hover:text-white text-xs font-semibold px-4 py-2 rounded transition absolute left-1/2 -translate-x-1/2 bottom-6"
-          onClick={() => window.open('/guide', '_blank')}
+          onClick={() => window.open("/guide", "_blank")}
         >
           Pilgrim Guide
         </button>
@@ -167,7 +90,6 @@ export default function ServicesPage() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
 
-  // Get parameters from URL
   const initialPackageType = searchParams?.get("type") || "hajj"
   const initialPackage = searchParams?.get("package") || ""
   const initialDate = searchParams?.get("date") || ""
@@ -197,139 +119,59 @@ export default function ServicesPage() {
   ])
 
   const [selectedServices, setSelectedServices] = useState({
-    visa: {
-      selected: false,
-      tier: "short-term",
-      details: {},
-    },
-    flight: {
-      selected: false,
-      tier: "economy",
-      details: {},
-    },
-    accommodation: {
-      selected: false,
-      tier: "standard",
-      type: "hotel",
-      proximity: "standard",
-      details: {},
-    },
-    transport: {
-      selected: false,
-      tier: "shared",
-      details: {},
-    },
-    food: {
-      selected: false,
-      tier: "standard",
-      details: {},
-    },
-    visitation: {
-      selected: false,
-      tier: "standard",
-      sites: [] as string[],
-      details: {},
-    },
+    visa: { selected: false, tier: "short-term", details: {} },
+    flight: { selected: false, tier: "economy", details: {} },
+    accommodation: { selected: false, tier: "standard", type: "hotel", proximity: "standard", details: {} },
+    transport: { selected: false, tier: "shared", details: {} },
+    food: { selected: false, tier: "standard", details: {} },
+    visitation: { selected: false, tier: "standard", sites: [] as string[], details: {} },
   })
 
-  // --- Replace the preferredItinerary state with an array ---
   const [preferredItinerary, setPreferredItinerary] = useState<string[]>([])
-
-  // --- Add this state for controlling the success modal ---
   const [showSuccess, setShowSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Handle service selection
   const handleServiceChange = (service: string, selected: boolean) => {
     setSelectedServices({
       ...selectedServices,
-      [service]: {
-        ...selectedServices[service as keyof typeof selectedServices],
-        selected,
-      },
+      [service]: { ...selectedServices[service as keyof typeof selectedServices], selected },
     })
   }
 
-  // Handle service tier selection
   const handleTierChange = (service: string, tier: string) => {
     setSelectedServices({
       ...selectedServices,
-      [service]: {
-        ...selectedServices[service as keyof typeof selectedServices],
-        tier,
-      },
+      [service]: { ...selectedServices[service as keyof typeof selectedServices], tier },
     })
   }
 
-  // Handle accommodation type selection
   const handleAccommodationTypeChange = (type: string) => {
-    setSelectedServices({
-      ...selectedServices,
-      accommodation: {
-        ...selectedServices.accommodation,
-        type,
-      },
-    })
+    setSelectedServices({ ...selectedServices, accommodation: { ...selectedServices.accommodation, type } })
   }
 
-  // Handle accommodation proximity selection
   const handleAccommodationProximityChange = (proximity: string) => {
-    setSelectedServices({
-      ...selectedServices,
-      accommodation: {
-        ...selectedServices.accommodation,
-        proximity,
-      },
-    })
+    setSelectedServices({ ...selectedServices, accommodation: { ...selectedServices.accommodation, proximity } })
   }
 
-  // Handle visitation site selection
   const handleVisitationSiteChange = (site: string, selected: boolean) => {
     const currentSites = (selectedServices.visitation.sites as string[]) || []
-    let newSites
-
-    if (selected) {
-      newSites = [...currentSites, site]
-    } else {
-      newSites = currentSites.filter((s) => s !== site)
-    }
-
-    setSelectedServices({
-      ...selectedServices,
-      visitation: {
-        ...selectedServices.visitation,
-        sites: newSites,
-      },
-    })
+    const newSites = selected ? [...currentSites, site] : currentSites.filter((s) => s !== site)
+    setSelectedServices({ ...selectedServices, visitation: { ...selectedServices.visitation, sites: newSites } })
   }
 
-  // Handle pilgrim details change
   const handlePilgrimChange = (index: number, field: string, value: string) => {
     const updatedPilgrims = [...pilgrims]
-    updatedPilgrims[index] = {
-      ...updatedPilgrims[index],
-      [field]: value,
-    }
+    updatedPilgrims[index] = { ...updatedPilgrims[index], [field]: value }
     setPilgrims(updatedPilgrims)
   }
 
-  // Add a new pilgrim for group booking
   const addPilgrim = () => {
     setPilgrims([
       ...pilgrims,
-      {
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        country: "Nigeria",
-        city: "",
-        passport: "",
-      },
+      { firstName: "", lastName: "", email: "", phone: "", country: "Nigeria", city: "", passport: "" },
     ])
   }
 
-  // Remove a pilgrim
   const removePilgrim = (index: number) => {
     if (pilgrims.length > 1) {
       const updatedPilgrims = [...pilgrims]
@@ -338,29 +180,16 @@ export default function ServicesPage() {
     }
   }
 
-  // Handle group member change
   const handleGroupMemberChange = (index: number, field: string, value: string) => {
     const updatedMembers = [...groupMembers]
-    updatedMembers[index] = {
-      ...updatedMembers[index],
-      [field]: value,
-    }
+    updatedMembers[index] = { ...updatedMembers[index], [field]: value }
     setGroupMembers(updatedMembers)
   }
 
-  // Add a new group member
   const addGroupMember = () => {
-    setGroupMembers([
-      ...groupMembers,
-      {
-        name: "",
-        email: "",
-        phone: "",
-      },
-    ])
+    setGroupMembers([...groupMembers, { name: "", email: "", phone: "" }])
   }
 
-  // Remove a group member
   const removeGroupMember = (index: number) => {
     if (groupMembers.length > 1) {
       const updatedMembers = [...groupMembers]
@@ -372,83 +201,78 @@ export default function ServicesPage() {
   const nextStep = () => setStep(step + 1)
   const prevStep = () => setStep(step - 1)
 
-  // --- Add this handler functions ---
-  const handleAddItinerary = () => {
-    setPreferredItinerary([...preferredItinerary, ""])
-  }
-
+  const handleAddItinerary = () => setPreferredItinerary([...preferredItinerary, ""])
   const handleRemoveItinerary = (index: number) => {
     const updated = [...preferredItinerary]
     updated.splice(index, 1)
     setPreferredItinerary(updated)
   }
-
   const handleItineraryChange = (index: number, value: string) => {
     const updated = [...preferredItinerary]
     updated[index] = value
     setPreferredItinerary(updated)
   }
 
-  // Handle form submission
+  // Handle form submission.
+  // Booking creation is the source of truth for success/failure — email and
+  // Discord notification are best-effort side effects that run afterward and
+  // never flip a successful booking into a "failed" result for the user.
   const handleSubmit = async () => {
     setIsSubmitting(true)
-    const bookingDetails = {
-      packageType,
-      selectedPackage,
-      isGroupBooking,
-      pilgrims,
+
+    const mainPilgrim = pilgrims[0]
+    const bookingPayload = {
+      packageId: selectedPackage || "custom",
+      packageTitle: packageType,
+      pilgrimId: mainPilgrim.email,
+      userEmail: mainPilgrim.email,
+      agencyId: "custom",
+      status: "pending" as const,
+      travelDate: departureDate,
+      returnDate: returnDate,
+      totalPrice: 0,
+      paymentStatus: "unpaid" as const,
+      highlights: preferredItinerary,
+      notes: "",
       departureCity,
-      departureDate,
-      returnDate,
-      preferredItinerary,
-      services: selectedServices,
+      pilgrims,
+      isGroupBooking,
       isCreatingGroup,
       groupMembers,
+      selectedServices: {
+        visa: { ...selectedServices.visa },
+        flight: { ...selectedServices.flight },
+        accommodation: { ...selectedServices.accommodation },
+        transport: { ...selectedServices.transport },
+        food: { ...selectedServices.food },
+        visitation: { ...selectedServices.visitation },
+      },
     }
 
     try {
-      const mainPilgrim = pilgrims[0]
-      await createBooking({
-        packageId: selectedPackage || "custom",
-        packageTitle: packageType,
-        pilgrimId: mainPilgrim.email,
-        userEmail: mainPilgrim.email,
-        agencyId: "custom",
-        status: "pending",
-        travelDate: departureDate,
-        returnDate: returnDate,
-        totalPrice: 0,
-        paymentStatus: "unpaid",
-        highlights: preferredItinerary,
-        notes: "",
-        departureCity,
-        pilgrims,
-        isGroupBooking,
-        isCreatingGroup,
-        groupMembers,
-        selectedServices: {
-          visa: { ...selectedServices.visa },
-          flight: { ...selectedServices.flight },
-          accommodation: { ...selectedServices.accommodation },
-          transport: { ...selectedServices.transport },
-          food: { ...selectedServices.food },
-          visitation: { ...selectedServices.visitation },
-        },
-      })
+      await createBooking(bookingPayload)
+    } catch (e) {
+      // Only a failure to persist the booking itself counts as a failed submission.
+      setIsSubmitting(false)
+      alert("Submission failed. Please check your network and try again.")
+      console.error("Failed to store booking:", e)
+      return
+    }
 
-      // --- Send confirmation email using your custom HTML template ---
-      const mailRes = await fetch("/api/send-confirmation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: mainPilgrim.email,
-          subject: "Your Al-mutamir Booking Confirmation",
-          text: `Dear ${mainPilgrim.firstName},
+    // Booking is saved — show success immediately, don't make the user wait
+    // on (or be blocked by) email/Discord.
+    setShowSuccess(true)
+    setIsSubmitting(false)
 
-Your booking has been received. We will contact you soon.
-
-Thank you for choosing Al-mutamir!`,
-          html: `
+    // Best-effort confirmation email — failure here is logged, not surfaced as a submission failure.
+    fetch("/api/send-confirmation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: mainPilgrim.email,
+        subject: "Your Al-mutamir Booking Confirmation",
+        text: `Dear ${mainPilgrim.firstName},\n\nYour booking has been received. We will contact you soon.\n\nThank you for choosing Al-mutamir!`,
+        html: `
       <div style="font-family: Arial, sans-serif; color: #014034;">
         <h2 style="color: #007F5F;">Booking Confirmation</h2>
         <p>Dear ${mainPilgrim.firstName},</p>
@@ -461,77 +285,64 @@ Thank you for choosing Al-mutamir!`,
         </p>
         <p>
           <strong>Pilgrims:</strong><br/>
-          ${pilgrims.map((p: any) =>
-            `${p.firstName || "?"} ${p.lastName || "?"} (${p.email || "?"}, ${p.phone || "?"})`
-          ).join("<br/>")}
+          ${pilgrims
+            .map((p: any) => `${p.firstName || "?"} ${p.lastName || "?"} (${p.email || "?"}, ${p.phone || "?"})`)
+            .join("<br/>")}
         </p>
         <p>
           <strong>Preferred Itinerary:</strong><br/>
-          ${preferredItinerary.length
-            ? preferredItinerary.map((item: string) => `- ${item || "(empty)"}`).join("<br/>")
-            : "(No specific itinerary provided)"}
+          ${
+            preferredItinerary.length
+              ? preferredItinerary.map((item: string) => `- ${item || "(empty)"}`).join("<br/>")
+              : "(No specific itinerary provided)"
+          }
         </p>
         <p>
           <strong>Selected Services:</strong><br/>
-          ${Object.entries(selectedServices)
-            .filter(([_, v]: any) => v.selected)
-            .map(([k, v]: any) => {
-              let tier = v.tier ? ` (${v.tier})` : ""
-              return `${k.charAt(0).toUpperCase() + k.slice(1)}${tier}`
-            }).join("<br/>") || "None"}
+          ${
+            Object.entries(selectedServices)
+              .filter(([_, v]: any) => v.selected)
+              .map(([k, v]: any) => `${k.charAt(0).toUpperCase() + k.slice(1)}${v.tier ? ` (${v.tier})` : ""}`)
+              .join("<br/>") || "None"
+          }
         </p>
         <p>Thank you for choosing <strong>Al-mutamir</strong>!</p>
         <p style="font-size: 12px; color: #888;">If you have any questions, reply to this email.</p>
       </div>
     `,
-        }),
-      })
-      if (!mailRes.ok) {
-        throw new Error("Mail API failed")
-      }
+      }),
+    }).catch((err) => console.error("Confirmation email failed:", err))
 
-      // --- Notify Discord directly ---
-      await notifyDiscord({
-        ...bookingDetails,
+    // Best-effort Discord notification — now routed through a server API so
+    // the webhook URL never lives in client-side code.
+    fetch("/api/notify-discord", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         packageTitle: packageType,
+        departureCity,
         travelDate: departureDate,
-        returnDate: returnDate,
+        returnDate,
         status: "pending",
         paymentStatus: "unpaid",
+        pilgrims,
         highlights: preferredItinerary,
-        selectedServices: {
-          visa: { ...selectedServices.visa },
-          flight: { ...selectedServices.flight },
-          accommodation: { ...selectedServices.accommodation },
-          transport: { ...selectedServices.transport },
-          food: { ...selectedServices.food },
-          visitation: { ...selectedServices.visitation },
-        },
-      })
-
-      setTimeout(() => {
-        setShowSuccess(true)
-        setIsSubmitting(false)
-      }, 1500)
-    } catch (e) {
-      setIsSubmitting(false)
-      alert("Submission failed. Please check your network and try again.")
-      console.error("Failed to store booking details or send email/discord:", e)
-    }
+        isGroupBooking,
+        isCreatingGroup,
+        groupMembers,
+        selectedServices,
+      }),
+    }).catch((err) => console.error("Discord notification failed:", err))
   }
 
-  // Check if form is valid for current step
   const isCurrentStepValid = () => {
     if (step === 1) {
-      // Validate step 1 - Package selection
       const selectedDate = new Date(departureDate)
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
       tomorrow.setHours(0, 0, 0, 0)
-
       return departureCity !== "" && departureDate !== "" && selectedDate >= tomorrow
     } else if (step === 2) {
-      // Validate step 2 - Personal details
       return pilgrims.every(
         (pilgrim) =>
           pilgrim.firstName !== "" &&
@@ -546,17 +357,15 @@ Thank you for choosing Al-mutamir!`,
     return true
   }
 
-  // Block out today and next 2 days for departure
   const today = startOfDay(new Date())
   const minDepartureDate = addDays(today, 3)
   const [departureDateObj, setDepartureDateObj] = useState<Date | undefined>(
-    departureDate ? new Date(departureDate) : undefined
+    departureDate ? new Date(departureDate) : undefined,
   )
   const [returnDateObj, setReturnDateObj] = useState<Date | undefined>(
-    returnDate ? new Date(returnDate) : undefined
+    returnDate ? new Date(returnDate) : undefined,
   )
 
-  // Sync string and date states
   useEffect(() => {
     if (departureDateObj) setDepartureDate(departureDateObj.toISOString().split("T")[0])
     else setDepartureDate("")
@@ -566,9 +375,7 @@ Thank you for choosing Al-mutamir!`,
     else setReturnDate("")
   }, [returnDateObj])
 
-  // Only allow departure from the 3rd day onward
   const disablePastDates = (day: Date) => isBefore(day, minDepartureDate)
-  // Only allow return after departure date (and after minDepartureDate)
   const disableReturnDates = (day: Date) =>
     isBefore(day, minDepartureDate) ||
     (departureDateObj ? isSameDay(day, departureDateObj) || isBefore(day, departureDateObj) : false)
@@ -589,8 +396,8 @@ Thank you for choosing Al-mutamir!`,
                   <h3 className="font-semibold mb-2">Hajj Package</h3>
                   <p className="text-gray-600">
                     The annual Islamic pilgrimage to Mecca, Saudi Arabia, which takes place during Dhu al-Hijjah, the
-                    last month of the Islamic calendar. Experience a deeply spiritual journey that fulfills one of the
-                    five pillars of Islam.
+                    last month of the Islamic calendar. Experience a deeply spiritual journey that fulfills one of
+                    the five pillars of Islam.
                   </p>
                 </div>
               </TabsContent>
@@ -598,8 +405,8 @@ Thank you for choosing Al-mutamir!`,
                 <div className="bg-[#f0f9d4] p-4 rounded-lg">
                   <h3 className="font-semibold mb-2">Umrah Package</h3>
                   <p className="text-gray-600">
-                    The non-mandatory lesser pilgrimage to Mecca that can be performed at any time of the year. Embark
-                    on a spiritually enriching journey that cleanses the soul and brings you closer to Allah.
+                    The non-mandatory lesser pilgrimage to Mecca that can be performed at any time of the year.
+                    Embark on a spiritually enriching journey that cleanses the soul and brings you closer to Allah.
                   </p>
                 </div>
               </TabsContent>
@@ -634,8 +441,8 @@ Thank you for choosing Al-mutamir!`,
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="w-[200px] text-xs">
-                            Create a group and invite others to join your pilgrimage. You'll be the group leader and can
-                            manage the booking for everyone.
+                            Create a group and invite others to join your pilgrimage. You'll be the group leader and
+                            can manage the booking for everyone.
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -717,8 +524,8 @@ Thank you for choosing Al-mutamir!`,
 
                   <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-700">
                     <p>
-                      Your group members will receive an invitation to join your pilgrimage. They'll be able to complete
-                      their personal details later.
+                      Your group members will receive an invitation to join your pilgrimage. They'll be able to
+                      complete their personal details later.
                     </p>
                   </div>
                 </div>
@@ -738,7 +545,6 @@ Thank you for choosing Al-mutamir!`,
               />
             </div>
 
-            {/* --- Use calendar popover for departure date --- */}
             <div className="space-y-2">
               <Label htmlFor="departure-date">
                 Departure Date <span className="text-red-500">*</span>
@@ -765,7 +571,6 @@ Thank you for choosing Al-mutamir!`,
               </Popover>
             </div>
 
-            {/* --- Use calendar popover for return date --- */}
             <div className="space-y-2">
               <Label htmlFor="return-date">
                 Return Date <span className="text-red-500">*</span>
@@ -792,7 +597,6 @@ Thank you for choosing Al-mutamir!`,
               </Popover>
             </div>
 
-            {/* --- Replace the Preferred Itinerary input with: --- */}
             <div className="space-y-2">
               <Label>
                 Preferred Itinerary <span className="text-gray-400 text-xs">(optional)</span>
@@ -801,7 +605,7 @@ Thank you for choosing Al-mutamir!`,
                 <div key={idx} className="flex gap-2 mb-2">
                   <Input
                     value={item}
-                    onChange={e => handleItineraryChange(idx, e.target.value)}
+                    onChange={(e) => handleItineraryChange(idx, e.target.value)}
                     placeholder={`Itinerary item ${idx + 1}`}
                   />
                   <Button
@@ -814,14 +618,9 @@ Thank you for choosing Al-mutamir!`,
                     Remove
                   </Button>
                 </div>
-              ))} 
+              ))}
               <br />
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-2"
-                onClick={handleAddItinerary}
-              >
+              <Button type="button" variant="outline" className="mt-2" onClick={handleAddItinerary}>
                 Add Itinerary Item
               </Button>
               <p className="text-xs text-muted-foreground">
@@ -836,118 +635,107 @@ Thank you for choosing Al-mutamir!`,
               </p>
 
               <div className="space-y-6">
-<div className="border p-4 rounded-lg">
-  <div className="flex items-center space-x-2 mb-3">
-    <Checkbox
-      id="visa"
-      checked={selectedServices.visa.selected}
-      onCheckedChange={(checked) => handleServiceChange("visa", checked === true)}
-    />
-    <div>
-      <Label htmlFor="visa" className="font-medium">
-        Visa Assistance
-      </Label>
-      {(departureCity === "london" || departureCity === "newyork") && (
-        <p className="text-xs text-green-600 mt-1">
-          Note: Pilgrims from the UK and US are eligible for visa on arrival
-        </p>
-      )}
-    </div>
-  </div>
+                <div className="border p-4 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Checkbox
+                      id="visa"
+                      checked={selectedServices.visa.selected}
+                      onCheckedChange={(checked) => handleServiceChange("visa", checked === true)}
+                    />
+                    <div>
+                      <Label htmlFor="visa" className="font-medium">
+                        Visa Assistance
+                      </Label>
+                      {(departureCity === "london" || departureCity === "newyork") && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Note: Pilgrims from the UK and US are eligible for visa on arrival
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
-  {selectedServices.visa.selected && (
-    <div className="ml-6 space-y-2">
-      <Label className="text-sm">Select Visa Type</Label>
-      <RadioGroup
-        value={selectedServices.visa.tier}
-        onValueChange={(value) => handleTierChange("visa", value)}
-      >
-        {/* Pilgrimage-specific visa options based on package type */}
-        {packageType === "hajj" && (
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="hajj-standard" id="visa-hajj-standard" />
-            <Label htmlFor="visa-hajj-standard">Hajj Standard Visa</Label>
-          </div>
-        )}
-        {packageType === "umrah" && (
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="umrah-standard" id="visa-umrah-standard" />
-            <Label htmlFor="visa-umrah-standard">Umrah Standard Visa</Label>
-          </div>
-        )}
-        
-        {/* General visa options */}
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value="short-term" id="visa-short-term" />
-          <Label htmlFor="visa-short-term">Short-term (6 months)</Label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem
-            value="long-term"
-            id="visa-long-term"
-            disabled={
-              departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano"
-            }
-          />
-          <Label
-            htmlFor="visa-long-term"
-            className={
-              departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano"
-                ? "text-gray-400"
-                : ""
-            }
-          >
-            Long-term (1 year)
-          </Label>
-          {(departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano") && (
-            <span className="text-xs text-amber-600 ml-2">(Not available for Nigerian citizens)</span>
-          )}
-        </div>
-      </RadioGroup>
-    </div>
-  )}
-</div>
+                  {selectedServices.visa.selected && (
+                    <div className="ml-6 space-y-2">
+                      <Label className="text-sm">Select Visa Type</Label>
+                      <RadioGroup value={selectedServices.visa.tier} onValueChange={(value) => handleTierChange("visa", value)}>
+                        {packageType === "hajj" && (
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="hajj-standard" id="visa-hajj-standard" />
+                            <Label htmlFor="visa-hajj-standard">Hajj Standard Visa</Label>
+                          </div>
+                        )}
+                        {packageType === "umrah" && (
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="umrah-standard" id="visa-umrah-standard" />
+                            <Label htmlFor="visa-umrah-standard">Umrah Standard Visa</Label>
+                          </div>
+                        )}
 
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="short-term" id="visa-short-term" />
+                          <Label htmlFor="visa-short-term">Short-term (6 months)</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem
+                            value="long-term"
+                            id="visa-long-term"
+                            disabled={departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano"}
+                          />
+                          <Label
+                            htmlFor="visa-long-term"
+                            className={
+                              departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano"
+                                ? "text-gray-400"
+                                : ""
+                            }
+                          >
+                            Long-term (1 year)
+                          </Label>
+                          {(departureCity === "lagos" || departureCity === "abuja" || departureCity === "kano") && (
+                            <span className="text-xs text-amber-600 ml-2">(Not available for Nigerian citizens)</span>
+                          )}
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  )}
+                </div>
 
-<div className="border p-4 rounded-lg">
-  <div className="flex items-center space-x-2 mb-3">
-    <Checkbox
-      id="flight"
-      checked={selectedServices.flight.selected}
-      onCheckedChange={(checked) => handleServiceChange("flight", checked === true)}
-    />
-    <Label htmlFor="flight" className="font-medium">
-      Flight Booking
-    </Label>
-  </div>
+                <div className="border p-4 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Checkbox
+                      id="flight"
+                      checked={selectedServices.flight.selected}
+                      onCheckedChange={(checked) => handleServiceChange("flight", checked === true)}
+                    />
+                    <Label htmlFor="flight" className="font-medium">
+                      Flight Booking
+                    </Label>
+                  </div>
 
-  {selectedServices.flight.selected && (
-    <div className="ml-6 space-y-2">
-      <Label className="text-sm">Select Tier</Label>
-      <RadioGroup
-        value={selectedServices.flight.tier}
-        onValueChange={(value) => handleTierChange("flight", value)}
-      >
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value="economy" id="flight-economy" />
-          <Label htmlFor="flight-economy">Economy Class</Label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value="business" id="flight-business" />
-          <Label htmlFor="flight-business">Business Class</Label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value="first" id="flight-first" />
-          <Label htmlFor="flight-first">First Class</Label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value="private" id="flight-private" />
-          <Label htmlFor="flight-private">Private Charter</Label>
-        </div>
-      </RadioGroup>
-    </div>
-  )}
-</div>
+                  {selectedServices.flight.selected && (
+                    <div className="ml-6 space-y-2">
+                      <Label className="text-sm">Select Tier</Label>
+                      <RadioGroup value={selectedServices.flight.tier} onValueChange={(value) => handleTierChange("flight", value)}>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="economy" id="flight-economy" />
+                          <Label htmlFor="flight-economy">Economy Class</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="business" id="flight-business" />
+                          <Label htmlFor="flight-business">Business Class</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="first" id="flight-first" />
+                          <Label htmlFor="flight-first">First Class</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="private" id="flight-private" />
+                          <Label htmlFor="flight-private">Private Charter</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  )}
+                </div>
 
                 <div className="border p-4 rounded-lg">
                   <div className="flex items-center space-x-2 mb-3">
@@ -965,10 +753,7 @@ Thank you for choosing Al-mutamir!`,
                     <div className="ml-6 space-y-4">
                       <div className="space-y-2">
                         <Label className="text-sm">Accommodation Type</Label>
-                        <RadioGroup
-                          value={selectedServices.accommodation.type}
-                          onValueChange={handleAccommodationTypeChange}
-                        >
+                        <RadioGroup value={selectedServices.accommodation.type} onValueChange={handleAccommodationTypeChange}>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="hotel" id="accommodation-hotel" />
                             <Label htmlFor="accommodation-hotel" className="flex items-center">
@@ -1103,10 +888,7 @@ Thank you for choosing Al-mutamir!`,
                   {selectedServices.food.selected && (
                     <div className="ml-6 space-y-2">
                       <Label className="text-sm">Select Tier</Label>
-                      <RadioGroup
-                        value={selectedServices.food.tier}
-                        onValueChange={(value) => handleTierChange("food", value)}
-                      >
+                      <RadioGroup value={selectedServices.food.tier} onValueChange={(value) => handleTierChange("food", value)}>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="standard" id="food-standard" />
                           <Label htmlFor="food-standard">Standard Meals</Label>
@@ -1309,11 +1091,7 @@ Thank you for choosing Al-mutamir!`,
                     <Label htmlFor={`country-${index}`}>
                       Country <span className="text-red-500">*</span>
                     </Label>
-                    <Select
-                      value={pilgrim.country}
-                      onValueChange={(value) => handlePilgrimChange(index, "country", value)}
-                      required
-                    >
+                    <Select value={pilgrim.country} onValueChange={(value) => handlePilgrimChange(index, "country", value)} required>
                       <SelectTrigger>
                         <SelectValue placeholder="Select country" />
                       </SelectTrigger>
@@ -1376,8 +1154,8 @@ Thank you for choosing Al-mutamir!`,
                 </h3>
                 <p className="text-sm text-blue-700 mb-3">
                   You're creating a group with {groupMembers.length} invited member
-                  {groupMembers.length !== 1 ? "s" : ""}. After submission, they will receive an invitation to join your
-                  pilgrimage.
+                  {groupMembers.length !== 1 ? "s" : ""}. After submission, they will receive an invitation to join
+                  your pilgrimage.
                 </p>
                 <div className="space-y-2">
                   {groupMembers.map((member, index) => (
@@ -1398,16 +1176,11 @@ Thank you for choosing Al-mutamir!`,
     }
   }
 
-  // Set default visa tier based on package type
   const defaultVisaTier = packageType === "hajj" ? "hajj-standard" : "umrah-standard"
-  // When packageType changes, update visa tier if not already set
   useEffect(() => {
     setSelectedServices((prev) => ({
       ...prev,
-      visa: {
-        ...prev.visa,
-        tier: defaultVisaTier,
-      },
+      visa: { ...prev.visa, tier: defaultVisaTier },
     }))
   }, [packageType])
 
@@ -1432,11 +1205,7 @@ Thank you for choosing Al-mutamir!`,
 
               <div className="flex flex-col md:flex-row justify-between mt-8 gap-3">
                 {step > 1 ? (
-                  <Button
-                    variant="outline"
-                    onClick={prevStep}
-                    className="w-full md:w-auto"
-                  >
+                  <Button variant="outline" onClick={prevStep} className="w-full md:w-auto">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                 ) : (
@@ -1478,13 +1247,7 @@ Thank you for choosing Al-mutamir!`,
         </div>
       </div>
 
-      {/* --- Add the SuccessModal component here --- */}
-      {showSuccess && (
-        <SuccessModal
-          open={showSuccess}
-          onClose={() => setShowSuccess(false)}
-        />
-      )}
+      {showSuccess && <SuccessModal open={showSuccess} onClose={() => setShowSuccess(false)} />}
     </div>
   )
 }
