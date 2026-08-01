@@ -174,3 +174,130 @@ export async function getAdminStats(): Promise<AdminStats> {
     };
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Re-exports and admin helpers (convenience layer)                          */
+/* -------------------------------------------------------------------------- */
+
+// Re-export commonly-used service functions so admin pages can import from the single admin module
+export { getAllPayments, getPaymentById, getPaymentsByPilgrim, getPaymentsByAgency, getPaymentsByBooking, createPayment, updatePayment, updatePaymentStatus } from "./payment"
+export { getAllBookings, getBookingById, createBooking, updateBooking, updateBookingStatus, updateBookingPayment, getBookingsByAgency, getBookingsByPilgrim, getBookingsByPackage } from "./booking"
+export { getAllPackages, getPackageById, createPackage, updatePackage, publishPackage, archivePackage, deletePackage, getPackagesByAgency, getPublishedPackages } from "./package"
+export { getAllAgencies, getAgencyById, updateAgency, getAgencyStats } from "./agency"
+export { getAllUsers, getUserById, getUserByEmail, getUsersByRole, getPilgrims, getAgencies, updateUserRole, getAdmins } from "./user"
+
+import { addDoc, setDoc, deleteDoc, doc as _doc, getDoc as _getDoc } from "firebase/firestore"
+import { db as _db } from "../config"
+import { collection } from "firebase/firestore"
+
+/**
+ * Create an agency document (admin helper).
+ * This creates a Firestore user document with role="agency" and returns the new document id.
+ */
+export async function createAgency(data: any): Promise<string> {
+  if (!_db) throw new Error("Firestore not initialized")
+  const payload = { ...data, role: "agency", createdAt: new Date(), updatedAt: new Date() }
+  const ref = await addDoc(collection(_db, "users"), payload)
+  return ref.id
+}
+
+/**
+ * Delete an agency (remove user document). Use with caution.
+ */
+export async function deleteAgency(agencyId: string): Promise<void> {
+  if (!_db) throw new Error("Firestore not initialized")
+  await deleteDoc(_doc(_db, "users", agencyId))
+}
+
+/**
+ * Create a user document (admin helper).
+ * NOTE: This only creates the Firestore user document — it does not create a Firebase Auth account.
+ * For production you should create the Auth user server-side and set the Firestore document id to the UID.
+ */
+export async function createUser(email: string, password: string, role: string, displayName?: string, extras: any = {}): Promise<string> {
+  if (!_db) throw new Error("Firestore not initialized")
+  const payload = {
+    email,
+    displayName: displayName || "",
+    role: role || "pilgrim",
+    onboardingCompleted: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...extras,
+  }
+  const ref = await addDoc(collection(_db, "users"), payload)
+  return ref.id
+}
+
+/**
+ * Create admin user (shortcut wrapper) — creates Firestore document with role=admin.
+ * See note on createUser about actual Auth creation.
+ */
+export async function createAdminUser(email: string, password: string, displayName?: string, extras: any = {}): Promise<string> {
+  return createUser(email, password, "admin", displayName, extras)
+}
+
+/**
+ * Delete user document
+ */
+export async function deleteUser(userId: string): Promise<void> {
+  if (!_db) throw new Error("Firestore not initialized")
+  await deleteDoc(_doc(_db, "users", userId))
+}
+
+/**
+ * Confirm a payment: mark as paid and optionally update related booking payment info.
+ */
+import { updatePaymentStatus as _updatePaymentStatus } from "./payment"
+import { updateBookingPayment as _updateBookingPayment } from "./booking"
+
+export async function confirmPayment(paymentId: string, opts?: { bookingId?: string; reference?: string }) {
+  // mark payment as paid
+  await _updatePaymentStatus(paymentId, "paid")
+
+  // if bookingId provided, update booking payment fields
+  if (opts?.bookingId) {
+    await _updateBookingPayment(opts.bookingId, {
+      paymentStatus: "paid",
+      paymentReference: opts.reference,
+      paymentMethod: "manual",
+    })
+  }
+}
+
+/**
+ * Agency verification helper (alias to verifyAgency/updateAgency)
+ */
+import { verifyAgency as _verifyAgency } from "./user"
+export async function updateAgencyVerification(agencyId: string): Promise<void> {
+  return _verifyAgency(agencyId)
+}
+
+/**
+ * Admin settings stored in a single document: collection `settings`, doc `admin`.
+ */
+import { getDoc, setDoc, doc as docRef } from "firebase/firestore"
+
+export async function getAdminSettings(): Promise<any> {
+  if (!_db) throw new Error("Firestore not initialized")
+  try {
+    const ref = docRef(_db, "settings", "admin")
+    const snap = await getDoc(ref)
+    if (!snap.exists()) return {}
+    return snap.data()
+  } catch (err) {
+    console.error("Error fetching admin settings:", err)
+    return {}
+  }
+}
+
+export async function updateAdminSettings(settings: any): Promise<void> {
+  if (!_db) throw new Error("Firestore not initialized")
+  try {
+    const ref = docRef(_db, "settings", "admin")
+    await setDoc(ref, { ...settings, updatedAt: new Date() }, { merge: true })
+  } catch (err) {
+    console.error("Error updating admin settings:", err)
+    throw err
+  }
+}
