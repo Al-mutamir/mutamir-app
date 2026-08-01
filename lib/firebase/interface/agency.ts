@@ -24,5 +24,6 @@ export interface Agency extends User {
     feeding: boolean
     localTransportation: boolean
     touristGuide: boolean
+    other?: boolean
   }
 }

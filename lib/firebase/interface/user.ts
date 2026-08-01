@@ -1,53 +1,79 @@
-// TypeScript interface for a user in the Firebase Firestore database
+// This file defines the User interface and related types for the application. It includes user roles, statuses, personal information, contact details, passport information, next of kin details, pilgrim preferences, agency information, and timestamps.
 
-import type { UserRole } from "@/context/auth-context"
+type UserRole = "pilgrim" | "agency" | "admin"
 
+type UserStatus = "unverified" | "verified" | "suspended"
+
+interface ServicesOffered {
+  ticketing: boolean
+  visaProcessing: boolean
+  accommodation: boolean
+  feeding: boolean
+  localTransportation: boolean
+  touristGuide: boolean
+  other?: boolean
+}
+
+interface NextOfKin {
+  fullName: string
+  relationship: string
+  phoneNumber: string
+  email?: string
+  address?: string
+}
 
 export interface User {
-  id?: string;
-  uid: string;
+  // Firebase / Account Identity
+  id?: string
+  uid: string
+  email: string
+  displayName?: string
+  photoURL?: string
 
-  email: string;
-  displayName?: string;
-  photoURL?: string;
+  // Account
+  role: UserRole
+  status?: UserStatus
+  onboardingCompleted: boolean
 
-  role?: UserRole; // Updated to use UserRole type from auth-context.tsx
+  // Personal Information
+  firstName?: string
+  lastName?: string
+  fullName?: string
+  gender?: string
+  age?: number
+  dateOfBirth?: string
 
-  // role: "admin" | "agency" | "pilgrim";
+  // Contact & Residence
+  phoneNumber?: string
+  alternativeEmail?: string
+  address?: string
+  cityOfResidence?: string
+  state?: string
+  countryOfResidence?: string
 
+  // Passport / Travel Information
+  passportNumber?: string
+  passportExpiry?: string
 
-  firstName?: string;
-  lastName?: string;
-  fullName?: string;
+  // Next of Kin
+  nextOfKin?: NextOfKin
 
-  // Agency fields
-  agencyName?: string;
-  handlerFirstName?: string;
-  handlerLastName?: string;
-  handlerFullName?: string;
-  managerName?: string;
+  // Pilgrim Preferences
+  preferences?: unknown
 
-  phoneNumber?: string;
-  alternativeEmail?: string;
+  // Agency Information
+  agencyName?: string
+  managerName?: string
+  handlerFirstName?: string
+  handlerLastName?: string
+  handlerFullName?: string
+  countryOfOperation?: string
+  cityOfOperation?: string
+  averagePilgrimsPerYear?: number
+  servicesOffered?: ServicesOffered
 
-  countryOfOperation?: string;
-  cityOfOperation?: string;
-
-  // Pilgrim fields
-  passportNumber?: string;
-  countryOfResidence?: string;
-  cityOfResidence?: string;
-  gender?: string;
-  age?: number;
-
-  nextOfKin?: string;
-  nextOfKinPhone?: string;
-  nextOfKinEmail?: string;
-
-  // Common fields
-  status?: "unverified" | "verified" | "suspended";
-  onboardingCompleted?: boolean;
-
-  createdAt?: any;
-  updatedAt?: any;
+  // Timestamps
+  createdAt?: unknown
+  updatedAt?: unknown
 }
+

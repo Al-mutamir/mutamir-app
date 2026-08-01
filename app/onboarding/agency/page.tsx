@@ -9,11 +9,19 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Stepper, type Step } from "@/components/ui/stepper"
 import { useMediaQuery } from "@/hooks/use-media-query"
+
+type ServiceOption =
+  | "ticketing"
+  | "visaProcessing"
+  | "accommodation"
+  | "feeding"
+  | "transportation"
+  | "other"
 
 interface FormData {
   agencyName: string
@@ -30,7 +38,10 @@ interface FormData {
     feeding: boolean
     localTransportation: boolean
     touristGuide: boolean
+    other?: boolean
   }
+  selectedService: ServiceOption | ""
+  otherService?: string
   status?: string // Add status property to match the expected object
 }
 
@@ -56,9 +67,33 @@ export default function AgencyOnboarding() {
       feeding: false,
       localTransportation: false,
       touristGuide: false,
+      other: false,
     },
+    selectedService: "",
+    otherService: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const getSelectedService = (servicesOffered: FormData["servicesOffered"]): ServiceOption | "" => {
+    if (servicesOffered.ticketing) return "ticketing"
+    if (servicesOffered.visaProcessing) return "visaProcessing"
+    if (servicesOffered.accommodation) return "accommodation"
+    if (servicesOffered.feeding) return "feeding"
+    if (servicesOffered.localTransportation) return "transportation"
+    if (servicesOffered.other) return "other"
+    if (servicesOffered.touristGuide) return "other"
+    return ""
+  }
+
+  const buildServicesOffered = (selectedService: ServiceOption): FormData["servicesOffered"] => ({
+    ticketing: selectedService === "ticketing",
+    visaProcessing: selectedService === "visaProcessing",
+    accommodation: selectedService === "accommodation",
+    feeding: selectedService === "feeding",
+    localTransportation: selectedService === "transportation",
+    touristGuide: false,
+    other: selectedService === "other",
+  })
 
   const steps: Step[] = [
     {
@@ -85,6 +120,16 @@ export default function AgencyOnboarding() {
         const userData = await getUserData(user.uid)
         if (userData) {
           // Pre-fill the form with existing data if available
+          const existingServices = userData.servicesOffered || {
+            ticketing: false,
+            visaProcessing: false,
+            accommodation: false,
+            feeding: false,
+            localTransportation: false,
+            touristGuide: false,
+            other: false,
+          }
+
           setFormData({
             agencyName: userData.agencyName || "",
             managerName: userData.managerName || user?.displayName || "",
@@ -93,14 +138,9 @@ export default function AgencyOnboarding() {
             phoneNumber: userData.phoneNumber || "",
             alternativeEmail: userData.alternativeEmail || "",
             averagePilgrimsPerYear: userData.averagePilgrimsPerYear?.toString() || "",
-            servicesOffered: userData.servicesOffered || {
-              ticketing: false,
-              visaProcessing: false,
-              accommodation: false,
-              feeding: false,
-              localTransportation: false,
-              touristGuide: false,
-            },
+            servicesOffered: existingServices,
+            selectedService: getSelectedService(existingServices),
+            otherService: userData.otherService || "",
           })
         }
       }
@@ -116,13 +156,12 @@ export default function AgencyOnboarding() {
     }))
   }
 
-  const handleServiceChange = (service: keyof FormData["servicesOffered"]) => {
+  const handleServiceChange = (service: ServiceOption) => {
     setFormData((prev) => ({
       ...prev,
-      servicesOffered: {
-        ...prev.servicesOffered,
-        [service]: !prev.servicesOffered[service],
-      },
+      selectedService: service,
+      otherService: service === "other" ? prev.otherService : "",
+      servicesOffered: buildServicesOffered(service),
     }))
   }
 
@@ -145,7 +184,14 @@ export default function AgencyOnboarding() {
     try {
       const payload: any = {
         ...formData,
+        servicesOffered: buildServicesOffered(formData.selectedService || ""),
         onboardingCompleted: true,
+      }
+
+      delete payload.selectedService
+
+      if (formData.selectedService !== "other") {
+        delete payload.otherService
       }
 
       // Ensure numeric fields have correct types expected by Firestore helper
@@ -286,63 +332,55 @@ export default function AgencyOnboarding() {
           <div className="space-y-6">
             <div className="space-y-2">
               <Label className="text-base font-medium">Services Offered</Label>
-              <p className="text-sm text-gray-500">Select all the services your agency provides</p>
+              <p className="text-sm text-gray-500">Select the primary service your agency provides</p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <RadioGroup
+                value={formData.selectedService}
+                onValueChange={(value) => handleServiceChange(value as ServiceOption)}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4"
+              >
                 <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="ticketing"
-                    checked={formData.servicesOffered.ticketing}
-                    onCheckedChange={() => handleServiceChange("ticketing")}
-                  />
+                  <RadioGroupItem value="ticketing" id="ticketing" />
                   <Label htmlFor="ticketing">Ticketing</Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="visaProcessing"
-                    checked={formData.servicesOffered.visaProcessing}
-                    onCheckedChange={() => handleServiceChange("visaProcessing")}
-                  />
+                  <RadioGroupItem value="visaProcessing" id="visaProcessing" />
                   <Label htmlFor="visaProcessing">Visa Processing</Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="accommodation"
-                    checked={formData.servicesOffered.accommodation}
-                    onCheckedChange={() => handleServiceChange("accommodation")}
-                  />
+                  <RadioGroupItem value="accommodation" id="accommodation" />
                   <Label htmlFor="accommodation">Accommodation</Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="feeding"
-                    checked={formData.servicesOffered.feeding}
-                    onCheckedChange={() => handleServiceChange("feeding")}
-                  />
+                  <RadioGroupItem value="feeding" id="feeding" />
                   <Label htmlFor="feeding">Feeding</Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="localTransportation"
-                    checked={formData.servicesOffered.localTransportation}
-                    onCheckedChange={() => handleServiceChange("localTransportation")}
-                  />
-                  <Label htmlFor="localTransportation">Local Transportation</Label>
+                  <RadioGroupItem value="transportation" id="transportation" />
+                  <Label htmlFor="transportation">Transportation</Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="touristGuide"
-                    checked={formData.servicesOffered.touristGuide}
-                    onCheckedChange={() => handleServiceChange("touristGuide")}
-                  />
-                  <Label htmlFor="touristGuide">Tourist Guide</Label>
+                  <RadioGroupItem value="other" id="other" />
+                  <Label htmlFor="other">Others</Label>
                 </div>
-              </div>
+              </RadioGroup>
+
+              {formData.selectedService === "other" && (
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="otherService">Other Service</Label>
+                  <Input
+                    id="otherService"
+                    value={formData.otherService}
+                    onChange={(e) => setFormData({ ...formData, otherService: e.target.value })}
+                    placeholder="Describe the other service offered"
+                  />
+                </div>
+              )}
             </div>
           </div>
         )

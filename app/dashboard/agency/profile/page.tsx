@@ -30,7 +30,6 @@ export default function AgencyProfilePage() {
     countryOfOperation: "",
     phoneNumber: "",
     alternativeEmail: "",
-    website: "",
     licenseNumber: "",
     yearsInOperation: "",
     averagePilgrimsPerYear: "",
@@ -56,12 +55,14 @@ export default function AgencyProfilePage() {
 
         if (docSnap.exists()) {
           const data = docSnap.data()
+          const { website, ...profileData } = data || {}
+
           setProfile((prev) => ({
             ...prev,
-            ...data,
-            agencyName: data.agencyName || data.displayName || "",
-            alternativeEmail: data.alternativeEmail || data.email || "",
-            publicProfile: data.publicProfile !== false, // default to true
+            ...profileData,
+            agencyName: profileData.agencyName || profileData.displayName || "",
+            alternativeEmail: profileData.alternativeEmail || profileData.email || "",
+            publicProfile: profileData.publicProfile !== false, // default to true
           }))
         }
       } catch (error) {
@@ -279,16 +280,6 @@ export default function AgencyProfilePage() {
                         type="number"
                         value={profile.averagePilgrimsPerYear}
                         onChange={(e) => setProfile({ ...profile, averagePilgrimsPerYear: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="website">Website</Label>
-                      <Input
-                        id="website"
-                        type="url"
-                        value={profile.website}
-                        onChange={(e) => setProfile({ ...profile, website: e.target.value })}
-                        placeholder="https://example.com"
                       />
                     </div>
                   </div>
