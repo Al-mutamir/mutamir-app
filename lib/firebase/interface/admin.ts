@@ -20,6 +20,20 @@ export interface AdminStats {
   agencies?: Agency[];
   packages?: Package[];
   payments?: Payment[];
+
+  // Aggregations
+  bookingsByStatus?: BookingStats;
+  revenue?: RevenueStats;
+  paymentsByStatus?: {
+    pending: number;
+    paid: number;
+    failed: number;
+    refunded: number;
+  };
+
+  topAgencies?: { agencyId: string; agencyName?: string; revenue: number; bookings: number }[];
+
+  userStats?: UserStats;
 }
 
 /**
