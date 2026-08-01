@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { Bell, BellOff, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/context/auth-context"
-import { db } from "@/lib/firebase/firebase"
+import { db } from "@/lib/firebase/config"
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore"
 
 export function NotificationBell() {

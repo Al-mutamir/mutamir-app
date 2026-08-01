@@ -1,509 +1,686 @@
+
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react"
 import { useRouter } from "next/navigation"
+
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  updateProfile,
-  sendPasswordResetEmail,
   GoogleAuthProvider,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
   signInWithPopup,
+  signOut,
+  updateProfile,
+  type User as FirebaseUser,
 } from "firebase/auth"
+
 import { auth } from "@/lib/firebase/config"
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase/config"
-import { serverTimestamp } from "firebase/firestore"; // Import serverTimestamp
+import type { User } from "@/lib/firebase/interface/user"
 
-export type UserRole = "pilgrim" | "agency" | "admin" | null
+import {
+  createUser,
+  getUserById,
+  updateUserRole as updateUserRoleService,
+} from "@/lib/firebase/services/user"
 
-import type { User } from "@/lib/firebase/interface/user";
+type UserRole = User["role"] | null
 
-export interface AuthUser
-  extends Pick<
-    User,
-    | "uid"
-    | "email"
-    | "displayName"
-    | "photoURL"
-    | "role"
-    | "agencyName"
-    | "phoneNumber"
-    | "passportNumber"
-    | "gender"
-    | "onboardingCompleted"
-  > {
-  adminRole?: string;
-}
-
-// Define context type
-type AuthContextType = {
-  user: AuthUser | null
+interface AuthContextType {
+  user: User | null
   loading: boolean
-  signUp: (email: string, password: string, role: UserRole, displayName?: string, gender?: string) => Promise<any>
-  signIn: (email: string, password: string) => Promise<any>
-  // MODIFIED: signInWithGoogle now accepts a selectedRole
-  signInWithGoogle: (selectedRole: UserRole) => Promise<any>
+
+  signUp: (
+    email: string,
+    password: string,
+    role: User["role"],
+    displayName: string,
+    gender?: string
+  ) => Promise<FirebaseUser>
+
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<FirebaseUser>
+
+  signInWithGoogle: (
+    selectedRole: User["role"]
+  ) => Promise<FirebaseUser>
+
   logout: () => Promise<void>
+
   resetPassword: (email: string) => Promise<void>
-  updateUserRole: (role: UserRole) => Promise<void>
+
+  updateUserRole: (role: User["role"]) => Promise<void>
+
   userRole: UserRole
 }
 
-// Create context
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<
+  AuthContextType | undefined
+>(undefined)
 
-// Firestore helpers
-const getUserData = async (uid: string) => {
-  if (!db) {
-    console.error("Firestore not initialized")
-    return null
-  }
-
-  try {
-    const userDoc = await getDoc(doc(db, "users", uid))
-    if (userDoc.exists()) {
-      return userDoc.data()
-    }
-    return null
-  } catch (error) {
-    console.error("Error getting user data:", error)
-    return null
-  }
-}
-
-const setUserData = async (uid: string, data: any) => {
-  if (!db) {
-    console.error("Firestore not initialized")
-    return
-  }
-
-  try {
-    await setDoc(doc(db, "users", uid), data, { merge: true }) // Use merge: true to avoid overwriting
-  } catch (error) {
-    console.error("Error setting user data:", error)
-    throw error
-  }
-}
-
-const updateUserRole = async (uid: string, role: UserRole) => {
-  if (!db) {
-    console.error("Firestore not initialized")
-    return
-  }
-
-  try {
-    await updateDoc(doc(db, "users", uid), { role })
-  } catch (error) {
-    console.error("Error updating user role:", error)
-    throw error
-  }
-}
-
-// Create provider component
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
+export function AuthProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [userRole, setUserRole] = useState<UserRole>(null)
+
   const router = useRouter()
 
-  // Listen for auth state changes
-  useEffect(() => {
-    let unsubscribe = () => {}
+  /**
+   * Load the Al-Mutamir application user from Firestore.
+   *
+   * Firebase Authentication is the source of truth for:
+   * - uid
+   * - email
+   * - displayName
+   * - photoURL
+   *
+   * Firestore is the source of truth for:
+   * - role
+   * - status
+   * - onboardingCompleted
+   * - application-specific profile data
+   */
+  const loadUser = async (
+    firebaseUser: FirebaseUser
+  ): Promise<User | null> => {
+    const userData = await getUserById(
+      firebaseUser.uid
+    )
 
-    if (auth) {
-      const authStateListener = onAuthStateChanged(auth, async (currentUser) => {
-        if (currentUser) {
-          try {
-            // Get user data from Firestore
-            const userData = await getUserData(currentUser.uid)
+    if (!userData) {
+      return null
+    }
 
-            // Check if email is from almutamir.com domain (admin)
-            const isAdminEmail = currentUser.email?.endsWith("@almutamir.com") || false
+    /**
+     * Build the application user without introducing
+     * undefined values where possible.
+     */
+    return {
+      ...userData,
 
-            if (userData) {
-              // User exists in Firestore, set role from Firestore data
-              const userWithRole: AuthUser = {
-                uid: currentUser.uid,
-                email: currentUser.email ?? "",
-                displayName: currentUser.displayName || userData.displayName,
-                photoURL: currentUser.photoURL ?? "",
-                role: isAdminEmail ? "admin" : userData.role, // Admin role takes precedence
-                onboardingCompleted: userData.onboardingCompleted || false,
-                gender: userData.gender || "male",
-                adminRole: userData.adminRole,
-              }
+      uid: firebaseUser.uid,
 
-              setUser(userWithRole)
-              setUserRole(isAdminEmail ? "admin" : userData.role)
+      ...(firebaseUser.email
+        ? { email: firebaseUser.email }
+        : {}),
 
-              // Store user role in a cookie for middleware access
-              document.cookie = `user-role=${isAdminEmail ? "admin" : userData.role || ""}; path=/; max-age=86400`
-              document.cookie = `onboarding-completed=${userData.onboardingCompleted ? "true" : "false"}; path=/; max-age=86400`
-            } else {
-              // User doesn't exist in Firestore yet (might be a new social login)
-              // Set default role as null until explicitly set, or admin if from almutamir.com domain
-              const initialRole = isAdminEmail ? "admin" : null; // Keep role null for new non-admin social logins
-              setUser({
-                uid: currentUser.uid,
-                email: currentUser.email ?? "",
-                displayName: currentUser.displayName ?? "",
-                photoURL: currentUser.photoURL ?? "",
-                role: initialRole,
-                onboardingCompleted: false,
-                gender: "male",
-              })
-              setUserRole(initialRole)
-
-              // Store user role in a cookie for middleware access
-              document.cookie = `user-role=${initialRole || ""}; path=/; max-age=86400`
-              document.cookie = "onboarding-completed=false; path=/; max-age=86400"
-            }
-          } catch (error) {
-            console.error("Error fetching user data:", error)
-
-            // Check if email is from almutamir.com domain (admin)
-            const isAdminEmail = currentUser.email?.endsWith("@almutamir.com") || false
-
-            setUser({
-              uid: currentUser.uid,
-              email: currentUser.email ?? "",
-              displayName: currentUser.displayName ?? "",
-              photoURL: currentUser.photoURL ?? "",
-              role: isAdminEmail ? "admin" : null,
-              onboardingCompleted: false,
-              gender: "male",
-            })
-            setUserRole(isAdminEmail ? "admin" : null)
-
-            // Store user role in a cookie for middleware access
-            document.cookie = `user-role=${isAdminEmail ? "admin" : ""}; path=/; max-age=86400`
-            document.cookie = "onboarding-completed=false; path=/; max-age=86400"
+      ...(firebaseUser.displayName
+        ? {
+            displayName:
+              firebaseUser.displayName,
           }
-        } else {
-          setUser(null)
-          setUserRole(null)
+        : {}),
 
-          // Clear role cookies
-          document.cookie = "user-role=; path=/; max-age=0"
-          document.cookie = "onboarding-completed=; path=/; max-age=0"
-        }
-        setLoading(false)
-      })
+      ...(firebaseUser.photoURL
+        ? {
+            photoURL:
+              firebaseUser.photoURL,
+          }
+        : {}),
+    }
+  }
 
-      unsubscribe = authStateListener
-    } else {
+  /**
+   * Listen for Firebase Authentication state changes.
+   */
+  useEffect(() => {
+    if (!auth) {
       console.error("Auth not initialized")
       setLoading(false)
+      return
     }
 
-    return () => unsubscribe()
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (firebaseUser) => {
+        setLoading(true)
+
+        try {
+          if (!firebaseUser) {
+            setUser(null)
+            return
+          }
+
+          const userData =
+            await loadUser(firebaseUser)
+
+          if (!userData) {
+            /**
+             * Firebase Auth account exists but there is
+             * no corresponding Firestore user document.
+             *
+             * Do not invent a role or create an
+             * application user here.
+             */
+            console.warn(
+              `No Firestore user found for Firebase UID: ${firebaseUser.uid}`
+            )
+
+            setUser(null)
+            return
+          }
+
+          setUser(userData)
+        } catch (error) {
+          console.error(
+            "Error loading authenticated user:",
+            error
+          )
+
+          setUser(null)
+        } finally {
+          setLoading(false)
+        }
+      }
+    )
+
+    return unsubscribe
   }, [])
 
-  // Sign up function
-  const signUp = async (email: string, password: string, role: UserRole, displayName?: string, gender = "male") => {
+  /**
+   * Email/password registration.
+   *
+   * Creates:
+   * 1. Firebase Authentication account
+   * 2. One corresponding Firestore users/{uid} document
+   *
+   * firstName and lastName are REQUIRED.
+   */
+  const signUp = async (
+    email: string,
+    password: string,
+    role: User["role"],
+    displayName: string,
+    gender?: string
+  ): Promise<FirebaseUser> => {
     if (!auth) {
       throw new Error("Auth not initialized")
     }
 
+    /**
+     * Validate required fields here as well as on the
+     * registration page.
+     *
+     * This protects the AuthContext from being called
+     * incorrectly from another component.
+     */
+    const trimmedEmail = email.trim()
+    const trimmedDisplayName =
+      displayName.trim()
+
+    if (!trimmedEmail) {
+      throw new Error("Email is required.")
+    }
+
+    if (!password) {
+      throw new Error("Password is required.")
+    }
+
+    if (!trimmedDisplayName) {
+      throw new Error(
+        "First name and last name are required."
+      )
+    }
+
+    /**
+     * Split display name into first and last name.
+     */
+    const nameParts =
+      trimmedDisplayName
+        .split(/\s+/)
+        .filter(Boolean)
+
+    const firstName = nameParts[0]
+
+    const lastName =
+      nameParts.length > 1
+        ? nameParts
+            .slice(1)
+            .join(" ")
+        : ""
+
+    /**
+     * First name and last name are mandatory.
+     *
+     * This should never happen when called from the
+     * current registration page, but we enforce it
+     * here too.
+     */
+    if (!firstName || !lastName) {
+      throw new Error(
+        "First name and last name are required."
+      )
+    }
+
     try {
       setLoading(true)
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      const newUser = userCredential.user
 
-      // Set display name if provided
-      if (displayName && auth.currentUser) {
-        await updateProfile(auth.currentUser, { displayName })
-      }
+      /**
+       * Create Firebase Authentication account.
+       */
+      const userCredential =
+        await createUserWithEmailAndPassword(
+          auth,
+          trimmedEmail,
+          password
+        )
 
-      // Check if email is from almutamir.com domain (admin)
-      const isAdminEmail = email.endsWith("@almutamir.com")
-      const userFinalRole = isAdminEmail ? "admin" : role // Use a different variable name to avoid confusion
+      const firebaseUser =
+        userCredential.user
 
-      // Parse displayName into firstName/lastName when available
-      let firstName: string | null = null
-      let lastName: string | null = null
-      if (displayName) {
-        const parts = displayName.trim().split(" ")
-        firstName = parts[0] || null
-        lastName = parts.slice(1).join(" ") || null
-      }
-
-      // Store user data in Firestore
-      await setUserData(newUser.uid, {
-        uid: newUser.uid,
-        email: newUser.email,
-        displayName: displayName || null,
-        firstName: firstName,
-        lastName: lastName,
-        role: userFinalRole, // Use the determined final role
-        photoURL: newUser.photoURL,
-        onboardingCompleted: false,
-        gender: gender,
-        createdAt: serverTimestamp(), // Add timestamp
+      /**
+       * Update Firebase display name.
+       */
+      await updateProfile(firebaseUser, {
+        displayName:
+          trimmedDisplayName,
       })
 
-      setUserRole(userFinalRole)
+      /**
+       * Create the Firestore user.
+       *
+       * IMPORTANT:
+       * Never include undefined values in Firestore data.
+       */
+      const newUser: Omit<User, "id"> = {
+        uid: firebaseUser.uid,
 
-      // Store user role in a cookie for middleware access
-      document.cookie = `user-role=${userFinalRole || ""}; path=/; max-age=86400`
-      document.cookie = "onboarding-completed=false; path=/; max-age=86400"
+        email:
+          firebaseUser.email ??
+          trimmedEmail,
 
-      return userCredential
+        displayName:
+          firebaseUser.displayName ??
+          trimmedDisplayName,
+
+        role,
+
+        status: "unverified",
+
+        onboardingCompleted: false,
+
+        firstName,
+
+        lastName,
+
+        ...(firebaseUser.photoURL
+          ? {
+              photoURL:
+                firebaseUser.photoURL,
+            }
+          : {}),
+
+        ...(gender?.trim()
+          ? {
+              gender: gender.trim(),
+            }
+          : {}),
+      }
+
+      /**
+       * This is the ONLY initial Firestore
+       * user creation.
+       */
+      await createUser(newUser)
+
+      /**
+       * Keep local AuthContext state synchronized
+       * immediately.
+       */
+      setUser({
+        ...newUser,
+        id: firebaseUser.uid,
+      })
+
+      return firebaseUser
     } catch (error) {
-      console.error("Error signing up:", error)
+      console.error(
+        "Error signing up:",
+        error
+      )
+
       throw error
     } finally {
       setLoading(false)
     }
   }
 
-  // Sign in function
-  const signIn = async (email: string, password: string) => {
+  /**
+   * Email/password sign in.
+   *
+   * Firebase Authentication handles authentication.
+   * The Firestore user document is loaded by
+   * onAuthStateChanged.
+   */
+  const signIn = async (
+    email: string,
+    password: string
+  ): Promise<FirebaseUser> => {
     if (!auth) {
       throw new Error("Auth not initialized")
     }
 
     try {
       setLoading(true)
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
 
-      // Check if email is from almutamir.com domain (admin)
-      const isAdminEmail = email.endsWith("@almutamir.com")
+      const userCredential =
+        await signInWithEmailAndPassword(
+          auth,
+          email.trim(),
+          password
+        )
 
-      // Get user data from Firestore
-      const userData = await getUserData(userCredential.user.uid)
-
-      if (userData) {
-        // If email is from almutamir.com, set role to admin regardless of what's in Firestore
-        const role = isAdminEmail ? "admin" : userData.role
-        setUserRole(role)
-
-        // Store user role in a cookie for middleware access
-        document.cookie = `user-role=${role || ""}; path=/; max-age=86400`
-        document.cookie = `onboarding-completed=${userData.onboardingCompleted ? "true" : "false"}; path=/; max-age=86400`
-
-        // Add role to the user object for easier access
-        ;(userCredential.user as any).role = role
-        ;(userCredential.user as any).onboardingCompleted = userData.onboardingCompleted || false
-        ;(userCredential.user as any).gender = userData.gender || "male"
-        ;(userCredential.user as any).adminRole = userData.adminRole
-      } else if (isAdminEmail) {
-        // New admin user, create entry in Firestore
-        await setUserData(userCredential.user.uid, {
-          uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          displayName: userCredential.user.displayName,
-          role: "admin",
-          photoURL: userCredential.user.photoURL,
-          onboardingCompleted: false,
-          gender: "male",
-          createdAt: serverTimestamp(), // Add timestamp
-        })
-
-        setUserRole("admin")
-
-        // Store user role in a cookie for middleware access
-        document.cookie = "user-role=admin; path=/; max-age=86400"
-        document.cookie = "onboarding-completed=false; path=/; max-age=86400"
-
-        // Add role to the user object for easier access
-        ;(userCredential.user as any).role = "admin"
-        ;(userCredential.user as any).onboardingCompleted = false
-      }
-
-      return userCredential
+      return userCredential.user
     } catch (error) {
-      console.error("Error signing in:", error)
+      console.error(
+        "Error signing in:",
+        error
+      )
+
       throw error
     } finally {
       setLoading(false)
     }
   }
 
-  // Sign in with Google
-  // MODIFIED: signInWithGoogleAuth now accepts selectedRole
-  const signInWithGoogleAuth = async (selectedRole: UserRole) => {
+  /**
+   * Google sign in / registration.
+   *
+   * Existing users keep their existing Firestore role.
+   *
+   * New Google users require a selected role and
+   * receive an initial Firestore user document.
+   */
+  const signInWithGoogle = async (
+    selectedRole: User["role"]
+  ): Promise<FirebaseUser> => {
     if (!auth) {
       throw new Error("Auth not initialized")
     }
 
     try {
       setLoading(true)
-      const provider = new GoogleAuthProvider()
-      const result = await signInWithPopup(auth, provider)
-      const user = result.user
 
-      // Check if email is from almutamir.com domain (admin)
-      const isAdminEmail = user.email?.endsWith("@almutamir.com") || false
+      const provider =
+        new GoogleAuthProvider()
 
-      // Check if user exists in Firestore
-      const userData = await getUserData(user.uid)
+      const result =
+        await signInWithPopup(
+          auth,
+          provider
+        )
 
-      if (!userData) {
-        // First time login with Google, create user in Firestore with the selected role
-        // If email is from almutamir.com, set role to admin (admin role takes precedence)
-        const roleToSet = isAdminEmail ? "admin" : selectedRole || "pilgrim"; // Default to pilgrim if selectedRole is null
+      const firebaseUser =
+        result.user
 
-        await setUserData(user.uid, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          role: roleToSet, // Use the selected/determined role
-          photoURL: user.photoURL,
-          onboardingCompleted: false,
-          gender: "male", // Default gender
-          createdAt: serverTimestamp(), // Add timestamp
-        })
+      /**
+       * Check whether this Firebase account
+       * already has an Al-Mutamir user document.
+       */
+      const existingUser =
+        await getUserById(
+          firebaseUser.uid
+        )
 
-        setUserRole(roleToSet)
-
-        // Store user role in a cookie for middleware access
-        document.cookie = `user-role=${roleToSet || ""}; path=/; max-age=86400`
-        document.cookie = "onboarding-completed=false; path=/; max-age=86400"
-
-        // Add role to the user object for easier access
-        ;(user as any).role = roleToSet
-        ;(user as any).onboardingCompleted = false
-        ;(user as any).gender = "male"
-      } else {
-        // User exists in Firestore, just update the local state and cookies
-        // If email is from almutamir.com, set role to admin regardless of what's in Firestore
-        const role = isAdminEmail ? "admin" : userData.role
-        setUserRole(role)
-
-        // Store user role in a cookie for middleware access
-        document.cookie = `user-role=${role || ""}; path=/; max-age=86400`
-        document.cookie = `onboarding-completed=${userData.onboardingCompleted ? "true" : "false"}; path=/; max-age=86400`
-
-        // Add role to the user object for easier access
-        ;(user as any).role = role
-        ;(user as any).onboardingCompleted = userData.onboardingCompleted || false
-        ;(user as any).gender = userData.gender || "male"
-        ;(user as any).adminRole = userData.adminRole
+      /**
+       * Existing application user.
+       *
+       * NEVER overwrite their role with the role
+       * selected during another Google login.
+       */
+      if (existingUser) {
+        return firebaseUser
       }
 
-      return result
+      /**
+       * New Google account.
+       *
+       * A valid application role is required.
+       */
+      if (
+        selectedRole !== "pilgrim" &&
+        selectedRole !== "agency" &&
+        selectedRole !== "admin"
+      ) {
+        throw new Error(
+          "A valid account role is required for Google registration."
+        )
+      }
+
+      /**
+       * Google may or may not provide a display name.
+       *
+       * Since firstName and lastName are required,
+       * we cannot create a valid application user
+       * unless Google provides a usable full name.
+       */
+      const displayName =
+        firebaseUser.displayName?.trim()
+
+      if (!displayName) {
+        throw new Error(
+          "Google did not provide your name. Please complete registration with your first and last name."
+        )
+      }
+
+      const nameParts =
+        displayName
+          .split(/\s+/)
+          .filter(Boolean)
+
+      const firstName =
+        nameParts[0]
+
+      const lastName =
+        nameParts.length > 1
+          ? nameParts
+              .slice(1)
+              .join(" ")
+          : ""
+
+      /**
+       * First and last name are mandatory.
+       */
+      if (!firstName || !lastName) {
+        throw new Error(
+          "Google registration requires both a first name and a last name."
+        )
+      }
+
+      /**
+       * Create Firestore user.
+       *
+       * IMPORTANT:
+       * Optional Firebase fields are conditionally
+       * added so Firestore never receives undefined.
+       */
+      const newUser: Omit<User, "id"> = {
+        uid: firebaseUser.uid,
+
+        email:
+          firebaseUser.email ?? "",
+
+        displayName,
+
+        role: selectedRole,
+
+        status: "unverified",
+
+        onboardingCompleted: false,
+
+        firstName,
+
+        lastName,
+
+        ...(firebaseUser.photoURL
+          ? {
+              photoURL:
+                firebaseUser.photoURL,
+            }
+          : {}),
+      }
+
+      /**
+       * Create exactly one Firestore user document.
+       */
+      await createUser(newUser)
+
+      /**
+       * Synchronize local state.
+       */
+      setUser({
+        ...newUser,
+        id: firebaseUser.uid,
+      })
+
+      return firebaseUser
     } catch (error) {
-      console.error("Error signing in with Google:", error)
+      console.error(
+        "Error signing in with Google:",
+        error
+      )
+
       throw error
     } finally {
       setLoading(false)
     }
   }
 
-  // Logout function
-  const logout = async () => {
+  /**
+   * Logout.
+   */
+  const logout = async (): Promise<void> => {
     if (!auth) {
       throw new Error("Auth not initialized")
     }
 
     try {
       await signOut(auth)
-      setUserRole(null)
 
-      // Clear role cookies
-      document.cookie = "user-role=; path=/; max-age=0"
-      document.cookie = "onboarding-completed=; path=/; max-age=0"
+      setUser(null)
 
       router.push("/")
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error(
+        "Error signing out:",
+        error
+      )
+
       throw error
     }
   }
 
-  // Reset password function
-  const resetPassword = async (email: string) => {
+  /**
+   * Password reset.
+   */
+  const resetPassword = async (
+    email: string
+  ): Promise<void> => {
     if (!auth) {
       throw new Error("Auth not initialized")
     }
 
     try {
-      await sendPasswordResetEmail(auth, email)
+      await sendPasswordResetEmail(
+        auth,
+        email.trim()
+      )
     } catch (error) {
-      console.error("Error resetting password:", error)
+      console.error(
+        "Error resetting password:",
+        error
+      )
+
       throw error
     }
   }
 
-  // Update user role function
-  const updateUserRoleFunc = async (role: UserRole) => {
-    if (user) {
-      try {
-        // Update role in Firestore
-        await updateUserRole(user.uid, role)
-        setUserRole(role)
+  /**
+   * Update the authenticated user's role.
+   *
+   * Role changes should only happen through
+   * authorized account-management functionality.
+   */
+  const updateUserRole = async (
+    role: User["role"]
+  ): Promise<void> => {
+    if (!user) {
+      throw new Error(
+        "No authenticated user"
+      )
+    }
 
-        // Update local user state
-        setUser((prev) => (prev ? { ...prev, role } : null))
+    try {
+      await updateUserRoleService(
+        user.uid,
+        role
+      )
 
-        // Update role cookie
-        document.cookie = `user-role=${role || ""}; path=/; max-age=86400`
-      } catch (error) {
-        console.error("Error updating user role:", error)
-        throw error
-      }
+      setUser((currentUser) =>
+        currentUser
+          ? {
+              ...currentUser,
+              role,
+            }
+          : null
+      )
+    } catch (error) {
+      console.error(
+        "Error updating user role:",
+        error
+      )
+
+      throw error
     }
   }
 
-  // Create context value
-  const value = {
+  const value: AuthContextType = {
     user,
     loading,
+
     signUp,
     signIn,
-    signInWithGoogle: signInWithGoogleAuth, // Reference the modified function
+    signInWithGoogle,
+
     logout,
     resetPassword,
-    updateUserRole: updateUserRoleFunc,
-    userRole,
+
+    updateUserRole,
+
+    userRole:
+      user?.role ?? null,
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-// Create hook for using auth context
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
-}
-
-// Client-side role handler component
-export function ClientRoleHandler({ children }: { children: React.ReactNode }) {
-  const { user, userRole, updateUserRole } = useAuth()
-  const [isProcessing, setIsProcessing] = useState(false)
-
-  useEffect(() => {
-    // Get role from URL query parameter
-    // Only process if user exists, not already processing, and current userRole is null
-    // This null check is important for new social sign-ups where role hasn't been explicitly set yet
-    if (typeof window !== "undefined" && user && !isProcessing && userRole === null) {
-      const params = new URLSearchParams(window.location.search)
-      const roleParam = params.get("role") as UserRole
-
-      // If a role is in the URL and it's different from the current user's (null for new social)
-      if (roleParam && roleParam !== userRole) { // Also ensure roleParam is not null
-        setIsProcessing(true)
-        updateUserRole(roleParam).finally(() => setIsProcessing(false))
-      }
-    }
-  }, [user, userRole, updateUserRole, isProcessing])
-
-  return <>{children}</>
-}
-
-// Create a wrapper component that includes the RoleHandler
-export function AuthProviderWithRoleHandler({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <ClientRoleHandler>{children}</ClientRoleHandler>
-    </AuthProvider>
+    <AuthContext.Provider
+      value={value}
+    >
+      {children}
+    </AuthContext.Provider>
   )
+}
+
+export function useAuth(): AuthContextType {
+  const context =
+    useContext(AuthContext)
+
+  if (!context) {
+    throw new Error(
+      "useAuth must be used within an AuthProvider"
+    )
+  }
+
+  return context
 }

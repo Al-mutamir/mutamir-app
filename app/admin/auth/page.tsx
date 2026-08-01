@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { signInWithEmailAndPassword, getAuth } from "firebase/auth"
-import { getUserData } from "@/firebase/firestore"
+import { getUserData } from "@/lib/firebase/firestore"
 
 export default function AdminAuthPage() {
   const [email, setEmail] = useState("")

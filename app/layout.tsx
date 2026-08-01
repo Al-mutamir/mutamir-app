@@ -3,7 +3,7 @@ import "@/app/globals.css"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
-import { AuthProviderWithRoleHandler } from "@/context/auth-context"
+import { AuthProvider } from "@/context/auth-context"
 import { SiteHeader } from "@/components/site-header"
 import { Footer } from "@/components/footer"
 import { GoogleAnalytics } from '@next/third-parties/google'
@@ -101,13 +101,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <Analytics />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <AuthProviderWithRoleHandler>
+          <AuthProvider>
             <SiteHeader />
             <main>{children}</main>
             <Footer />
-          </AuthProviderWithRoleHandler>
+          </AuthProvider>
         </ThemeProvider>
-        <GoogleAnalytics strategy="afterInteractive" gaId={process.env.NEXT_PUBLIC_GA_ID || 'G-79E3MHKNQD'} />
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || 'G-79E3MHKNQD'} />
       </body>
     
     </html>

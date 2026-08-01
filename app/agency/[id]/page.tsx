@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getDoc, doc } from "firebase/firestore"
-import { db } from "@/lib/firebase/firebase"
+import { db } from "@/lib/firebase/config"
 import {
   BuildingIcon,
   Calendar,
