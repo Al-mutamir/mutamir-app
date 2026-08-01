@@ -51,7 +51,7 @@ interface AuthContextType {
   ) => Promise<FirebaseUser>
 
   signInWithGoogle: (
-    selectedRole: User["role"]
+    selectedRole?: User["role"]
   ) => Promise<FirebaseUser>
 
   logout: () => Promise<void>
@@ -404,7 +404,7 @@ export function AuthProvider({
    * receive an initial Firestore user document.
    */
   const signInWithGoogle = async (
-    selectedRole: User["role"]
+    selectedRole?: User["role"]
   ): Promise<FirebaseUser> => {
     if (!auth) {
       throw new Error("Auth not initialized")

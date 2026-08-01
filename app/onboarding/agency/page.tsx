@@ -211,8 +211,8 @@ export default function AgencyOnboarding() {
         duration: 3000,
       })
 
-      // Use full navigation so middleware and AuthProvider read updated cookies
-      window.location.href = "/dashboard/agency"
+      // Navigate to agency dashboard
+      router.push("/dashboard/agency")
     } catch (error) {
       console.error("Error updating user data:", error)
       toast({

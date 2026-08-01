@@ -198,8 +198,8 @@ export default function PilgrimOnboarding() {
         duration: 3000,
       })
 
-      // Use full navigation so middleware and AuthProvider read updated cookies
-      window.location.href = "/dashboard/pilgrim"
+      // Navigate to pilgrim dashboard
+      router.push("/dashboard/pilgrim")
     } catch (error) {
       console.error("Error updating user data:", error)
       toast({

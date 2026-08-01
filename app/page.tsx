@@ -12,9 +12,14 @@ import FaqSection from "@/components/faq-section"
 import Link from "next/link"
 import { Button } from "@/components/ui/button" 
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+
 export default function LandingPage() {
+  const router = useRouter()
+
   // If user role cookie present, redirect to their dashboard (client-side)
-  if (typeof window !== "undefined") {
+  useEffect(() => {
     try {
       const cookies = document.cookie.split("; ").reduce((acc: any, c) => {
         const [k, v] = c.split("=")
@@ -22,19 +27,20 @@ export default function LandingPage() {
         return acc
       }, {})
       const role = cookies["user-role"]
-      if (role) {
+      if (role && typeof window !== "undefined" && window.location.pathname === "/") {
         if (role === "agency") {
-          if (window.location.pathname === "/") window.location.href = "/dashboard/agency"
+          router.push("/dashboard/agency")
         } else if (role === "pilgrim") {
-          if (window.location.pathname === "/") window.location.href = "/dashboard/pilgrim"
+          router.push("/dashboard/pilgrim")
         } else if (role === "admin") {
-          if (window.location.pathname === "/") window.location.href = "/dashboard/admin"
+          router.push("/admin/dashboard")
         }
       }
     } catch (err) {
       // ignore
     }
-  }
+  }, [router])
+
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1">

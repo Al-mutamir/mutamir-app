@@ -13,14 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
-import { getUserData } from "@/lib/firebase/firestore"
-
-type UserData = {
-  id: string
-  onboardingCompleted: boolean
-  role: "admin" | "pilgrim" | "agency"
-  // Add other fields if needed
-}
+import { getUserData, UserData } from "@/lib/firebase/firestore"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -41,7 +34,7 @@ export default function LoginPage() {
           if (userData) {
                 // Always redirect to dashboard; onboarding enforcement is handled by middleware
                 if (userData.role === "admin") {
-                  router.push("/dashboard/admin")
+                                  router.push("/admin/dashboard")
                 } else if (userData.role === "agency") {
                   router.push("/dashboard/agency")
                 } else if (userData.role === "pilgrim") {
@@ -73,7 +66,7 @@ export default function LoginPage() {
       })
 
       setIsRedirecting(true)
-      window.location.href = "/dashboard/admin"
+      router.push("/admin/dashboard")
       return
     }
 
@@ -93,18 +86,18 @@ export default function LoginPage() {
       })
 
       if (userData) {
-        // Force navigation after successful login using window.location
+        // Navigate after successful login (client-side)
         if (!userData.onboardingCompleted) {
           if (isAdminEmail) {
-            window.location.href = "/onboarding/admin"
+            router.push("/onboarding/admin")
           } else {
-            window.location.href = `/onboarding/${userData.role}`
+            router.push(`/onboarding/${userData.role}`)
           }
         } else {
           if (userData.role === "admin") {
-            window.location.href = "/dashboard/admin"
+            router.push("/admin/dashboard")
           } else {
-            window.location.href = userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency"
+            router.push(userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency")
           }
         }
       }
@@ -163,18 +156,18 @@ export default function LoginPage() {
       })
 
       if (userData) {
-        // Force navigation after successful login using window.location
+        // Navigate after successful login (client-side)
         if (!userData.onboardingCompleted) {
           if (isAdminEmail) {
-            window.location.href = "/onboarding/admin"
+            router.push("/onboarding/admin")
           } else {
-            window.location.href = `/onboarding/${userData.role}`
+            router.push(`/onboarding/${userData.role}`)
           }
         } else {
           if (userData.role === "admin") {
-            window.location.href = "/dashboard/admin"
+            router.push("/admin/dashboard")
           } else {
-            window.location.href = userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency"
+            router.push(userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency")
           }
         }
       }
