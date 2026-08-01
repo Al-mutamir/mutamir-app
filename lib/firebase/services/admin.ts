@@ -2,6 +2,7 @@ import {
   collection,
   getDocs,
   query,
+  where,
   orderBy,
   limit,
 } from "firebase/firestore";
@@ -17,8 +18,10 @@ export async function getAdminStats(): Promise<AdminStats> {
     const usersSnapshot = await getDocs(collection(db!, "users"));
     const totalUsers = usersSnapshot.size;
 
-    // Agencies
-    const agenciesSnapshot = await getDocs(collection(db!, "agencies"));
+    // Agencies (stored as users with role === "agency")
+    const agenciesSnapshot = await getDocs(
+      query(collection(db!, "users"), where("role", "==", "agency"))
+    );
     const totalAgencies = agenciesSnapshot.size;
 
     // Packages

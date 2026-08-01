@@ -32,7 +32,12 @@ export async function getAllAgencies(): Promise<Agency[]> {
   try {
     const firestore = checkDb();
 
-    const snapshot = await getDocs(collection(firestore, "agencies"));
+    const snapshot = await getDocs(
+      query(
+        collection(firestore, "users"),
+        where("role", "==", "agency")
+      )
+    );
 
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -53,7 +58,7 @@ export async function getAgencyById(
   try {
     const firestore = checkDb();
 
-    const snapshot = await getDoc(doc(firestore, "agencies", agencyId));
+    const snapshot = await getDoc(doc(firestore, "users", agencyId));
 
     if (!snapshot.exists()) {
       return null;
@@ -79,17 +84,19 @@ export async function updateAgency(
   try {
     const firestore = checkDb();
 
-    const agencyRef = doc(firestore, "agencies", agencyId);
-    const agencyDoc = await getDoc(agencyRef);
+    const userRef = doc(firestore, "users", agencyId);
+    const userDoc = await getDoc(userRef);
 
-    if (agencyDoc.exists()) {
-      await updateDoc(agencyRef, {
+    if (userDoc.exists()) {
+      await updateDoc(userRef, {
         ...data,
+        role: "agency",
         updatedAt: serverTimestamp(),
       });
     } else {
-      await setDoc(agencyRef, {
+      await setDoc(userRef, {
         ...data,
+        role: "agency",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });

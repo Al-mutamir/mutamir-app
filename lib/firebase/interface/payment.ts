@@ -5,7 +5,10 @@ export interface Payment {
 
   bookingId: string
 
-  userId: string
+  // Canonical payer field for payments: pilgrimId
+  // Keep userId as an optional alias for backward compatibility
+  pilgrimId?: string
+  userId?: string
 
   agencyId?: string
 
