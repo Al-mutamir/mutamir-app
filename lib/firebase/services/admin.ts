@@ -182,13 +182,12 @@ export async function getAdminStats(): Promise<AdminStats> {
 // Re-export commonly-used service functions so admin pages can import from the single admin module
 export { getAllPayments, getPaymentById, getPaymentsByPilgrim, getPaymentsByAgency, getPaymentsByBooking, createPayment, updatePayment, updatePaymentStatus } from "./payment"
 export { getAllBookings, getBookingById, createBooking, updateBooking, updateBookingStatus, updateBookingPayment, getBookingsByAgency, getBookingsByPilgrim, getBookingsByPackage } from "./booking"
-export { getAllPackages, getPackageById, createPackage, updatePackage, publishPackage, archivePackage, deletePackage, getPackagesByAgency, getPublishedPackages } from "./package"
+export { getAllPackages, getAllPackages as getPackages, getPackageById, createPackage, updatePackage, publishPackage, archivePackage, deletePackage, getPackagesByAgency, getPublishedPackages } from "./package"
 export { getAllAgencies, getAgencyById, updateAgency, getAgencyStats } from "./agency"
 export { getAllUsers, getUserById, getUserByEmail, getUsersByRole, getPilgrims, getAgencies, updateUserRole, getAdmins } from "./user"
 
 import { addDoc, setDoc, deleteDoc, doc as _doc, getDoc as _getDoc } from "firebase/firestore"
 import { db as _db } from "../config"
-import { collection } from "firebase/firestore"
 
 /**
  * Create an agency document (admin helper).
@@ -276,7 +275,7 @@ export async function updateAgencyVerification(agencyId: string): Promise<void> 
 /**
  * Admin settings stored in a single document: collection `settings`, doc `admin`.
  */
-import { getDoc, setDoc, doc as docRef } from "firebase/firestore"
+import { getDoc, doc as docRef } from "firebase/firestore"
 
 export async function getAdminSettings(): Promise<any> {
   if (!_db) throw new Error("Firestore not initialized")
