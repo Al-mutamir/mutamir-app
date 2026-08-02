@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { addToWaitlist } from "@/lib/firebase/firestore"
+import { addWaitlistEntry } from "@/lib/firebase/services/waitlist"
 import { toast } from "@/components/ui/use-toast"
 
 export default function SavingsPage() {
@@ -30,16 +30,30 @@ export default function SavingsPage() {
     name: user?.displayName || "",
     email: user?.email || "",
     phone: "",
-    preferredContact: "email",
+    state: "",
+    city: "",
+    interestedIn: "Both",
+    plannedYear: "2027",
+    planningStage: "Just researching",
+    numPilgrims: 1,
+    firstTime: false,
+    preferredFrequency: "Monthly",
+    estimatedMonthly: "",
+    heardAbout: "",
+    whatsappConsent: false,
     acceptTerms: false,
     notifyUpdates: true,
   })
 
   const handleInputChange = (e: any) => {
     const { name, value, type, checked } = e.target
+    let v: any = type === "checkbox" ? checked : value
+    if (type === "number") v = Number(value)
+    // Special-case conversions
+    if (name === "firstTime") v = value === "true"
     setFormData({
       ...formData,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: v,
     })
   }
 
@@ -62,20 +76,55 @@ export default function SavingsPage() {
       return
     }
 
+    if (!formData.whatsappConsent) {
+      toast({
+        title: "WhatsApp Consent Required",
+        description: "Please consent to receive updates via WhatsApp so we can keep you informed.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.name || !String(formData.name).trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter your full name.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.phone || !String(formData.phone).trim()) {
+      toast({
+        title: "Phone required",
+        description: "Please enter your phone number so we can contact you.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.state || !String(formData.state).trim()) {
+      toast({
+        title: "State required",
+        description: "Please enter your state of residence.",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       setIsSubmitting(true)
 
-      // Add user to waitlist in Firestore
-      await addToWaitlist({
-        userId: user?.uid,
+      // Add user to waitlist in Firestore (typed service)
+      await addWaitlistEntry({
+        userId: user?.uid ?? null,
         ...formData,
-        timestamp: new Date(),
         feature: "savings",
-      })
+      } as any)
 
       toast({
-        title: "Success!",
-        description: "You've been added to the savings feature waitlist. We'll notify you when it launches.",
+        title: "You're on the list!",
+        description: "Thank you for joining the Al-Mutamir Pilgrimage Savings Waitlist. We'll keep you informed as we build a simpler way to help Muslims prepare financially for Hajj and Umrah.",
       })
 
       setIsWaitlistOpen(false)
@@ -97,99 +146,112 @@ export default function SavingsPage() {
         <div className="container mx-auto">
           <div className="flex items-center mb-6">
             <PiggyBank className="h-8 w-8 mr-3 text-primary" />
-            <h1 className="text-3xl font-bold">Savings Dashboard</h1>
+            <h1 className="text-3xl font-bold">Pilgrimage Savings</h1>
           </div>
 
-          {/* Coming Soon Section */}
+          {/* Hero / Landing Section for Pilgrimage Savings */}
           <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
             <CardContent className="pt-6 pb-6 text-center">
               <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <Construction className="h-8 w-8 text-blue-600" />
+                <PiggyBank className="h-8 w-8 text-blue-700" />
               </div>
-              <h2 className="text-2xl font-bold text-blue-800 mb-2">Savings Feature Coming Soon</h2>
-              <p className="text-blue-700 max-w-2xl mx-auto mb-6">
-                We're working with trusted financial partners to bring you a dedicated savings platform for your
-                pilgrimage journey. Save towards your next Hajj or Umrah trip with automated deposits, goal tracking,
-                and more.
+
+              <h2 className="text-3xl font-bold text-blue-900 mb-3">Your Journey to Hajj Starts Today</h2>
+
+              <p className="text-lg text-blue-800 max-w-3xl mx-auto leading-relaxed">
+                Every pilgrimage begins with preparation.
+                <br />
+                Al-Mutamir is building a Shariah-compliant savings and financing solution designed to help Muslims
+                prepare for Hajj and Umrah through structured savings and ethical financial support.
+                <br />
+                Join the waitlist to receive early access and product updates.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-                <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mt-6">
+                <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-sm text-center">
                   <PiggyBank className="h-6 w-6 text-green-600 mx-auto mb-2" />
-                  <h3 className="font-medium">Dedicated Savings</h3>
-                  <p className="text-sm text-muted-foreground">Set aside funds specifically for your pilgrimage</p>
+                  <h3 className="font-semibold">Save Towards Your Goal</h3>
+                  <p className="text-sm text-muted-foreground">Set your pilgrimage target and build your Hajj or Umrah fund over time.</p>
                 </div>
 
-                <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-sm">
+                <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-sm text-center">
                   <Calendar className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                  <h3 className="font-medium">Automated Deposits</h3>
-                  <p className="text-sm text-muted-foreground">Schedule regular contributions to reach your goal</p>
+                  <h3 className="font-semibold">Build a Saving Habit</h3>
+                  <p className="text-sm text-muted-foreground">Make consistent weekly or monthly contributions that fit your budget.</p>
                 </div>
 
-                <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-sm">
+                <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-sm text-center">
                   <CreditCard className="h-6 w-6 text-purple-600 mx-auto mb-2" />
-                  <h3 className="font-medium">Secure Transactions</h3>
-                  <p className="text-sm text-muted-foreground">Your funds are protected and Shariah-compliant</p>
+                  <h3 className="font-semibold">Ethical Financing</h3>
+                  <p className="text-sm text-muted-foreground">Explore Shariah-compliant financing options when the service becomes available.</p>
                 </div>
               </div>
 
               <div className="mt-8">
-                <Badge variant="outline" className="mb-2 bg-blue-100 text-blue-800 border-blue-300">
-                  Launching Q3 2025
+                <Badge
+                  variant="outline"
+                  className="mb-2 bg-blue-100 text-blue-800 border-blue-300"
+                >
+                  Coming Soon
                 </Badge>
-                <p className="text-sm text-blue-700">Want to be notified when our savings platform launches?</p>
-                <Button className="mt-4 bg-blue-600 hover:bg-blue-700" onClick={() => setIsWaitlistOpen(true)}>
+
+                <p className="text-blue-800 text-lg font-medium mt-3">Be among the first to prepare for your next Hajj or Umrah.</p>
+                <p className="text-sm text-blue-700 mt-2">Join the waitlist today and receive early access, launch updates and educational resources.</p>
+
+n                <Button className="mt-4 bg-blue-600 hover:bg-blue-700" onClick={() => setIsWaitlistOpen(true)}>
                   Join Waitlist
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Partner Information */}
+          {/* Why Join Section */}
           <Card className="mt-8">
             <CardHeader>
-              <CardTitle>Future Savings Partners</CardTitle>
-              <CardDescription>Our planned financial partners for pilgrimage savings</CardDescription>
+              <CardTitle>Why Join the Waitlist?</CardTitle>
+              <CardDescription>
+                Be among the first to experience Al-Mutamir's upcoming pilgrimage savings solution.
+              </CardDescription>
             </CardHeader>
+
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="border rounded-lg p-4 text-center">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <CreditCard className="h-8 w-8 text-blue-600" />
+              <div className="grid md:grid-cols-2 gap-5">
+
+                <div className="flex gap-3">
+                  <PiggyBank className="h-5 w-5 text-primary mt-1" />
+                  <div>
+                    <h4 className="font-semibold">Early Access</h4>
+                    <p className="text-sm text-muted-foreground">Receive priority access when registrations begin.</p>
                   </div>
-                  <h3 className="font-medium">PilgrimSave Bank</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Dedicated Hajj and Umrah savings accounts with competitive rates
-                  </p>
                 </div>
 
-                <div className="border rounded-lg p-4 text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <PiggyBank className="h-8 w-8 text-green-600" />
+                <div className="flex gap-3">
+                  <Calendar className="h-5 w-5 text-primary mt-1" />
+                  <div>
+                    <h4 className="font-semibold">Product Updates</h4>
+                    <p className="text-sm text-muted-foreground">Stay informed throughout development.</p>
                   </div>
-                  <h3 className="font-medium">HajjFund</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Shariah-compliant savings plans specifically for pilgrimage
-                  </p>
                 </div>
 
-                <div className="border rounded-lg p-4 text-center">
-                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Wallet className="h-8 w-8 text-purple-600" />
+                <div className="flex gap-3">
+                  <Wallet className="h-5 w-5 text-primary mt-1" />
+                  <div>
+                    <h4 className="font-semibold">Hajj Planning Tips</h4>
+                    <p className="text-sm text-muted-foreground">Learn how to prepare financially for your pilgrimage.</p>
                   </div>
-                  <h3 className="font-medium">UmrahSave</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Flexible savings options with automatic monthly deposits
-                  </p>
                 </div>
+
+                <div className="flex gap-3">
+                  <CreditCard className="h-5 w-5 text-primary mt-1" />
+                  <div>
+                    <h4 className="font-semibold">Future Financing Opportunities</h4>
+                    <p className="text-sm text-muted-foreground">Receive updates about eligible Shariah-compliant financing options.</p>
+                  </div>
+                </div>
+
               </div>
+
             </CardContent>
-            <CardFooter className="border-t pt-4 flex justify-center">
-              <p className="text-sm text-muted-foreground text-center max-w-2xl">
-                Our future financial partners will be regulated by the Central Bank and offer secure, Shariah-compliant
-                savings options with deposits protected under the Deposit Insurance Scheme.
-              </p>
-            </CardFooter>
           </Card>
         </div>
 
@@ -208,17 +270,7 @@ export default function SavingsPage() {
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
@@ -230,39 +282,151 @@ export default function SavingsPage() {
                     required
                   />
                 </div>
+
                 <div className="grid gap-2">
-                  <Label>Preferred Contact Method</Label>
+                  <Label htmlFor="email">Email (optional)</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="state">State of Residence</Label>
+                  <Input id="state" name="state" value={formData.state || ""} onChange={handleInputChange} required />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="city">City (optional)</Label>
+                  <Input id="city" name="city" value={formData.city || ""} onChange={handleInputChange} />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="interestedIn">Interested In</Label>
+                  <select
+                    id="interestedIn"
+                    name="interestedIn"
+                    value={formData.interestedIn}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border px-3 py-2"
+                  >
+                    <option>Hajj</option>
+                    <option>Umrah</option>
+                    <option>Both</option>
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="plannedYear">Planned Travel Year</Label>
+                  <select
+                    id="plannedYear"
+                    name="plannedYear"
+                    value={formData.plannedYear}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border px-3 py-2"
+                  >
+                    <option>2027</option>
+                    <option>2028</option>
+                    <option>2029</option>
+                    <option>2030+</option>
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="planningStage">Current Planning Stage</Label>
+                  <select
+                    id="planningStage"
+                    name="planningStage"
+                    value={formData.planningStage}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border px-3 py-2"
+                  >
+                    <option>Just researching</option>
+                    <option>Want to start saving</option>
+                    <option>Need financing</option>
+                    <option>Ready to book</option>
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="numPilgrims">Number of Pilgrims</Label>
+                  <Input
+                    id="numPilgrims"
+                    name="numPilgrims"
+                    type="number"
+                    min={1}
+                    value={formData.numPilgrims}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="firstTime">First-time Pilgrim?</Label>
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <input
                         type="radio"
-                        id="email-contact"
-                        name="preferredContact"
-                        value="email"
-                        checked={formData.preferredContact === "email"}
+                        id="firstTime-yes"
+                        name="firstTime"
+                        value="true"
+                        checked={String(formData.firstTime) === "true"}
                         onChange={handleInputChange}
                         className="h-4 w-4 text-primary"
                       />
-                      <Label htmlFor="email-contact" className="text-sm font-normal">
-                        Email
-                      </Label>
+                      <Label htmlFor="firstTime-yes" className="text-sm font-normal">Yes</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input
                         type="radio"
-                        id="phone-contact"
-                        name="preferredContact"
-                        value="phone"
-                        checked={formData.preferredContact === "phone"}
+                        id="firstTime-no"
+                        name="firstTime"
+                        value="false"
+                        checked={String(formData.firstTime) === "false"}
                         onChange={handleInputChange}
                         className="h-4 w-4 text-primary"
                       />
-                      <Label htmlFor="phone-contact" className="text-sm font-normal">
-                        Phone
-                      </Label>
+                      <Label htmlFor="firstTime-no" className="text-sm font-normal">No</Label>
                     </div>
                   </div>
                 </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="preferredFrequency">Preferred Savings Frequency</Label>
+                  <select
+                    id="preferredFrequency"
+                    name="preferredFrequency"
+                    value={formData.preferredFrequency || "Monthly"}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border px-3 py-2"
+                  >
+                    <option>Daily</option>
+                    <option>Weekly</option>
+                    <option>Monthly</option>
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="estimatedMonthly">Estimated Monthly Savings (Optional)</Label>
+                  <Input
+                    id="estimatedMonthly"
+                    name="estimatedMonthly"
+                    type="number"
+                    min={0}
+                    value={formData.estimatedMonthly}
+                    onChange={handleInputChange}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="heardAbout">How did you hear about us? (optional)</Label>
+                  <Input id="heardAbout" name="heardAbout" value={formData.heardAbout || ""} onChange={handleInputChange} />
+                </div>
+
                 <div className="flex items-center space-x-2 pt-2">
                   <Checkbox
                     id="notifyUpdates"
@@ -273,6 +437,18 @@ export default function SavingsPage() {
                     Notify me about other Al-Mutamir updates and features
                   </Label>
                 </div>
+
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="whatsappConsent"
+                    checked={formData.whatsappConsent || false}
+                    onCheckedChange={(checked) => handleCheckboxChange("whatsappConsent", checked)}
+                  />
+                  <Label htmlFor="whatsappConsent" className="text-sm font-normal">
+                    I consent to receive updates via WhatsApp
+                  </Label>
+                </div>
+
                 <div className="flex items-start space-x-2 pt-2">
                   <Checkbox
                     id="acceptTerms"

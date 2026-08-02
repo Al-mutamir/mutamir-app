@@ -13,7 +13,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
-import { getUserData, UserData } from "@/lib/firebase/firestore"
+import { getUserById } from "@/lib/firebase/services/user"
+
+type UserData = {
+  id: string
+  onboardingCompleted: boolean
+  role: "admin" | "pilgrim" | "agency"
+  // Add other fields if needed
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -30,11 +37,11 @@ export default function LoginPage() {
       if (user && !isRedirecting) {
         setIsRedirecting(true)
         try {
-          const userData = await getUserData(user.uid) as UserData
+          const userData = await getUserById(user.uid) as UserData
           if (userData) {
                 // Always redirect to dashboard; onboarding enforcement is handled by middleware
                 if (userData.role === "admin") {
-                                  router.push("/admin/dashboard")
+                  router.push("/dashboard/admin")
                 } else if (userData.role === "agency") {
                   router.push("/dashboard/agency")
                 } else if (userData.role === "pilgrim") {
@@ -66,18 +73,18 @@ export default function LoginPage() {
       })
 
       setIsRedirecting(true)
-      router.push("/admin/dashboard")
+      window.location.href = "/dashboard/admin"
       return
     }
 
     try {
-      const userCredential = await signIn(email, password)
+      const signedInUser = await signIn(email, password)
 
       // Check if email is from almutamir.com domain (admin)
       const isAdminEmail = email.endsWith("@almutamir.com")
 
       // Get user data from Firestore
-      const userData = await getUserData(userCredential.user.uid) as UserData
+      const userData = await getUserById(signedInUser.uid) as UserData
 
       toast({
         title: "Login Successful!",
@@ -86,18 +93,18 @@ export default function LoginPage() {
       })
 
       if (userData) {
-        // Navigate after successful login (client-side)
+        // Force navigation after successful login using window.location
         if (!userData.onboardingCompleted) {
           if (isAdminEmail) {
-            router.push("/onboarding/admin")
+            window.location.href = "/onboarding/admin"
           } else {
-            router.push(`/onboarding/${userData.role}`)
+            window.location.href = `/onboarding/${userData.role}`
           }
         } else {
           if (userData.role === "admin") {
-            router.push("/admin/dashboard")
+            window.location.href = "/dashboard/admin"
           } else {
-            router.push(userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency")
+            window.location.href = userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency"
           }
         }
       }
@@ -140,14 +147,14 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     try {
-      const result = await signInWithGoogle()
-      const userEmail = result.user.email || ""
+      const user = await signInWithGoogle()
+      const userEmail = user.email || ""
 
       // Check if email is from almutamir.com domain (admin)
       const isAdminEmail = userEmail.endsWith("@almutamir.com")
 
       // Get user data from Firestore
-      const userData = await getUserData(result.user.uid) as UserData
+      const userData = await getUserById(user.uid) as UserData
 
       toast({
         title: "Google Sign-In Successful!",
@@ -156,18 +163,18 @@ export default function LoginPage() {
       })
 
       if (userData) {
-        // Navigate after successful login (client-side)
+        // Force navigation after successful login using window.location
         if (!userData.onboardingCompleted) {
           if (isAdminEmail) {
-            router.push("/onboarding/admin")
+            window.location.href = "/onboarding/admin"
           } else {
-            router.push(`/onboarding/${userData.role}`)
+            window.location.href = `/onboarding/${userData.role}`
           }
         } else {
           if (userData.role === "admin") {
-            router.push("/admin/dashboard")
+            window.location.href = "/dashboard/admin"
           } else {
-            router.push(userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency")
+            window.location.href = userData.role === "pilgrim" ? "/dashboard/pilgrim" : "/dashboard/agency"
           }
         }
       }

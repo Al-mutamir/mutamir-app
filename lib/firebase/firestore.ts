@@ -1,4 +1,3 @@
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "./config"
 
 import {
@@ -31,6 +30,7 @@ import {
   deletePackage,
 } from "./services/package"
 import { getPaymentsByPilgrim } from "./services/payment"
+import { addWaitlistEntry } from "./services/waitlist"
 
 import type { User } from "./interface/user"
 import type { Booking as BookingType } from "./interface/booking"
@@ -179,16 +179,7 @@ export async function getPilgrimStats(pilgrimId: string) {
 }
 
 export async function addToWaitlist(waitlistEntry: Record<string, any>) {
-  if (!db) {
-    throw new Error("Firestore is not initialized.")
-  }
-
-  const waitlistRef = collection(db, "waitlists")
-  const docRef = await addDoc(waitlistRef, {
-    ...waitlistEntry,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
-
-  return docRef.id
+  // Thin wrapper for backwards compatibility.
+  // Prefer using addWaitlistEntry from lib/firebase/services/waitlist.ts
+  return await addWaitlistEntry(waitlistEntry as any)
 }
