@@ -28,7 +28,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [isRedirecting, setIsRedirecting] = useState(false)
-  const { signIn, signInWithGoogle, loading, user } = useAuth()
+  const { signIn, signInWithGoogle, loading, user, pendingGoogleUser, completeGoogleRegistration } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
 
@@ -145,10 +145,18 @@ export default function LoginPage() {
     }
   }
 
+  const [showRoleModal, setShowRoleModal] = useState(false)
+
   const handleGoogleSignIn = async () => {
     try {
       const user = await signInWithGoogle()
       const userEmail = user.email || ""
+
+      // If a pending Google user exists, prompt for role selection
+      if (pendingGoogleUser) {
+        setShowRoleModal(true)
+        return
+      }
 
       // Check if email is from almutamir.com domain (admin)
       const isAdminEmail = userEmail.endsWith("@almutamir.com")
@@ -361,9 +369,64 @@ export default function LoginPage() {
             Google
           </Button>
         </form>
-      </div>
 
-      {/* Right side - Decorative */}
+        {/* Role selection modal (shown only when Google sign-in produced a pending account) */}
+        {showRoleModal && pendingGoogleUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black opacity-40" onClick={() => { setShowRoleModal(false) }} />
+
+            <div className="relative bg-white rounded-lg shadow-lg w-11/12 md:w-1/2 p-6 max-h-[80vh] overflow-y-auto">
+              <h3 className="text-xl font-semibold mb-4">Choose your account type</h3>
+              <p className="text-sm text-gray-600 mb-6">It looks like this Google account is new. Please choose whether you are a Pilgrim or an Agency so we can complete your registration.</p>
+
+              <div className="flex flex-col md:flex-row gap-4">
+                <button
+                  className="flex-1 bg-green-600 text-white py-3 rounded-lg"
+                  onClick={async () => {
+                    try {
+                      await completeGoogleRegistration("pilgrim")
+                      toast({ title: "Account created", description: "Welcome to Al-Mutamir", duration: 3000 })
+
+                      // Redirect to onboarding for pilgrims
+                      window.location.href = "/onboarding/pilgrim"
+                    } catch (err) {
+                      console.error(err)
+                      setError((err as any)?.message || "Failed to complete registration")
+                    }
+                  }}
+                >
+                  Pilgrim
+                </button>
+
+                <button
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg"
+                  onClick={async () => {
+                    try {
+                      await completeGoogleRegistration("agency")
+                      toast({ title: "Account created", description: "Welcome to Al-Mutamir", duration: 3000 })
+
+                      // Redirect to onboarding for agencies
+                      window.location.href = "/onboarding/agency"
+                    } catch (err) {
+                      console.error(err)
+                      setError((err as any)?.message || "Failed to complete registration")
+                    }
+                  }}
+                >
+                  Agency
+                </button>
+              </div>
+
+              <div className="mt-4 text-right">
+                <button className="text-sm text-gray-600" onClick={() => setShowRoleModal(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        </div>
+
+        {/* Right side - Decorative */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary to-primary-light relative overflow-hidden">
         {/* Background Image with low opacity */}
         <div

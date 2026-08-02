@@ -24,7 +24,7 @@ interface FormData {
   state: string
   country: string
   dateOfBirth: string
-  gender: "male" | "female" | "other" | ""
+  gender: "male" | "female" |""
   passportNumber: string
   passportExpiry: string
   emergencyContact: {

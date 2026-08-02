@@ -50,9 +50,32 @@ interface AuthContextType {
     password: string
   ) => Promise<FirebaseUser>
 
+  /**
+   * Sign in with Google.
+   * If `selectedRole` is provided and the Google account is new,
+   * the Firestore user document will be created immediately.
+   * If `selectedRole` is omitted and the Google account is new,
+   * the flow will pause and the UI should prompt the user to
+   * choose a role before creating the Firestore user.
+   */
   signInWithGoogle: (
     selectedRole?: User["role"]
   ) => Promise<FirebaseUser>
+
+  /**
+   * If a Google sign-in created a pending account (no Firestore
+   * user yet), this will hold the Firebase user until the UI
+   * completes registration by choosing a role.
+   */
+  pendingGoogleUser: FirebaseUser | null
+
+  /**
+   * Complete a pending Google registration by creating the
+   * Firestore user document using the chosen role.
+   */
+  completeGoogleRegistration: (
+    role: User["role"]
+  ) => Promise<void>
 
   logout: () => Promise<void>
 
@@ -74,6 +97,13 @@ export function AuthProvider({
 }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+
+  /**
+   * When a Google sign-in happens and there is no corresponding
+   * Firestore user document, we keep the Firebase user here until
+   * the UI completes role selection and calls completeGoogleRegistration.
+   */
+  const [pendingGoogleUser, setPendingGoogleUser] = useState<FirebaseUser | null>(null)
 
   const router = useRouter()
 
@@ -447,12 +477,24 @@ export function AuthProvider({
       /**
        * New Google account.
        *
-       * A valid application role is required.
+       * If a role was supplied by the caller (registration flow),
+       * create the Firestore user immediately. If no role was
+       * supplied (common on the sign-in page), pause the flow and
+       * let the UI prompt the user to choose a role.
        */
+      if (!selectedRole) {
+        // Do not create a Firestore user yet; hold the firebase user
+        // in pending state so the UI can prompt for role selection.
+        setPendingGoogleUser(firebaseUser)
+        return firebaseUser
+      }
+
+      const roleToUse: User["role"] = selectedRole as User["role"]
+
       if (
-        selectedRole !== "pilgrim" &&
-        selectedRole !== "agency" &&
-        selectedRole !== "admin"
+        roleToUse !== "pilgrim" &&
+        roleToUse !== "agency" &&
+        roleToUse !== "admin"
       ) {
         throw new Error(
           "A valid account role is required for Google registration."
@@ -514,7 +556,7 @@ export function AuthProvider({
 
         displayName,
 
-        role: selectedRole,
+        role: roleToUse,
 
         status: "unverified",
 
@@ -552,6 +594,74 @@ export function AuthProvider({
         error
       )
 
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /**
+   * Complete a pending Google registration by creating the
+   * Firestore user document using the chosen role.
+   */
+  const completeGoogleRegistration = async (
+    role: User["role"]
+  ): Promise<void> => {
+    if (!pendingGoogleUser) {
+      throw new Error("No pending Google user to complete registration for.")
+    }
+
+    const firebaseUser = pendingGoogleUser
+
+    if (
+      role !== "pilgrim" &&
+      role !== "agency" &&
+      role !== "admin"
+    ) {
+      throw new Error("A valid account role is required.")
+    }
+
+    const displayName = firebaseUser.displayName?.trim()
+
+    if (!displayName) {
+      throw new Error(
+        "Google did not provide your name. Please provide your first and last name."
+      )
+    }
+
+    const nameParts = displayName.split(/\s+/).filter(Boolean)
+    const firstName = nameParts[0]
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : ""
+
+    if (!firstName || !lastName) {
+      throw new Error(
+        "Google registration requires both a first name and a last name."
+      )
+    }
+
+    const newUser: Omit<User, "id"> = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email ?? "",
+      displayName,
+      role,
+      status: "unverified",
+      onboardingCompleted: false,
+      firstName,
+      lastName,
+      ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
+    }
+
+    try {
+      setLoading(true)
+
+      await createUser(newUser)
+
+      setUser({ ...newUser, id: firebaseUser.uid })
+
+      // Clear pending state
+      setPendingGoogleUser(null)
+    } catch (error) {
+      console.error("Error completing Google registration:", error)
       throw error
     } finally {
       setLoading(false)
@@ -653,6 +763,9 @@ export function AuthProvider({
     signUp,
     signIn,
     signInWithGoogle,
+
+    pendingGoogleUser,
+    completeGoogleRegistration,
 
     logout,
     resetPassword,

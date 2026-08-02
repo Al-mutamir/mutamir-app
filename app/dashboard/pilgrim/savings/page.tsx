@@ -198,7 +198,7 @@ export default function SavingsPage() {
                 <p className="text-blue-800 text-lg font-medium mt-3">Be among the first to prepare for your next Hajj or Umrah.</p>
                 <p className="text-sm text-blue-700 mt-2">Join the waitlist today and receive early access, launch updates and educational resources.</p>
 
-n                <Button className="mt-4 bg-blue-600 hover:bg-blue-700" onClick={() => setIsWaitlistOpen(true)}>
+             <Button className="mt-4 bg-blue-600 hover:bg-blue-700" onClick={() => setIsWaitlistOpen(true)}>
                   Join Waitlist
                 </Button>
               </div>
@@ -257,7 +257,7 @@ n                <Button className="mt-4 bg-blue-600 hover:bg-blue-700" onClick=
 
         {/* Waitlist Modal */}
         <Dialog open={isWaitlistOpen} onOpenChange={setIsWaitlistOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="w-11/12 sm:w-3/4 md:w-2/3 lg:w-1/2 max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Join Savings Waitlist</DialogTitle>
               <DialogDescription>
