@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import ProtectedRoute from "@/components/protected-route"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { getAgencyStats } from "@/lib/firebase/firestore"
+import { getAgencyStats } from "@/lib/firebase/services/agency"
 import { useAuth } from "@/context/auth-context"
 
 const PackagesPage = () => {

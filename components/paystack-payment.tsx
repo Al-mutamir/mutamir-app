@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog"
-import { updateBookingPayment } from "@/lib/firebase/firestore"
+import { updateBookingPayment } from "@/lib/firebase/services/booking"
 import { createPaymentNotification } from "@/lib/firebase/services/notification"
 import { useAuth } from "@/context/auth-context"
 import Link from "next/link"

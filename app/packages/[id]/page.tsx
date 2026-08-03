@@ -28,7 +28,7 @@ import {
   XCircle,
 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getAgencyById } from "@/lib/firebase/firestore"
+import { getAgencyById } from "@/lib/firebase/services/agency"
 import { formatDate, parseDate } from "@/lib/utils"
 import {
   Dialog,
@@ -39,7 +39,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog"
-import { createBooking } from "@/lib/firebase/firestore"
+import { createBooking } from "@/lib/firebase/services/booking"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
 

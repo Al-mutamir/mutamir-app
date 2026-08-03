@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import DashboardLayout from "@/components/dashboard-layout"
 import ProtectedRoute from "@/components/protected-route"
 import { useToast } from "@/hooks/use-toast"
-import { getPackagesByAgency } from "@/lib/firebase/firestore"
+import { getPackagesByAgency } from "@/lib/firebase/services/package"
 
 // 1. Define the Agency interface based on the data structure
 // This interface describes the shape of each agency object in your array.

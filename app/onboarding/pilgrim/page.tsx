@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { updateUserOnboardingData, getUserData } from "@/lib/firebase/firestore"
+import { updateUserOnboarding as updateUserOnboardingData, getUserById as getUserData } from "@/lib/firebase/services/user"
+import type { User } from "@/lib/firebase/interface/user"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -100,25 +101,25 @@ export default function PilgrimOnboarding() {
             firstName: userData.firstName || "",
             lastName: userData.lastName || "",
             email: userData.email || user.email || "",
-            phone: userData.phone || "",
+              phone: userData.phoneNumber || "",
             address: userData.address || "",
-            city: userData.city || "",
+              city: userData.cityOfResidence || "",
             state: userData.state || "",
-            country: userData.country || "Nigeria",
+              country: userData.countryOfResidence || "Nigeria",
             dateOfBirth: userData.dateOfBirth || "",
-            gender: userData.gender || "",
+              gender: (userData.gender as any) || "",
             passportNumber: userData.passportNumber || "",
             passportExpiry: userData.passportExpiry || "",
             emergencyContact: {
-              name: userData.emergencyContact?.name || "",
-              relationship: userData.emergencyContact?.relationship || "",
-              phone: userData.emergencyContact?.phone || "",
+                name: userData.nextOfKin?.fullName || "",
+                relationship: userData.nextOfKin?.relationship || "",
+                phone: userData.nextOfKin?.phoneNumber || "",
             },
             preferences: {
-              emailNotifications: userData.preferences?.emailNotifications ?? true,
-              smsNotifications: userData.preferences?.smsNotifications ?? true,
-              marketingEmails: userData.preferences?.marketingEmails ?? false,
-              language: userData.preferences?.language || "en",
+                emailNotifications: (userData.preferences as any)?.emailNotifications ?? true,
+                smsNotifications: (userData.preferences as any)?.smsNotifications ?? true,
+                marketingEmails: (userData.preferences as any)?.marketingEmails ?? false,
+                language: (userData.preferences as any)?.language || "en",
             },
           })
         }
@@ -179,15 +180,30 @@ export default function PilgrimOnboarding() {
 
     try {
       const payload = {
-        // map phone -> phoneNumber expected by Firestore helper
-        ...formData,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
         phoneNumber: formData.phone,
-        // Firestore expects gender to be one of the union or undefined
+        address: formData.address,
+        cityOfResidence: formData.city,
+        state: formData.state,
+        countryOfResidence: formData.country,
+        dateOfBirth: formData.dateOfBirth,
         gender: formData.gender === "" ? undefined : (formData.gender as "male" | "female" | "other"),
+        passportNumber: formData.passportNumber,
+        passportExpiry: formData.passportExpiry,
+        nextOfKin: {
+          fullName: formData.emergencyContact.name,
+          relationship: formData.emergencyContact.relationship,
+          phoneNumber: formData.emergencyContact.phone,
+        },
+        preferences: formData.preferences,
         onboardingCompleted: true,
       }
 
-      await updateUserOnboardingData(user.uid, payload)
+      const typedPayload: Partial<User> = payload
+
+      await updateUserOnboardingData(user.uid, typedPayload)
 
       // Set onboarding cookie so middleware knows onboarding is done
       document.cookie = `onboarding-completed=true; path=/; max-age=86400`
