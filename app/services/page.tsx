@@ -16,15 +16,25 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import PackageReview from "@/components/package-review"
 import { Footer } from "@/components/footer"
-import { createBooking } from "@/lib/firebase/services/booking"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon } from "lucide-react"
 import { format, isBefore, isSameDay, startOfDay, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
 
-import { printElement } from "@/utils/print-utils"
+import { downloadBookingDetails } from "@/lib/utils/print-utils"
 import { CheckCircle2 } from "lucide-react"
+
+// --- New imports for this change -------------------------------------------------
+import { useAuth } from "@/context/auth-context"
+import { getOrCreateVisitorId } from "@/lib/utils/visitor-id"
+import {
+  createCustomRequest,
+  markCustomRequestConfirmationSent,
+} from "@/lib/firebase/services/custom-request"
+import type { CustomRequest } from "@/lib/firebase/interface/custom-request"
+import { sendServiceRequestConfirmation } from "@/lib/utils/confirmServiceRequest"
+// -----------------------------------------------------------------------------------
 
 interface PilgrimDetails {
   firstName: string
@@ -42,21 +52,47 @@ interface GroupMember {
   phone: string
 }
 
-interface SuccessModalProps {
-  open: boolean
-  onClose: (path?: string) => void
-  bookingDetails: {
-    packageType: string
-    departureDate: string
-    pilgrims?: any[]
-  }
+interface SuccessModalReceiptDetails {
+  packageType: string
+  selectedPackage?: string
+  departureCity: string
+  departureDate: string
+  pilgrims: PilgrimDetails[]
+  isGroupBooking: boolean
+  services: Record<string, { selected: boolean; tier?: string }>
+  status: "pending"
 }
 
-function SuccessModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function SuccessModal({
+  open,
+  onClose,
+  requestId,
+  receiptDetails,
+}: {
+  open: boolean
+  onClose: () => void
+  requestId: string | null
+  receiptDetails: SuccessModalReceiptDetails | null
+}) {
+  const [isDownloading, setIsDownloading] = useState(false)
+
   if (!open) return null
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose()
   }
+
+  const handleDownload = async () => {
+    if (!requestId || !receiptDetails) return
+    setIsDownloading(true)
+    try {
+      await downloadBookingDetails(requestId, receiptDetails)
+    } catch (err) {
+      console.error("Failed to download confirmation:", err)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={handleOverlayClick}>
       <div className="bg-white rounded-xl shadow-xl max-w-xs w-full p-6 relative flex flex-col items-center">
@@ -69,11 +105,18 @@ function SuccessModal({ open, onClose }: { open: boolean; onClose: () => void })
         </button>
         <ThumbsUp className="h-12 w-12 text-[#007F5F] mb-4" />
         <h2 className="text-lg font-semibold text-[#014034] text-center mb-2">Booking request successful</h2>
-        <p className="text-gray-600 text-center text-sm mb-8">
+        <p className="text-gray-600 text-center text-sm mb-4">
           A representative will contact you shortly.
           <br />
           Thanks for choosing Almutamir.
         </p>
+        <button
+          className="w-full border border-[#007F5F] text-[#007F5F] hover:bg-[#007F5F] hover:text-white text-xs font-semibold px-4 py-2 rounded transition mb-10 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleDownload}
+          disabled={!requestId || !receiptDetails || isDownloading}
+        >
+          {isDownloading ? "Preparing..." : "Download Confirmation"}
+        </button>
         <button
           className="bg-[#E3B23C] text-[#014034] hover:bg-[#007F5F] hover:text-white text-xs font-semibold px-4 py-2 rounded transition absolute left-1/2 -translate-x-1/2 bottom-6"
           onClick={() => window.open("/guide", "_blank")}
@@ -89,6 +132,10 @@ export default function ServicesPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
+
+  // Firebase Auth state. `user` is null while a guest (or while auth is
+  // still resolving on first load); `loading` distinguishes those two cases.
+  const { user, loading: authLoading } = useAuth()
 
   const initialPackageType = searchParams?.get("type") || "hajj"
   const initialPackage = searchParams?.get("package") || ""
@@ -130,6 +177,8 @@ export default function ServicesPage() {
   const [preferredItinerary, setPreferredItinerary] = useState<string[]>([])
   const [showSuccess, setShowSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [completedRequestId, setCompletedRequestId] = useState<string | null>(null)
+  const [completedReceiptDetails, setCompletedReceiptDetails] = useState<SuccessModalReceiptDetails | null>(null)
 
   const handleServiceChange = (service: string, selected: boolean) => {
     setSelectedServices({
@@ -214,32 +263,50 @@ export default function ServicesPage() {
   }
 
   // Handle form submission.
-  // Booking creation is the source of truth for success/failure — email and
-  // Discord notification are best-effort side effects that run afterward and
-  // never flip a successful booking into a "failed" result for the user.
+  //
+  // Request creation is the source of truth for success/failure. The
+  // confirmation email and Discord notification are best-effort side effects
+  // that run afterward and never flip a successful submission into a
+  // "failed" result for the user.
   const handleSubmit = async () => {
+    // Auth state can still be resolving on first load (e.g. a hard refresh
+    // right before submitting). Wait for it rather than risk mis-filing a
+    // signed-in pilgrim's request as a guest's.
+    if (authLoading) {
+      toast({
+        title: "Just a moment",
+        description: "Still checking your sign-in status — try submitting again in a second.",
+      })
+      return
+    }
+
     setIsSubmitting(true)
 
     const mainPilgrim = pilgrims[0]
-    const bookingPayload = {
-      packageId: selectedPackage || "custom",
-      packageTitle: packageType,
-      pilgrimId: mainPilgrim.email,
-      userEmail: mainPilgrim.email,
-      agencyId: "custom",
-      status: "pending" as const,
-      travelDate: departureDate,
-      returnDate: returnDate,
-      totalPrice: 0,
-      paymentStatus: "unpaid" as const,
-      highlights: preferredItinerary,
-      notes: "",
+
+    // Logged-in pilgrims are tied to their Firebase Auth UID. Guests are
+    // tracked by a visitor id persisted in localStorage, so their request can
+    // later be claimed onto their account if they sign up (see
+    // claimGuestCustomRequests in lib/firebase/services/custom-request.ts).
+    const isGuest = !user
+    const visitorId = isGuest ? getOrCreateVisitorId() : undefined
+
+    const requestPayload: Omit<CustomRequest, "id"> = {
+      ...(user ? { userId: user.uid } : {}),
+      ...(visitorId ? { visitorId } : {}),
+      isGuest,
+
+      packageType: packageType as "hajj" | "umrah",
       departureCity,
-      pilgrims,
+      travelDate: departureDate,
+      returnDate,
+
       isGroupBooking,
       isCreatingGroup,
+      pilgrims,
       groupMembers,
-      selectedServices: {
+
+      services: {
         visa: { ...selectedServices.visa },
         flight: { ...selectedServices.flight },
         accommodation: { ...selectedServices.accommodation },
@@ -247,90 +314,72 @@ export default function ServicesPage() {
         food: { ...selectedServices.food },
         visitation: { ...selectedServices.visitation },
       },
+      preferredItinerary,
+
+      status: "pending",
+      contactEmail: mainPilgrim.email,
     }
 
+    let requestId: string
     try {
-      await createBooking(bookingPayload)
+      requestId = await createCustomRequest(requestPayload)
     } catch (e) {
-      // Only a failure to persist the booking itself counts as a failed submission.
+      // Only a failure to persist the request itself counts as a failed submission.
       setIsSubmitting(false)
       alert("Submission failed. Please check your network and try again.")
-      console.error("Failed to store booking:", e)
+      console.error("Failed to store custom request:", e)
       return
     }
 
-    // Booking is saved — show success immediately, don't make the user wait
+    // Request is saved — show success immediately, don't make the user wait
     // on (or be blocked by) email/Discord.
+    setCompletedRequestId(requestId)
+    setCompletedReceiptDetails({
+      packageType,
+      selectedPackage,
+      departureCity,
+      departureDate,
+      pilgrims,
+      isGroupBooking,
+      services: selectedServices,
+      status: "pending",
+    })
     setShowSuccess(true)
     setIsSubmitting(false)
 
     // Best-effort confirmation email — failure here is logged, not surfaced as a submission failure.
-    fetch("/api/send-confirmation", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: mainPilgrim.email,
-        subject: "Your Al-mutamir Booking Confirmation",
-        text: `Dear ${mainPilgrim.firstName},\n\nYour booking has been received. We will contact you soon.\n\nThank you for choosing Al-mutamir!`,
-        html: `
-      <div style="font-family: Arial, sans-serif; color: #014034;">
-        <h2 style="color: #007F5F;">Booking Confirmation</h2>
-        <p>Dear ${mainPilgrim.firstName},</p>
-        <p>Your booking has been received. We will contact you soon.</p>
-        <hr style="border: none; border-top: 1px solid #E3B23C; margin: 16px 0;" />
-        <p>
-          <strong>Package:</strong> ${packageType || "Not specified"}<br/>
-          <strong>Departure:</strong> ${departureCity || "Not specified"} on ${departureDate || "Not specified"}<br/>
-          <strong>Return:</strong> ${returnDate || "Not specified"}<br/>
-        </p>
-        <p>
-          <strong>Pilgrims:</strong><br/>
-          ${pilgrims
-            .map((p: any) => `${p.firstName || "?"} ${p.lastName || "?"} (${p.email || "?"}, ${p.phone || "?"})`)
-            .join("<br/>")}
-        </p>
-        <p>
-          <strong>Preferred Itinerary:</strong><br/>
-          ${
-            preferredItinerary.length
-              ? preferredItinerary.map((item: string) => `- ${item || "(empty)"}`).join("<br/>")
-              : "(No specific itinerary provided)"
-          }
-        </p>
-        <p>
-          <strong>Selected Services:</strong><br/>
-          ${
-            Object.entries(selectedServices)
-              .filter(([_, v]: any) => v.selected)
-              .map(([k, v]: any) => `${k.charAt(0).toUpperCase() + k.slice(1)}${v.tier ? ` (${v.tier})` : ""}`)
-              .join("<br/>") || "None"
-          }
-        </p>
-        <p>Thank you for choosing <strong>Al-mutamir</strong>!</p>
-        <p style="font-size: 12px; color: #888;">If you have any questions, reply to this email.</p>
-      </div>
-    `,
-      }),
-    }).catch((err) => console.error("Confirmation email failed:", err))
+    sendServiceRequestConfirmation({
+      mainPilgrim,
+      packageType,
+      departureDate,
+      returnDate,
+      departureCity,
+      pilgrims,
+      preferredItinerary,
+      selectedServices,
+    })
+      .then(() => markCustomRequestConfirmationSent(requestId))
+      .catch((err) => console.error("Confirmation email failed:", err))
 
-    // Best-effort Discord notification — now routed through a server API so
-    // the webhook URL never lives in client-side code.
+    // Best-effort Discord notification — routed through a server API so the
+    // webhook URL never lives in client-side code.
     fetch("/api/notify-discord", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        requestId,
         packageTitle: packageType,
         departureCity,
         travelDate: departureDate,
         returnDate,
         status: "pending",
-        paymentStatus: "unpaid",
         pilgrims,
         highlights: preferredItinerary,
         isGroupBooking,
         isCreatingGroup,
         groupMembers,
         selectedServices,
+        isGuest,
       }),
     }).catch((err) => console.error("Discord notification failed:", err))
   }
@@ -1224,7 +1273,7 @@ export default function ServicesPage() {
                   <Button
                     className="w-full md:w-auto bg-[#E3B23C] text-black hover:bg-[#b5d31f]"
                     onClick={handleSubmit}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || authLoading}
                   >
                     {isSubmitting ? (
                       <>
@@ -1247,7 +1296,14 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      {showSuccess && <SuccessModal open={showSuccess} onClose={() => setShowSuccess(false)} />}
+      {showSuccess && (
+        <SuccessModal
+          open={showSuccess}
+          onClose={() => setShowSuccess(false)}
+          requestId={completedRequestId}
+          receiptDetails={completedReceiptDetails}
+        />
+      )}
     </div>
   )
 }

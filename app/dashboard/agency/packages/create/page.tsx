@@ -17,11 +17,19 @@ import { createPackage } from "@/lib/firebase/services/package"
 import { getUserById as getUserData } from "@/lib/firebase/services/user"
 import { ArrowLeft, Plus, Minus, Save, Eye } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import type {
+	Accommodation,
+	ItineraryDay,
+	Package,
+	PackageStatus,
+	PackageType,
+} from "@/lib/firebase/interface/package"
 
-const packageTypes = [
+const packageTypes: { value: PackageType; label: string }[] = [
 	{ value: "umrah", label: "Umrah" },
 	{ value: "hajj", label: "Hajj" },
-	{ value: "group-umrah", label: "Group Umrah" },
+	{ value: "ramadan-umrah", label: "Ramadan Umrah" },
+	{ value: "custom", label: "Custom" },
 ]
 
 const availableServices = [
@@ -44,6 +52,15 @@ const packageImages = [
 	{ id: "08", url: "/images/package/pilgrim.jpg", name: "PIlgrim Supplicating" },
 ]
 
+const emptyAccommodation: Accommodation = {
+	hotelName: "",
+	city: "",
+	description: "",
+	hotelClass: undefined,
+	roomType: undefined,
+	distanceFromHaram: undefined,
+}
+
 export default function CreatePackagePage() {
 	const { user } = useAuth()
 	const router = useRouter()
@@ -65,18 +82,21 @@ export default function CreatePackagePage() {
 
 	const [packageData, setPackageData] = useState({
 		name: "",
-		type: "",
+		type: "" as PackageType | "",
 		price: "",
 		minPaymentPercent: "",
 		description: "",
+		destination: "",
+		departureCity: "",
 		duration: "",
 		services: [] as string[],
 		selectedImage: "",
 		includeItinerary: false,
-		itinerary: [{ dayRange: "1-3", title: "", description: "", location: "" }],
+		itinerary: [{ day: 1, title: "", description: "", city: "" }] as ItineraryDay[],
+		accommodations: [] as Accommodation[],
 		slots: "",
 		departureDate: "",
-		arrivalDate: "",
+		returnDate: "",
 		flexibleDates: false,
 	})
 
@@ -97,18 +117,23 @@ export default function CreatePackagePage() {
 	}
 
 	const addItineraryPeriod = () => {
-		setPackageData((prev) => ({
-			...prev,
-			itinerary: [
-				...prev.itinerary,
-				{
-					dayRange: "",
-					title: "",
-					description: "",
-					location: "",
-				},
-			],
-		}))
+		setPackageData((prev) => {
+			const nextDay = prev.itinerary.length
+				? Math.max(...prev.itinerary.map((d) => d.day || 0)) + 1
+				: 1
+			return {
+				...prev,
+				itinerary: [
+					...prev.itinerary,
+					{
+						day: nextDay,
+						title: "",
+						description: "",
+						city: "",
+					},
+				],
+			}
+		})
 	}
 
 	const removeItineraryPeriod = (index: any) => {
@@ -124,6 +149,33 @@ export default function CreatePackagePage() {
 		setPackageData((prev) => ({
 			...prev,
 			itinerary: prev.itinerary.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
+		}))
+	}
+
+	const addAccommodation = () => {
+		setPackageData((prev) => ({
+			...prev,
+			accommodations: [...prev.accommodations, { ...emptyAccommodation }],
+		}))
+	}
+
+	const removeAccommodation = (index: number) => {
+		setPackageData((prev) => ({
+			...prev,
+			accommodations: prev.accommodations.filter((_, i) => i !== index),
+		}))
+	}
+
+	const updateAccommodation = <K extends keyof Accommodation>(
+		index: number,
+		field: K,
+		value: Accommodation[K]
+	) => {
+		setPackageData((prev) => ({
+			...prev,
+			accommodations: prev.accommodations.map((item, i) =>
+				i === index ? { ...item, [field]: value } : item
+			),
 		}))
 	}
 
@@ -189,11 +241,11 @@ export default function CreatePackagePage() {
 
 		if (
 			packageData.includeItinerary &&
-			packageData.itinerary.some((period) => !period.title.trim() || !period.dayRange.trim())
+			packageData.itinerary.some((period) => !period.title.trim() || !period.day || period.day < 1)
 		) {
 			toast({
 				title: "Validation Error",
-				description: "All itinerary periods must have a title and day range",
+				description: "All itinerary periods must have a title and a valid day number",
 				variant: "destructive",
 			})
 			return false
@@ -208,7 +260,7 @@ export default function CreatePackagePage() {
         return null; // Or a loading component, or router.push('/login');
     }
 
-	const handleSubmit = async (status = "draft") => {
+	const handleSubmit = async (status: PackageStatus = "draft") => {
 		if (isUnverified && status === "active") {
 			toast({
 				title: "Account Not Verified",
@@ -221,42 +273,50 @@ export default function CreatePackagePage() {
 
 		setLoading(true)
 		try {
-			const userProfile = await getUserData(user.uid)
 			const selectedServices = availableServices.filter((service) => packageData.services.includes(service.id))
 			const selectedImageData = packageImages.find((img) => img.id === packageData.selectedImage)
+			const slotCount = Number(packageData.slots)
 
-			const packagePayload = {
+			const packagePayload: Omit<Package, "id" | "createdAt" | "updatedAt"> = {
 				title: packageData.name,
-				type: packageData.type,
-				price: Number(packageData.price),
 				description:
 					packageData.description || `${packageData.type} package with ${selectedServices.length} services included`,
-				duration: Number(packageData.duration) || 7,
+				type: packageData.type as PackageType,
 				agencyId: user.uid,
 				agencyName: user.agencyName || user.displayName || user.email,
-				status: status || "active", // Default to 'active' (published)
-				services: selectedServices,
-				itinerary: packageData.includeItinerary ? packageData.itinerary : [],
+				price: Number(packageData.price),
+				minPaymentPercent: packageData.minPaymentPercent ? Number(packageData.minPaymentPercent) : undefined,
+				destination: packageData.destination.trim() || undefined,
+				departureCity: packageData.departureCity.trim() || undefined,
+				duration: Number(packageData.duration) || 7,
+				departureDate: packageData.flexibleDates ? undefined : packageData.departureDate || undefined,
+				returnDate: packageData.flexibleDates ? undefined : packageData.returnDate || undefined,
+				flexibleDates: packageData.flexibleDates,
+				groupSize: slotCount,
+				availableSlots: slotCount,
+				imageUrl: selectedImageData?.url || undefined,
 				inclusions: selectedServices.map((s) => s.label),
 				exclusions: availableServices
 					.filter((service) => !packageData.services.includes(service.id))
 					.map((s) => s.label),
-				groupSize: Number(packageData.slots),
-				minPaymentPercent: packageData.minPaymentPercent ? Number(packageData.minPaymentPercent) : undefined,
-				accommodationType: "Hotel",
-				transportation: packageData.services.includes("local-transportation") ? "Included" : "Not Included",
-				meals: packageData.services.includes("meals") ? "Included" : "Not Included",
-				imageUrl: selectedImageData?.url || "",
-				imageName: selectedImageData?.name || "",
-				slots: Number(packageData.slots),
+				accommodations: packageData.accommodations.length > 0 ? packageData.accommodations : undefined,
+				itinerary:
+					packageData.includeItinerary && packageData.itinerary.length > 0
+						? packageData.itinerary
+						: undefined,
+				status,
 			}
 
-			const result = await createPackage(packagePayload)
+			const cleanedPayload = Object.fromEntries(
+    Object.entries(packagePayload).filter(([_, value]) => value !== undefined)
+) as Omit<Package, "id" | "createdAt" | "updatedAt">
+
+const result = await createPackage(cleanedPayload)
 
 			toast({
-				title: (status || "active") === "active" ? "Package Published" : "Package Saved",
+				title: status === "active" ? "Package Published" : "Package Saved",
 				description:
-					(status || "active") === "active"
+					status === "active"
 						? "Your package has been published and is now visible to pilgrims"
 						: "Your package has been saved as a draft",
 				variant: "default",
@@ -278,6 +338,8 @@ export default function CreatePackagePage() {
 	const getSelectedServices = () => {
 		return availableServices.filter((service) => packageData.services.includes(service.id))
 	}
+
+	const accommodationServiceSelected = packageData.services.includes("accommodation")
 
 	return (
 		<ProtectedRoute allowedRoles={["agency"]}>
@@ -331,6 +393,27 @@ export default function CreatePackagePage() {
 													))}
 												</SelectContent>
 											</Select>
+										</div>
+									</div>
+
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div className="space-y-2">
+											<Label htmlFor="destination">Destination</Label>
+											<Input
+												id="destination"
+												placeholder="e.g., Makkah & Madinah, Saudi Arabia"
+												value={packageData.destination}
+												onChange={(e) => handleInputChange("destination", e.target.value)}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="departureCity">Departure City</Label>
+											<Input
+												id="departureCity"
+												placeholder="e.g., Lagos"
+												value={packageData.departureCity}
+												onChange={(e) => handleInputChange("departureCity", e.target.value)}
+											/>
 										</div>
 									</div>
 
@@ -489,6 +572,146 @@ export default function CreatePackagePage() {
 								</CardContent>
 							</Card>
 
+							{/* Accommodation Details (shown once "Accommodation" service is selected) */}
+							{accommodationServiceSelected && (
+								<Card>
+									<CardHeader>
+										<div className="flex items-center justify-between">
+											<div>
+												<CardTitle>Accommodation Details</CardTitle>
+												<CardDescription>Add the hotels pilgrims will stay in</CardDescription>
+											</div>
+											<Button type="button" variant="outline" size="sm" onClick={addAccommodation}>
+												<Plus className="h-4 w-4 mr-1" />
+												Add Hotel
+											</Button>
+										</div>
+									</CardHeader>
+									{packageData.accommodations.length > 0 && (
+										<CardContent className="space-y-4">
+											{packageData.accommodations.map((accommodation, index) => (
+												<div key={index} className="border rounded-lg p-4 space-y-3">
+													<div className="flex items-center justify-between">
+														<h4 className="font-medium">Hotel {index + 1}</h4>
+														<Button
+															type="button"
+															variant="ghost"
+															size="sm"
+															onClick={() => removeAccommodation(index)}
+														>
+															<Minus className="h-4 w-4" />
+														</Button>
+													</div>
+
+													<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+														<div className="space-y-2">
+															<Label>Hotel Name *</Label>
+															<Input
+																placeholder="e.g., Swissotel Al Maqam Makkah"
+																value={accommodation.hotelName}
+																onChange={(e) => updateAccommodation(index, "hotelName", e.target.value)}
+															/>
+														</div>
+														<div className="space-y-2">
+															<Label>City</Label>
+															<Input
+																placeholder="e.g., Makkah"
+																value={accommodation.city}
+																onChange={(e) => updateAccommodation(index, "city", e.target.value)}
+															/>
+														</div>
+													</div>
+
+													<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+														<div className="space-y-2">
+															<Label>Hotel Class</Label>
+															<Select
+																value={accommodation.hotelClass ? String(accommodation.hotelClass) : undefined}
+																onValueChange={(value) =>
+																	updateAccommodation(index, "hotelClass", Number(value) as 3 | 4 | 5)
+																}
+															>
+																<SelectTrigger>
+																	<SelectValue placeholder="Select" />
+																</SelectTrigger>
+																<SelectContent>
+																	<SelectItem value="3">3 Star</SelectItem>
+																	<SelectItem value="4">4 Star</SelectItem>
+																	<SelectItem value="5">5 Star</SelectItem>
+																</SelectContent>
+															</Select>
+														</div>
+														<div className="space-y-2">
+															<Label>Room Type</Label>
+															<Select
+																value={accommodation.roomType}
+																onValueChange={(value) =>
+																	updateAccommodation(index, "roomType", value as Accommodation["roomType"])
+																}
+															>
+																<SelectTrigger>
+																	<SelectValue placeholder="Select" />
+																</SelectTrigger>
+																<SelectContent>
+																	<SelectItem value="Single">Single</SelectItem>
+																	<SelectItem value="Double">Double</SelectItem>
+																	<SelectItem value="Triple">Triple</SelectItem>
+																	<SelectItem value="Quad">Quad</SelectItem>
+																</SelectContent>
+															</Select>
+														</div>
+														<div className="space-y-2">
+															<Label>Distance from Haram</Label>
+															<div className="flex gap-2">
+																<Input
+																	type="number"
+																	min={0}
+																	placeholder="e.g., 500"
+																	value={accommodation.distanceFromHaram?.value ?? ""}
+																	onChange={(e) =>
+																		updateAccommodation(index, "distanceFromHaram", {
+																			value: Number(e.target.value),
+																			unit: accommodation.distanceFromHaram?.unit ?? "m",
+																		})
+																	}
+																/>
+																<Select
+																	value={accommodation.distanceFromHaram?.unit ?? "m"}
+																	onValueChange={(value) =>
+																		updateAccommodation(index, "distanceFromHaram", {
+																			value: accommodation.distanceFromHaram?.value ?? 0,
+																			unit: value as "m" | "km",
+																		})
+																	}
+																>
+																	<SelectTrigger className="w-20">
+																		<SelectValue />
+																	</SelectTrigger>
+																	<SelectContent>
+																		<SelectItem value="m">m</SelectItem>
+																		<SelectItem value="km">km</SelectItem>
+																	</SelectContent>
+																</Select>
+															</div>
+														</div>
+													</div>
+
+													<div className="space-y-2">
+														<Label>Description</Label>
+														<Textarea
+															placeholder="Describe this accommodation..."
+															value={accommodation.description}
+															onChange={(e) => updateAccommodation(index, "description", e.target.value)}
+															rows={2}
+														/>
+													</div>
+												</div>
+											))}
+										</CardContent>
+									)}
+								</Card>
+							)}
+
 							{/* Itinerary (Optional) */}
 							<Card>
 								<CardHeader>
@@ -500,14 +723,14 @@ export default function CreatePackagePage() {
 											</CardTitle>
 											<CardDescription>
 												{packageData.includeItinerary
-													? "Plan the activities by day ranges for your package"
+													? "Plan the activities day by day for your package"
 													: "Check to add a detailed itinerary to your package"}
 											</CardDescription>
 										</div>
 										{packageData.includeItinerary && (
 											<Button type="button" variant="outline" size="sm" onClick={addItineraryPeriod}>
 												<Plus className="h-4 w-4 mr-1" />
-												Add Period
+												Add Day
 											</Button>
 										)}
 									</div>
@@ -517,7 +740,7 @@ export default function CreatePackagePage() {
 										{packageData.itinerary.map((period, index) => (
 											<div key={index} className="border rounded-lg p-4 space-y-3">
 												<div className="flex items-center justify-between">
-													<h4 className="font-medium">Period {index + 1}</h4>
+													<h4 className="font-medium">Day {period.day || index + 1}</h4>
 													{packageData.itinerary.length > 1 && (
 														<Button
 															type="button"
@@ -532,11 +755,13 @@ export default function CreatePackagePage() {
 
 												<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 													<div className="space-y-2">
-														<Label>Day Range *</Label>
+														<Label>Day Number *</Label>
 														<Input
-															placeholder="e.g., 1-3 or 4-7"
-															value={period.dayRange}
-															onChange={(e) => updateItineraryPeriod(index, "dayRange", e.target.value)}
+															type="number"
+															min={1}
+															placeholder="e.g., 1"
+															value={period.day}
+															onChange={(e) => updateItineraryPeriod(index, "day", Number(e.target.value))}
 														/>
 													</div>
 													<div className="space-y-2">
@@ -548,11 +773,11 @@ export default function CreatePackagePage() {
 														/>
 													</div>
 													<div className="space-y-2">
-														<Label>Location</Label>
+														<Label>City</Label>
 														<Input
 															placeholder="e.g., Makkah"
-															value={period.location}
-															onChange={(e) => updateItineraryPeriod(index, "location", e.target.value)}
+															value={period.city}
+															onChange={(e) => updateItineraryPeriod(index, "city", e.target.value)}
 														/>
 													</div>
 												</div>
@@ -560,7 +785,7 @@ export default function CreatePackagePage() {
 												<div className="space-y-2">
 													<Label>Description</Label>
 													<Textarea
-														placeholder="Describe the activities for this period..."
+														placeholder="Describe the activities for this day..."
 														value={period.description}
 														onChange={(e) => updateItineraryPeriod(index, "description", e.target.value)}
 														rows={2}
@@ -591,12 +816,12 @@ export default function CreatePackagePage() {
 											/>
 										</div>
 										<div className="space-y-2">
-											<Label htmlFor="arrivalDate">Arrival Date</Label>
+											<Label htmlFor="returnDate">Return Date</Label>
 											<Input
-												id="arrivalDate"
+												id="returnDate"
 												type="date"
-												value={packageData.arrivalDate}
-												onChange={(e) => handleInputChange("arrivalDate", e.target.value)}
+												value={packageData.returnDate}
+												onChange={(e) => handleInputChange("returnDate", e.target.value)}
 												disabled={packageData.flexibleDates}
 											/>
 										</div>
@@ -670,6 +895,14 @@ export default function CreatePackagePage() {
 										)}
 									</div>
 
+									{(packageData.destination || packageData.departureCity) && (
+										<div className="text-sm text-muted-foreground">
+											{packageData.departureCity && <span>From {packageData.departureCity}</span>}
+											{packageData.departureCity && packageData.destination && <span> → </span>}
+											{packageData.destination && <span>{packageData.destination}</span>}
+										</div>
+									)}
+
 									{packageData.price && (
 										<div>
 											<p className="text-2xl font-bold text-primary">₦{Number(packageData.price).toLocaleString()}</p>
@@ -711,6 +944,22 @@ export default function CreatePackagePage() {
 										</div>
 									)}
 
+									{packageData.accommodations.length > 0 && (
+										<div>
+											<h4 className="font-medium mb-2">Accommodations</h4>
+											<div className="space-y-1">
+												{packageData.accommodations
+													.filter((a) => a.hotelName)
+													.map((a, index) => (
+														<div key={index} className="text-sm">
+															<span className="font-medium">{a.hotelName}</span>
+															{a.city && <span className="text-muted-foreground"> ({a.city})</span>}
+														</div>
+													))}
+											</div>
+										</div>
+									)}
+
 									{packageData.includeItinerary && packageData.itinerary.some((period) => period.title) && (
 										<div>
 											<h4 className="font-medium mb-2">Itinerary Highlights</h4>
@@ -720,13 +969,13 @@ export default function CreatePackagePage() {
 													.slice(0, 3)
 													.map((period, index) => (
 														<div key={index} className="text-sm">
-															<span className="font-medium">Days {period.dayRange}:</span> {period.title}
-															{period.location && <span className="text-muted-foreground"> ({period.location})</span>}
+															<span className="font-medium">Day {period.day}:</span> {period.title}
+															{period.city && <span className="text-muted-foreground"> ({period.city})</span>}
 														</div>
 													))}
 												{packageData.itinerary.filter((period) => period.title).length > 3 && (
 													<p className="text-sm text-muted-foreground">
-														+{packageData.itinerary.filter((period) => period.title).length - 3} more periods
+														+{packageData.itinerary.filter((period) => period.title).length - 3} more days
 													</p>
 												)}
 											</div>

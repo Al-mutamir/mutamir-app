@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { CheckCircle, Download, Home, MapPin, ArrowLeft, Clock, Plane, Palette, User, Calendar, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { downloadBookingDetails } from "@/utils/print-utils"
+import { downloadBookingDetails } from "@/lib/utils/print-utils"
 import Image from "next/image"
 
 export default function BookingSuccessPage() {

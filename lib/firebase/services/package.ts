@@ -1,224 +1,224 @@
-// lib/firebase/services/packages.ts
+// lib/firebase/services/package.ts
 
 import {
+  addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
   orderBy,
+  query,
   serverTimestamp,
-} from "firebase/firestore";
+  updateDoc,
+  where,
+  limit,
+  QueryConstraint,
+} from "firebase/firestore"
 
-import { db } from "../config";
+import { db } from "../config"
+import type { Package, PackageStatus, PackageType } from "../interface/package"
 
-import type { Package } from "../interface/package";
+const COLLECTION_NAME = "packages"
 
-function checkDb() {
+function packageCollection() {
   if (!db) {
-    throw new Error("Firestore is not initialized.");
+    throw new Error("Firestore is not initialized.")
   }
 
-  return db;
+  return collection(db, COLLECTION_NAME)
 }
 
-/**
- * Get all packages
- */
+function packageDoc(id: string) {
+  if (!db) {
+    throw new Error("Firestore is not initialized.")
+  }
+
+  return doc(db, COLLECTION_NAME, id)
+}
+
+function mapPackage(document: any): Package {
+  return {
+    id: document.id,
+    ...(document.data() as Omit<Package, "id">),
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   GETTERS                                  */
+/* -------------------------------------------------------------------------- */
+
 export async function getAllPackages(): Promise<Package[]> {
-  try {
-    const firestore = checkDb();
+  const snapshot = await getDocs(
+    query(packageCollection(), orderBy("createdAt", "desc"))
+  )
 
-    const snapshot = await getDocs(
-      query(
-        collection(firestore, "packages"),
-        orderBy("createdAt", "desc")
-      )
-    );
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as Omit<Package, "id">),
-    }));
-  } catch (error) {
-    console.error("Error getting packages:", error);
-    return [];
-  }
+  return snapshot.docs.map(mapPackage)
 }
 
-/**
- * Get only published (active) packages
- */
 export async function getPublishedPackages(): Promise<Package[]> {
-  try {
-    const firestore = checkDb();
+  const snapshot = await getDocs(
+    query(
+      packageCollection(),
+      where("status", "==", "active"),
+      orderBy("createdAt", "desc")
+    )
+  )
 
-    const snapshot = await getDocs(
-      query(
-        collection(firestore, "packages"),
-        where("status", "==", "active"),
-        orderBy("createdAt", "desc")
-      )
-    );
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as Omit<Package, "id">),
-    }));
-  } catch (error) {
-    console.error("Error getting published packages:", error);
-    return [];
-  }
+  return snapshot.docs.map(mapPackage)
 }
 
-/**
- * Get package by ID
- */
 export async function getPackageById(
   packageId: string
 ): Promise<Package | null> {
-  try {
-    const firestore = checkDb();
+  const snapshot = await getDoc(packageDoc(packageId))
 
-    const snapshot = await getDoc(doc(firestore, "packages", packageId));
-
-    if (!snapshot.exists()) {
-      return null;
-    }
-
-    return {
-      id: snapshot.id,
-      ...(snapshot.data() as Omit<Package, "id">),
-    };
-  } catch (error) {
-    console.error("Error getting package:", error);
-    return null;
+  if (!snapshot.exists()) {
+    return null
   }
+
+  return mapPackage(snapshot)
 }
 
-/**
- * Get packages owned by an agency
- */
 export async function getPackagesByAgency(
   agencyId: string
 ): Promise<Package[]> {
-  try {
-    const firestore = checkDb();
+  const snapshot = await getDocs(
+    query(
+      packageCollection(),
+      where("agencyId", "==", agencyId),
+      orderBy("createdAt", "desc")
+    )
+  )
 
-    const snapshot = await getDocs(
-      query(
-        collection(firestore, "packages"),
-        where("agencyId", "==", agencyId),
-        orderBy("createdAt", "desc")
-      )
-    );
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as Omit<Package, "id">),
-    }));
-  } catch (error) {
-    console.error("Error getting agency packages:", error);
-    return [];
-  }
+  return snapshot.docs.map(mapPackage)
 }
 
-/**
- * Create package
- */
+/* -------------------------------------------------------------------------- */
+/*                                  FILTERS                                   */
+/* -------------------------------------------------------------------------- */
+
+export async function getPackagesByStatus(
+  status: PackageStatus
+): Promise<Package[]> {
+  const snapshot = await getDocs(
+    query(
+      packageCollection(),
+      where("status", "==", status),
+      orderBy("createdAt", "desc")
+    )
+  )
+
+  return snapshot.docs.map(mapPackage)
+}
+
+export async function getPackagesByType(
+  type: PackageType
+): Promise<Package[]> {
+  const snapshot = await getDocs(
+    query(
+      packageCollection(),
+      where("type", "==", type),
+      orderBy("createdAt", "desc")
+    )
+  )
+
+  return snapshot.docs.map(mapPackage)
+}
+
+export async function getPackagesByDestination(
+  destination: string
+): Promise<Package[]> {
+  const snapshot = await getDocs(
+    query(
+      packageCollection(),
+      where("destination", "==", destination),
+      where("status", "==", "active")
+    )
+  )
+
+  return snapshot.docs.map(mapPackage)
+}
+
+export async function getFeaturedPackages(
+  max = 6
+): Promise<Package[]> {
+  const snapshot = await getDocs(
+    query(
+      packageCollection(),
+      where("featured", "==", true),
+      where("status", "==", "active"),
+      limit(max)
+    )
+  )
+
+  return snapshot.docs.map(mapPackage)
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                  MUTATION                                  */
+/* -------------------------------------------------------------------------- */
+
 export async function createPackage(
-  packageData: Omit<Package, "id">
+  packageData: Omit<
+    Package,
+    "id" | "createdAt" | "updatedAt"
+  >
 ): Promise<string> {
-  try {
-    const firestore = checkDb();
+  const document = await addDoc(packageCollection(), {
+    ...packageData,
+    status: packageData.status ?? "draft",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
 
-    const docRef = await addDoc(collection(firestore, "packages"), {
-      ...packageData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    return docRef.id;
-  } catch (error) {
-    console.error("Error creating package:", error);
-    throw error;
-  }
+  return document.id
 }
 
-/**
- * Update package
- */
 export async function updatePackage(
   packageId: string,
   data: Partial<Package>
 ): Promise<void> {
-  try {
-    const firestore = checkDb();
-
-    await updateDoc(doc(firestore, "packages", packageId), {
-      ...data,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error("Error updating package:", error);
-    throw error;
-  }
+  await updateDoc(packageDoc(packageId), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
 }
 
-/**
- * Publish package
- */
 export async function publishPackage(
   packageId: string
 ): Promise<void> {
-  try {
-    const firestore = checkDb();
-
-    await updateDoc(doc(firestore, "packages", packageId), {
-      status: "active",
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error("Error publishing package:", error);
-    throw error;
-  }
+  return updatePackage(packageId, {
+    status: "active",
+  })
 }
 
-/**
- * Archive package
- */
 export async function archivePackage(
   packageId: string
 ): Promise<void> {
-  try {
-    const firestore = checkDb();
-
-    await updateDoc(doc(firestore, "packages", packageId), {
-      status: "archived",
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error("Error archiving package:", error);
-    throw error;
-  }
+  return updatePackage(packageId, {
+    status: "archived",
+  })
 }
 
-/**
- * Delete package
- */
+export async function markPackageFull(
+  packageId: string
+): Promise<void> {
+  return updatePackage(packageId, {
+    status: "full",
+  })
+}
+
+export async function restorePackage(
+  packageId: string
+): Promise<void> {
+  return updatePackage(packageId, {
+    status: "active",
+  })
+}
+
 export async function deletePackage(
   packageId: string
 ): Promise<void> {
-  try {
-    const firestore = checkDb();
-
-    await deleteDoc(doc(firestore, "packages", packageId));
-  } catch (error) {
-    console.error("Error deleting package:", error);
-    throw error;
-  }
+  await deleteDoc(packageDoc(packageId))
 }

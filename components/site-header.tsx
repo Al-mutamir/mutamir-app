@@ -23,7 +23,7 @@ import { User } from "@/lib/firebase/interface/user"
 
 export function SiteHeader() {
   const pathname = usePathname()
-  const { user, userRole, logout } = useAuth()
+  const { user, userRole, logout, pendingGoogleUser } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [userProfile, setUserProfile] = useState<User | null>(null)
@@ -167,9 +167,9 @@ export function SiteHeader() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-10 w-10 md:h-12 md:w-12">
                     <AvatarImage
-                      src={user.photoURL || `/placeholder.svg?height=32&width=32&text=${getInitials(getDisplayName())}`}
+                      src={(pendingGoogleUser?.photoURL ?? user?.photoURL) || `/placeholder.svg?height=32&width=32&text=${getInitials(getDisplayName())}`}
                     />
                     <AvatarFallback>{getInitials(getDisplayName())}</AvatarFallback>
                   </Avatar>
@@ -235,10 +235,10 @@ export function SiteHeader() {
               {user ? (
                 <>
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-muted">
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-12 w-12">
                       <AvatarImage
                         src={
-                          user.photoURL || `/placeholder.svg?height=32&width=32&text=${getInitials(getDisplayName())}`
+                          (pendingGoogleUser?.photoURL ?? user?.photoURL) || `/placeholder.svg?height=32&width=32&text=${getInitials(getDisplayName())}`
                         }
                       />
                       <AvatarFallback>{getInitials(getDisplayName())}</AvatarFallback>

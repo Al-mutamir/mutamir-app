@@ -53,26 +53,30 @@ type PackageService = {
 }
 
 type Accommodation = {
-  name: string
-  location?: string
+  hotelName: string
+  city?: string
   description?: string
-  type?: string
-  distance?: string
-  pricePerNight?: string
+  hotelClass?: 3 | 4 | 5
+  roomType?: "Single" | "Double" | "Triple" | "Quad"
+  distanceFromHaram?: {
+    value: number
+    unit: "m" | "km"
+  }
+  images?: string[]
 }
 
 type ItineraryPeriod = {
-  dayRange: string
-  location?: string
-  title?: string
-  description?: string
+  day: number
+  city?: string
+  title: string
+  description: string
 }
 
 type PackageData = {
   arrivalDate: any
   flexibleDates: any
-  inclusions: []
-  exclusions: []
+  inclusions: string[]
+  exclusions: string[]
   id: string
   title: string
   type?: string
@@ -392,7 +396,7 @@ export default function PackageDetailsPage() {
               paymentStatus: paymentOption === 'full' ? 'paid' : 'partial payment',
               paymentReference: reference?.reference,
               departureDate: packageData?.departureDate || packageData?.startDate,
-              returnDate: packageData?.arrivalDate || packageData?.endDate || null,
+              returnDate: packageData?.returnDate || packageData?.arrivalDate || packageData?.endDate || null,
               duration: packageData?.duration,
               location: packageData?.location || packageData?.destination || "Makkah & Madinah",
             }
@@ -701,9 +705,9 @@ export default function PackageDetailsPage() {
                         {packageData.itinerary.map((period, index) => (
                           <div key={index} className="border-l-2 border-primary pl-4 pb-2">
                             <h3 className="font-semibold text-lg">
-                              Days {period.dayRange}
-                              {period.location && (
-                                <span className="text-muted-foreground ml-2">({period.location})</span>
+                              Day {period.day}
+                              {period.city && (
+                                <span className="text-muted-foreground ml-2">({period.city})</span>
                               )}
                             </h3>
                             <h4 className="font-medium mt-1">{period.title}</h4>
@@ -736,21 +740,22 @@ export default function PackageDetailsPage() {
                         {packageData.accommodations.map((accommodation, index) => (
                           <div key={index} className="border rounded-lg p-4">
                             <div className="flex justify-between items-start">
-                              <h3 className="font-semibold">{accommodation.name}</h3>
-                              <Badge variant="outline">{accommodation.location || "Makkah/Madinah"}</Badge>
+                              <h3 className="font-semibold">{accommodation.hotelName}</h3>
+                              <Badge variant="outline">{accommodation.city || "Makkah/Madinah"}</Badge>
                             </div>
                             <p className="text-gray-600 mt-2">{accommodation.description}</p>
                             <div className="mt-4 flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Building className="h-4 w-4 text-gray-500" />
                                 <span className="text-sm text-gray-500">
-                                  {accommodation.type || "Hotel"} • {accommodation.distance || "Near Haram"}
+                                  {accommodation.roomType || "Room"} •{" "}
+                                  {accommodation.distanceFromHaram
+                                    ? `${accommodation.distanceFromHaram.value}${accommodation.distanceFromHaram.unit} from Haram`
+                                    : "Near Haram"}
                                 </span>
                               </div>
                               <span className="font-medium">
-                                {accommodation.pricePerNight
-                                  ? `₦${Number.parseInt(accommodation.pricePerNight).toLocaleString()} per night`
-                                  : "Included in package"}
+                                {accommodation.hotelClass ? `${accommodation.hotelClass}★ Hotel` : "Included in package"}
                               </span>
                             </div>
                           </div>

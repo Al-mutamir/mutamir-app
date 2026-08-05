@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Download, Printer, ArrowLeft } from "lucide-react"
-import { printElement, downloadBookingDetails} from "@/utils/print-utils"
+import { printElement, downloadBookingDetails} from "@/lib/utils/print-utils"
 
 const BookingPage = () => {
   const params = useParams()

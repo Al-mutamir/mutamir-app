@@ -1,12 +1,59 @@
-      // Send confirmation email
-      const emailRes = await fetch("/api/send-confirmation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: mainPilgrim.email,
-          subject: "Your Al-mutamir Booking Confirmation",
-          text: `Dear ${mainPilgrim.firstName},\n\nYour booking has been received. We will contact you soon.\n\nThank you for choosing Al-mutamir!`,
-          html: `<!DOCTYPE html>
+// utils/confirmServiceRequest.ts
+
+interface ServiceRequestPilgrim {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+}
+
+interface RequestedServiceSummary {
+  selected: boolean
+  tier?: string
+}
+
+interface ServiceRequestConfirmationDetails {
+  mainPilgrim: ServiceRequestPilgrim
+  packageType: string
+  departureDate: string
+  returnDate: string
+  departureCity: string
+  pilgrims: ServiceRequestPilgrim[]
+  preferredItinerary: string[]
+  selectedServices: Record<string, RequestedServiceSummary>
+}
+
+/**
+ * Send the branded confirmation email for a submitted custom pilgrimage
+ * request. Mirrors the pattern used by sendWelcomeEmail.ts — a standalone
+ * utility the page calls, rather than an inline fetch in the component.
+ *
+ * This is a best-effort side effect: callers should not treat a rejected
+ * promise here as a failed submission, since the request itself is already
+ * persisted by the time this runs.
+ */
+export async function sendServiceRequestConfirmation(
+  details: ServiceRequestConfirmationDetails
+) {
+  const {
+    mainPilgrim,
+    packageType,
+    departureDate,
+    returnDate,
+    departureCity,
+    pilgrims,
+    preferredItinerary,
+    selectedServices,
+  } = details
+
+  await fetch("/api/send-confirmation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: mainPilgrim.email,
+      subject: "Your Al-mutamir Booking Confirmation",
+      text: `Dear ${mainPilgrim.firstName},\n\nYour booking has been received. We will contact you soon.\n\nThank you for choosing Al-mutamir!`,
+      html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -264,7 +311,7 @@
                 <div class="highlight-title">What happens next?</div>
                 <div class="highlight-text">
                     Our team will review your booking and contact you within 24-48 hours to confirm all details and arrange payment. 
-                    SWe'll also send you a comprehensive guide to help you prepare for your journey.
+                    We'll also send you a comprehensive guide to help you prepare for your journey.
                 </div>
             </div>
             
@@ -334,6 +381,7 @@
         </div>
     </div>
 </body>
-</html></p>`,
-        }),
-      })
+</html>`,
+    }),
+  })
+}

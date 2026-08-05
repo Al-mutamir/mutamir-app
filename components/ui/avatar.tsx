@@ -23,13 +23,31 @@ Avatar.displayName = AvatarPrimitive.Root.displayName
 const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image
-    ref={ref}
-    className={cn("aspect-square h-full w-full", className)}
-    {...props}
-  />
-))
+>(({ className, onLoad, ...props }, ref) => {
+  const [loaded, setLoaded] = React.useState(false)
+
+  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    setLoaded(true)
+    if (onLoad) {
+      // forward the original onLoad if provided
+      // @ts-ignore
+      onLoad(e)
+    }
+  }
+
+  return (
+    <AvatarPrimitive.Image
+      ref={ref}
+      {...props}
+      onLoad={handleLoad}
+      className={cn(
+        "aspect-square h-full w-full object-cover transition-all duration-500 ease-out",
+        !loaded && "opacity-0 scale-105 blur-sm",
+        className
+      )}
+    />
+  )
+})
 AvatarImage.displayName = AvatarPrimitive.Image.displayName
 
 const AvatarFallback = React.forwardRef<

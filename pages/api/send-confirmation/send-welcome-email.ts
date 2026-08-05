@@ -1,24 +1,20 @@
-import nodemailer from "nodemailer"
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { sendWelcomeEmail } from '@/lib/email/send'
 
-// Use environment variables for security in production!
-  const our_email = "almutamirpilgrimage@gmail.com"
-  const password = "dallvtfvidpkpadt"
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'Method not allowed' })
+  }
 
-export async function sendWelcomeEmail(email: string, name: string) {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: our_email,
-      pass: password,
-    }
-  })
+  try {
+    const { email, name } = req.body || {}
+    if (!email) return res.status(400).json({ ok: false, error: 'email is required' })
 
-  await transporter.sendMail({
-    from: '"Al-Mutamir" <no-reply@al-mutamir.com>',
-    to: email,
-    subject: "Welcome to Al-Mutamir!",
-    html: `<p>Dear ${name},</p>
-      <p>Welcome to Al-Mutamir! We're excited to have you on board.</p>
-      <p>Best regards,<br/>The Al-Mutamir Team</p>`,
-  })
+    await sendWelcomeEmail({ to: email, name: name ?? '' })
+
+    return res.status(200).json({ ok: true })
+  } catch (err: any) {
+    console.error('send-welcome-email error', err)
+    return res.status(500).json({ ok: false, error: err?.message || 'send failed' })
+  }
 }

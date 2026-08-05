@@ -1,4 +1,3 @@
-
 /**
  * Utility function to print a specific element with receipt-style design
  * @param elementId The ID of the element to print
@@ -418,6 +417,14 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
   const isGroupBooking = details.isGroupBooking || false
   const totalPilgrims = pilgrims.length
 
+  // Status defaults to "confirmed" so existing callers that don't pass a
+  // status keep their prior behavior. Requests that are still pending
+  // review (e.g. a freshly submitted custom request) should explicitly
+  // pass status: "pending" so the receipt doesn't claim to be confirmed.
+  const isPending = details.status === "pending"
+  const statusBadgeText = isPending ? "PENDING CONFIRMATION" : "CONFIRMED"
+  const statusValueText = isPending ? "Pending" : "Confirmed"
+
   // Generate HTML for selected services
   const services = details.services || {}
   const selectedServicesHTML = Object.entries(services)
@@ -783,7 +790,7 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
               </div>
               <div class="status-badge">
                 <span>⏱</span>
-                CONFIRMED
+                ${statusBadgeText}
               </div>
             </div>
             
@@ -830,7 +837,7 @@ function generateBookingReceiptHTML(bookingRef: string, details: any): string {
               <div class="detail-row">
                 <div class="detail-col">
                   <div class="detail-label">Status</div>
-                  <div class="detail-value accent">Confirmed</div>
+                  <div class="detail-value accent">${statusValueText}</div>
                 </div>
                 <div class="detail-col">
                   <div class="detail-label">${isGroupBooking ? 'Group Size' : 'Pilgrims'}</div>
@@ -960,6 +967,7 @@ Package Type: ${isHajj ? 'Hajj' : 'Umrah'}
   }
 
   bookingDetails += `Booking Type: ${isGroupBooking ? 'Group Booking' : 'Individual Booking'}
+Status: ${details.status === 'pending' ? 'Pending' : 'Confirmed'}
 Number of Pilgrims: ${pilgrims.length}
 Departure City: ${details.departureCity || 'Not specified'}
 Departure Date: ${details.departureDate || 'Not specified'}
