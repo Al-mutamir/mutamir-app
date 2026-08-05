@@ -1,3 +1,4 @@
+//Send.ts file
 import nodemailer from 'nodemailer'
 import AlMutamirEmail from '@/components/email/AlMutamirEmail'
 import { getRandomEmailHero } from '@/components/email/hero'
